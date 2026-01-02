@@ -40,18 +40,12 @@ export function useTasks() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
-    const { data: userData } = await supabase
-      .from('users')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
     const { data, error } = await supabase
       .from('tasks')
       .insert({
         ...task,
-        organization_id: userData?.organization_id,
         created_by: user.id,
+        inbox_user_id: task.inbox_type === 'personal' ? user.id : null,
       })
       .select()
       .single()
