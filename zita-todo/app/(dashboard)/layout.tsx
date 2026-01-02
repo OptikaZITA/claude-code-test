@@ -33,27 +33,33 @@ export default function DashboardLayout({
   const router = useRouter()
   const supabase = createClient()
 
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
     const fetchData = async () => {
       // Fetch user
       const { data: { user: authUser } } = await supabase.auth.getUser()
-      if (authUser) {
-        const { data: userData } = await supabase
-          .from('users')
-          .select('full_name, email, avatar_url')
-          .eq('id', authUser.id)
-          .single()
 
-        if (userData) {
-          setUser(userData)
-        } else {
-          // Fallback to auth user data
-          setUser({
-            full_name: authUser.user_metadata?.full_name || null,
-            email: authUser.email || '',
-            avatar_url: null
-          })
-        }
+      if (!authUser) {
+        router.push('/login')
+        return
+      }
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('full_name, email, avatar_url')
+        .eq('id', authUser.id)
+        .single()
+
+      if (userData) {
+        setUser(userData)
+      } else {
+        // Fallback to auth user data
+        setUser({
+          full_name: authUser.user_metadata?.full_name || null,
+          email: authUser.email || '',
+          avatar_url: null
+        })
       }
 
       // Fetch areas with projects
@@ -75,10 +81,12 @@ export default function DashboardLayout({
       if (areasData) {
         setAreas(areasData as Area[])
       }
+
+      setLoading(false)
     }
 
     fetchData()
-  }, [supabase])
+  }, [supabase, router])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -94,6 +102,14 @@ export default function DashboardLayout({
   const handleCreateProject = (areaId?: string) => {
     // TODO: Open create project modal
     console.log('Create project in area:', areaId)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#F5F5F7]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#007AFF] border-t-transparent" />
+      </div>
+    )
   }
 
   return (
