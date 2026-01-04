@@ -5,7 +5,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Calendar, Clock } from 'lucide-react'
 import { TaskWithRelations, TaskPriority } from '@/types'
 import { Avatar } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
+import { TagChipList } from '@/components/tags'
 import { cn } from '@/lib/utils/cn'
 import { formatDate, formatDurationShort, isOverdue } from '@/lib/utils/date'
 
@@ -56,15 +56,14 @@ export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
       {/* Priority indicator + tags */}
       <div className="mb-2 flex items-center gap-2">
         <div className={cn('h-2 w-2 rounded-full', priorityDots[task.priority])} />
-        {task.tags?.slice(0, 2).map((tag) => (
-          <Badge
-            key={tag.id}
-            className="text-xs"
-            style={{ backgroundColor: tag.color ? `${tag.color}20` : undefined }}
-          >
-            {tag.name}
-          </Badge>
-        ))}
+        {task.tags && task.tags.length > 0 && (
+          <TagChipList tags={task.tags.slice(0, 2)} size="sm" />
+        )}
+        {task.tags && task.tags.length > 2 && (
+          <span className="text-xs text-[var(--text-secondary)]">
+            +{task.tags.length - 2}
+          </span>
+        )}
       </div>
 
       {/* Title */}

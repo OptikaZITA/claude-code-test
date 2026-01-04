@@ -11,7 +11,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
-import { TaskWithRelations, TaskPriority, ChecklistItem } from '@/types'
+import { TaskWithRelations, TaskPriority, ChecklistItem, Tag as TagType } from '@/types'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,6 +21,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { Timer, TimerDisplay } from '@/components/time-tracking/timer'
 import { TimeEntriesList } from '@/components/time-tracking/time-entries-list'
 import { Checklist } from '@/components/tasks/checklist'
+import { TagSelector } from '@/components/tags'
 import { useTimeTracking } from '@/lib/hooks/use-time-tracking'
 import { formatDate, formatDurationShort } from '@/lib/utils/date'
 import { cn } from '@/lib/utils/cn'
@@ -245,23 +246,13 @@ export function TaskDetail({
             )}
 
             {/* Tags */}
-            {task.tags && task.tags.length > 0 && (
-              <div className="flex items-center gap-3">
-                <Tag className="h-4 w-4 text-[#86868B]" />
-                <div className="flex flex-wrap gap-1">
-                  {task.tags.map((tag) => (
-                    <Badge
-                      key={tag.id}
-                      style={{
-                        backgroundColor: tag.color ? `${tag.color}20` : undefined,
-                      }}
-                    >
-                      {tag.name}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
+            <div className="flex items-start gap-3">
+              <Tag className="h-4 w-4 text-[var(--text-secondary)] mt-1" />
+              <TagSelector
+                taskId={task.id}
+                selectedTags={task.tags || []}
+              />
+            </div>
 
             {/* Total time */}
             <div className="flex items-center gap-3">

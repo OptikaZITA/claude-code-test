@@ -4,7 +4,7 @@ import { Calendar, Clock } from 'lucide-react'
 import { TaskWithRelations, TaskPriority } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
+import { TagChipList } from '@/components/tags'
 import { cn } from '@/lib/utils/cn'
 import { formatDate, formatDurationShort, isOverdue } from '@/lib/utils/date'
 
@@ -77,15 +77,9 @@ export function TaskItem({ task, onClick, onComplete }: TaskItemProps) {
             </span>
           )}
 
-          {task.tags?.map((tag) => (
-            <Badge
-              key={tag.id}
-              className="text-xs"
-              style={{ backgroundColor: tag.color ? `${tag.color}20` : undefined }}
-            >
-              {tag.name}
-            </Badge>
-          ))}
+          {task.tags && task.tags.length > 0 && (
+            <TagChipList tags={task.tags} size="sm" />
+          )}
         </div>
       </div>
 
