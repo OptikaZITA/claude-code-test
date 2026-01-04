@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import {
   X,
   Calendar,
@@ -11,7 +11,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
-import { TaskWithRelations, TaskPriority } from '@/types'
+import { TaskWithRelations, TaskPriority, ChecklistItem } from '@/types'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar } from '@/components/ui/avatar'
 import { Timer, TimerDisplay } from '@/components/time-tracking/timer'
 import { TimeEntriesList } from '@/components/time-tracking/time-entries-list'
+import { Checklist } from '@/components/tasks/checklist'
 import { useTimeTracking } from '@/lib/hooks/use-time-tracking'
 import { formatDate, formatDurationShort } from '@/lib/utils/date'
 import { cn } from '@/lib/utils/cn'
@@ -57,6 +58,9 @@ export function TaskDetail({
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description || '')
+  const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>(
+    task.checklist_items || []
+  )
   const [showTimeEntries, setShowTimeEntries] = useState(false)
 
   const {
@@ -71,10 +75,18 @@ export function TaskDetail({
 
   const handleSave = () => {
     if (onUpdate) {
-      onUpdate({ title, description })
+      onUpdate({ title, description, checklist_items: checklistItems })
     }
     setIsEditing(false)
   }
+
+  const handleChecklistChange = useCallback((items: ChecklistItem[]) => {
+    setChecklistItems(items)
+    // Auto-save checklist changes
+    if (onUpdate) {
+      onUpdate({ checklist_items: items })
+    }
+  }, [onUpdate])
 
   const handleCancel = () => {
     setTitle(task.title)
@@ -163,7 +175,7 @@ export function TaskDetail({
 
           {/* Description */}
           <div className="mb-6">
-            <label className="mb-2 block text-sm font-medium text-[#1D1D1F]">
+            <label className="mb-2 block text-sm font-medium text-[var(--text-primary)]">
               Popis
             </label>
             {isEditing ? (
@@ -174,10 +186,18 @@ export function TaskDetail({
                 rows={4}
               />
             ) : (
-              <p className="text-sm text-[#86868B]">
+              <p className="text-sm text-[var(--text-secondary)]">
                 {task.description || 'Žiadny popis'}
               </p>
             )}
+          </div>
+
+          {/* Checklist */}
+          <div className="mb-6 rounded-xl bg-[var(--bg-secondary)] p-4">
+            <Checklist
+              items={checklistItems}
+              onChange={handleChecklistChange}
+            />
           </div>
 
           {/* Meta information */}
