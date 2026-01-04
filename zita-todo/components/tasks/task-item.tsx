@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect, useCallback } from 'react'
 import { Clock } from 'lucide-react'
 import { TaskWithRelations, TaskPriority } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -7,13 +8,19 @@ import { Avatar } from '@/components/ui/avatar'
 import { TagChipList } from '@/components/tags'
 import { WhenBadge } from '@/components/tasks/when-picker'
 import { DeadlineBadge } from '@/components/tasks/deadline-picker'
+import { TaskItemExpanded } from '@/components/tasks/task-item-expanded'
 import { cn } from '@/lib/utils/cn'
 import { formatDurationShort } from '@/lib/utils/date'
 
 interface TaskItemProps {
   task: TaskWithRelations
-  onClick: () => void
+  isExpanded?: boolean
+  onExpand?: () => void
+  onCollapse?: () => void
+  onClick?: () => void
   onComplete: (completed: boolean) => void
+  onUpdate?: (updates: Partial<TaskWithRelations>) => void
+  enableInlineEdit?: boolean
 }
 
 const priorityColors: Record<TaskPriority, string> = {
@@ -23,9 +30,62 @@ const priorityColors: Record<TaskPriority, string> = {
   low: 'border-l-[var(--text-secondary)]',
 }
 
-export function TaskItem({ task, onClick, onComplete }: TaskItemProps) {
-  const isCompleted = task.status === 'done'
+// Hook to detect mobile
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
 
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  return isMobile
+}
+
+export function TaskItem({
+  task,
+  isExpanded = false,
+  onExpand,
+  onCollapse,
+  onClick,
+  onComplete,
+  onUpdate,
+  enableInlineEdit = true,
+}: TaskItemProps) {
+  const isCompleted = task.status === 'done'
+  const isMobile = useIsMobile()
+
+  const handleClick = useCallback(() => {
+    if (enableInlineEdit && isMobile) {
+      // Single click on mobile expands
+      onExpand?.()
+    } else {
+      onClick?.()
+    }
+  }, [enableInlineEdit, isMobile, onExpand, onClick])
+
+  const handleDoubleClick = useCallback(() => {
+    if (enableInlineEdit && !isMobile) {
+      // Double click on desktop expands
+      onExpand?.()
+    }
+  }, [enableInlineEdit, isMobile, onExpand])
+
+  // If expanded, render the expanded view
+  if (isExpanded && enableInlineEdit) {
+    return (
+      <TaskItemExpanded
+        task={task}
+        onUpdate={onUpdate || (() => {})}
+        onComplete={onComplete}
+        onCollapse={onCollapse || (() => {})}
+      />
+    )
+  }
+
+  // Collapsed view
   return (
     <div
       className={cn(
@@ -33,7 +93,8 @@ export function TaskItem({ task, onClick, onComplete }: TaskItemProps) {
         priorityColors[task.priority],
         isCompleted && 'opacity-60'
       )}
-      onClick={onClick}
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
     >
       <div onClick={(e) => e.stopPropagation()}>
         <Checkbox

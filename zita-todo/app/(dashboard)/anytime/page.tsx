@@ -51,6 +51,15 @@ export default function AnytimePage() {
     }
   }
 
+  const handleInlineTaskUpdate = async (taskId: string, updates: Partial<TaskWithRelations>) => {
+    try {
+      await updateTask(taskId, updates)
+      refetch()
+    } catch (error) {
+      console.error('Error updating task:', error)
+    }
+  }
+
   if (loading) {
     return (
       <div className="h-full">
@@ -97,6 +106,7 @@ export default function AnytimePage() {
           tasks={tasks}
           onTaskClick={setSelectedTask}
           onTaskComplete={handleTaskComplete}
+          onTaskUpdate={handleInlineTaskUpdate}
           onQuickAdd={handleQuickAdd}
           emptyMessage=""
         />

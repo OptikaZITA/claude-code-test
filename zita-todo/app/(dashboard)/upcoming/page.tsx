@@ -104,6 +104,15 @@ export default function UpcomingPage() {
     }
   }
 
+  const handleInlineTaskUpdate = async (taskId: string, updates: Partial<TaskWithRelations>) => {
+    try {
+      await updateTask(taskId, updates)
+      refetch()
+    } catch (error) {
+      console.error('Error updating task:', error)
+    }
+  }
+
   const formatDateHeader = (dateStr: string) => {
     const date = parseISO(dateStr)
     const today = startOfDay(new Date())
@@ -226,6 +235,7 @@ export default function UpcomingPage() {
                         tasks={dateTasks}
                         onTaskClick={setSelectedTask}
                         onTaskComplete={handleTaskComplete}
+                        onTaskUpdate={handleInlineTaskUpdate}
                         onQuickAdd={handleQuickAdd}
                         showQuickAdd={!!isSelectedDateGroup}
                         emptyMessage=""

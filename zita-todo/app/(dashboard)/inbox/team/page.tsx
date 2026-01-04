@@ -12,7 +12,7 @@ import { Users } from 'lucide-react'
 
 export default function TeamInboxPage() {
   const { tasks, loading, error, refetch } = useInboxTasks('team')
-  const { createTask, completeTask } = useTasks()
+  const { createTask, updateTask, completeTask } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
 
   // Listen for task:moved events to refresh the list
@@ -36,6 +36,15 @@ export default function TeamInboxPage() {
       refetch()
     } catch (error) {
       console.error('Error completing task:', error)
+    }
+  }
+
+  const handleTaskUpdate = async (taskId: string, updates: Partial<TaskWithRelations>) => {
+    try {
+      await updateTask(taskId, updates)
+      refetch()
+    } catch (error) {
+      console.error('Error updating task:', error)
     }
   }
 
@@ -82,6 +91,7 @@ export default function TeamInboxPage() {
           tasks={tasks}
           onTaskClick={setSelectedTask}
           onTaskComplete={handleTaskComplete}
+          onTaskUpdate={handleTaskUpdate}
           onQuickAdd={handleQuickAdd}
           emptyMessage=""
         />
