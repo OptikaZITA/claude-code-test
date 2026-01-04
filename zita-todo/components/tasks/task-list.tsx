@@ -63,19 +63,35 @@ export function TaskList({
     }
   }, [expandedTaskId])
 
-  // Handle Escape key to collapse
+  // Handle Escape key to collapse and Backspace/Delete to delete
   useEffect(() => {
     if (!expandedTaskId) return
 
-    const handleEscape = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input or textarea
+      const target = e.target as HTMLElement
+      const isTyping = target.tagName === 'INPUT' ||
+                       target.tagName === 'TEXTAREA' ||
+                       target.isContentEditable
+
       if (e.key === 'Escape') {
         setExpandedTaskId(null)
+        return
+      }
+
+      // Backspace or Delete to delete task (only when not typing)
+      if ((e.key === 'Backspace' || e.key === 'Delete') && !isTyping) {
+        e.preventDefault()
+        if (onTaskDelete) {
+          onTaskDelete(expandedTaskId)
+          setExpandedTaskId(null)
+        }
       }
     }
 
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [expandedTaskId])
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [expandedTaskId, onTaskDelete])
 
   const handleTaskExpand = (taskId: string) => {
     setExpandedTaskId(taskId)

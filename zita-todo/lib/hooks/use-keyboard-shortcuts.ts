@@ -103,6 +103,13 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
       action: () => router.push('/inbox/team'),
       category: 'navigation',
     },
+    // Task actions (when task is expanded)
+    {
+      key: 'Backspace',
+      description: 'Vymazať úlohu (keď je rozbalená)',
+      action: () => {}, // Handled in TaskList component
+      category: 'actions',
+    },
     // Other
     {
       key: '?',
