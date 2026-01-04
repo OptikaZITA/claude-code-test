@@ -115,10 +115,13 @@ export function useInboxTasks(type: 'personal' | 'team') {
         .from('tasks')
         .select(`
           *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url)
+          assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
+          project:projects(id, name, color)
         `)
         .eq('inbox_type', type)
+        .eq('when_type', 'inbox')
         .is('archived_at', null)
+        .neq('status', 'done')
         .order('created_at', { ascending: false })
 
       if (type === 'personal') {
@@ -135,6 +138,211 @@ export function useInboxTasks(type: 'personal' | 'team') {
       setLoading(false)
     }
   }, [supabase, type])
+
+  useEffect(() => {
+    fetchTasks()
+  }, [fetchTasks])
+
+  return { tasks, loading, error, refetch: fetchTasks }
+}
+
+// Today view - tasks for today
+export function useTodayTasks() {
+  const [tasks, setTasks] = useState<TaskWithRelations[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+  const supabase = createClient()
+
+  const fetchTasks = useCallback(async () => {
+    try {
+      setLoading(true)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const today = new Date().toISOString().split('T')[0]
+
+      // Get tasks that are:
+      // 1. when_type = 'today'
+      // 2. when_type = 'scheduled' AND when_date = today
+      // 3. Overdue tasks (due_date < today AND status != done)
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
+          project:projects(id, name, color)
+        `)
+        .or(`when_type.eq.today,and(when_type.eq.scheduled,when_date.eq.${today}),and(due_date.lt.${today},status.neq.done)`)
+        .is('archived_at', null)
+        .neq('status', 'done')
+        .order('sort_order', { ascending: true })
+
+      if (error) throw error
+      setTasks(data || [])
+    } catch (err) {
+      setError(err as Error)
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase])
+
+  useEffect(() => {
+    fetchTasks()
+  }, [fetchTasks])
+
+  return { tasks, loading, error, refetch: fetchTasks }
+}
+
+// Upcoming view - scheduled tasks in the future
+export function useUpcomingTasks() {
+  const [tasks, setTasks] = useState<TaskWithRelations[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+  const supabase = createClient()
+
+  const fetchTasks = useCallback(async () => {
+    try {
+      setLoading(true)
+      const today = new Date().toISOString().split('T')[0]
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
+          project:projects(id, name, color)
+        `)
+        .eq('when_type', 'scheduled')
+        .gt('when_date', today)
+        .is('archived_at', null)
+        .neq('status', 'done')
+        .order('when_date', { ascending: true })
+
+      if (error) throw error
+      setTasks(data || [])
+    } catch (err) {
+      setError(err as Error)
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase])
+
+  useEffect(() => {
+    fetchTasks()
+  }, [fetchTasks])
+
+  return { tasks, loading, error, refetch: fetchTasks }
+}
+
+// Anytime view - tasks without specific time
+export function useAnytimeTasks() {
+  const [tasks, setTasks] = useState<TaskWithRelations[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+  const supabase = createClient()
+
+  const fetchTasks = useCallback(async () => {
+    try {
+      setLoading(true)
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
+          project:projects(id, name, color)
+        `)
+        .eq('when_type', 'anytime')
+        .is('archived_at', null)
+        .neq('status', 'done')
+        .order('sort_order', { ascending: true })
+
+      if (error) throw error
+      setTasks(data || [])
+    } catch (err) {
+      setError(err as Error)
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase])
+
+  useEffect(() => {
+    fetchTasks()
+  }, [fetchTasks])
+
+  return { tasks, loading, error, refetch: fetchTasks }
+}
+
+// Someday view - tasks for "maybe later"
+export function useSomedayTasks() {
+  const [tasks, setTasks] = useState<TaskWithRelations[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+  const supabase = createClient()
+
+  const fetchTasks = useCallback(async () => {
+    try {
+      setLoading(true)
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
+          project:projects(id, name, color)
+        `)
+        .eq('when_type', 'someday')
+        .is('archived_at', null)
+        .neq('status', 'done')
+        .order('sort_order', { ascending: true })
+
+      if (error) throw error
+      setTasks(data || [])
+    } catch (err) {
+      setError(err as Error)
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase])
+
+  useEffect(() => {
+    fetchTasks()
+  }, [fetchTasks])
+
+  return { tasks, loading, error, refetch: fetchTasks }
+}
+
+// Logbook view - completed tasks
+export function useLogbookTasks() {
+  const [tasks, setTasks] = useState<TaskWithRelations[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+  const supabase = createClient()
+
+  const fetchTasks = useCallback(async () => {
+    try {
+      setLoading(true)
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
+          project:projects(id, name, color)
+        `)
+        .eq('status', 'done')
+        .is('archived_at', null)
+        .order('completed_at', { ascending: false })
+        .limit(100)
+
+      if (error) throw error
+      setTasks(data || [])
+    } catch (err) {
+      setError(err as Error)
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase])
 
   useEffect(() => {
     fetchTasks()
