@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 
 interface ServiceWorkerState {
   isSupported: boolean
@@ -18,35 +18,32 @@ export function useServiceWorker() {
     registration: null,
   })
 
-  // Actual network check - more reliable than navigator.onLine
+  const offlineConfirmedRef = useRef(false)
+
+  // Reliable network check using multiple methods
   const checkOnlineStatus = useCallback(async (): Promise<boolean> => {
     // If navigator.onLine is false, we're definitely offline
     if (!navigator.onLine) {
       return false
     }
 
-    // navigator.onLine can be unreliable (returns true even when offline)
-    // So we do an actual network request to verify
+    // Try to fetch a small resource to verify actual connectivity
+    // Use favicon as it's small and always exists
     try {
-      // Use a small request to check connectivity
-      // We use the Supabase health endpoint or a simple HEAD request
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000)
+      const timeoutId = setTimeout(() => controller.abort(), 3000)
 
-      const response = await fetch('/api/health', {
+      const response = await fetch('/favicon.ico', {
         method: 'HEAD',
         cache: 'no-store',
         signal: controller.signal,
-      }).catch(() => null)
+      })
 
       clearTimeout(timeoutId)
-
-      // If we get any response (even 404), we're online
-      // If fetch fails completely, we're offline
-      return response !== null
+      return response.ok || response.status === 304
     } catch {
-      // If the health check fails, fall back to navigator.onLine
-      // This handles cases where /api/health doesn't exist
+      // Network request failed - but don't immediately assume offline
+      // Could be a temporary glitch, so trust navigator.onLine
       return navigator.onLine
     }
   }, [])
@@ -94,32 +91,69 @@ export function useServiceWorker() {
 
     registerSW()
 
-    // Online/offline detection - use browser events
+    // Online/offline detection - use browser events with debouncing
+    let onlineDebounceTimer: NodeJS.Timeout | null = null
+    let offlineDebounceTimer: NodeJS.Timeout | null = null
+
     const handleOnline = () => {
-      // When browser says we're online, verify with actual request
-      checkOnlineStatus().then((isOnline) => {
-        setState((prev) => ({ ...prev, isOnline }))
-      })
+      // Clear any pending offline timer
+      if (offlineDebounceTimer) {
+        clearTimeout(offlineDebounceTimer)
+        offlineDebounceTimer = null
+      }
+
+      // Debounce online detection to avoid flapping
+      if (onlineDebounceTimer) {
+        clearTimeout(onlineDebounceTimer)
+      }
+
+      onlineDebounceTimer = setTimeout(() => {
+        // Verify with actual request before marking online
+        checkOnlineStatus().then((isOnline) => {
+          if (isOnline) {
+            offlineConfirmedRef.current = false
+            setState((prev) => ({ ...prev, isOnline: true }))
+          }
+        })
+      }, 500)
     }
 
     const handleOffline = () => {
-      // When browser says we're offline, trust it immediately
-      setState((prev) => ({ ...prev, isOnline: false }))
+      // Clear any pending online timer
+      if (onlineDebounceTimer) {
+        clearTimeout(onlineDebounceTimer)
+        onlineDebounceTimer = null
+      }
+
+      // Debounce offline detection - wait a bit before confirming
+      if (offlineDebounceTimer) {
+        clearTimeout(offlineDebounceTimer)
+      }
+
+      offlineDebounceTimer = setTimeout(() => {
+        // Double-check we're really offline
+        if (!navigator.onLine) {
+          offlineConfirmedRef.current = true
+          setState((prev) => ({ ...prev, isOnline: false }))
+        }
+      }, 1000)
     }
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
-    // Initial check - only mark as offline if we're sure
-    // Keep isOnline: true by default, only change to false on 'offline' event
-    // This prevents false positives from unreliable navigator.onLine
+    // Initial check - only mark as offline if navigator.onLine is definitely false
+    // Don't do network requests on initial load to avoid false positives
     if (!navigator.onLine) {
+      offlineConfirmedRef.current = true
       setState((prev) => ({ ...prev, isOnline: false }))
     }
 
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
+      if (onlineDebounceTimer) clearTimeout(onlineDebounceTimer)
+      if (offlineDebounceTimer) clearTimeout(offlineDebounceTimer)
     }
   }, [checkOnlineStatus])
 
