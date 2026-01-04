@@ -100,12 +100,11 @@ export function useTaskTags(taskId: string) {
     try {
       setLoading(true)
       const { data, error } = await supabase
-        .from('item_tags')
+        .from('task_tags')
         .select(`
           tag:tags(*)
         `)
-        .eq('item_type', 'task')
-        .eq('item_id', taskId)
+        .eq('task_id', taskId)
 
       if (error) throw error
 
@@ -129,11 +128,10 @@ export function useTaskTags(taskId: string) {
 
   const addTag = async (tagId: string) => {
     const { error } = await supabase
-      .from('item_tags')
+      .from('task_tags')
       .insert({
         tag_id: tagId,
-        item_type: 'task',
-        item_id: taskId,
+        task_id: taskId,
       })
 
     if (error && error.code !== '23505') throw error // Ignore duplicate key error
@@ -142,11 +140,10 @@ export function useTaskTags(taskId: string) {
 
   const removeTag = async (tagId: string) => {
     const { error } = await supabase
-      .from('item_tags')
+      .from('task_tags')
       .delete()
       .eq('tag_id', tagId)
-      .eq('item_type', 'task')
-      .eq('item_id', taskId)
+      .eq('task_id', taskId)
 
     if (error) throw error
     await fetchTaskTags()
@@ -155,20 +152,18 @@ export function useTaskTags(taskId: string) {
   const setTaskTags = async (tagIds: string[]) => {
     // Remove all existing tags
     await supabase
-      .from('item_tags')
+      .from('task_tags')
       .delete()
-      .eq('item_type', 'task')
-      .eq('item_id', taskId)
+      .eq('task_id', taskId)
 
     // Add new tags
     if (tagIds.length > 0) {
       const { error } = await supabase
-        .from('item_tags')
+        .from('task_tags')
         .insert(
           tagIds.map((tagId) => ({
             tag_id: tagId,
-            item_type: 'task',
-            item_id: taskId,
+            task_id: taskId,
           }))
         )
 
