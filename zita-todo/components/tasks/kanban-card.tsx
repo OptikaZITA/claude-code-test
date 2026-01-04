@@ -2,12 +2,14 @@
 
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Calendar, Clock } from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { TaskWithRelations, TaskPriority } from '@/types'
 import { Avatar } from '@/components/ui/avatar'
 import { TagChipList } from '@/components/tags'
+import { WhenBadge } from '@/components/tasks/when-picker'
+import { DeadlineBadge } from '@/components/tasks/deadline-picker'
 import { cn } from '@/lib/utils/cn'
-import { formatDate, formatDurationShort, isOverdue } from '@/lib/utils/date'
+import { formatDurationShort } from '@/lib/utils/date'
 
 interface KanbanCardProps {
   task: TaskWithRelations
@@ -38,7 +40,6 @@ export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
   }
 
   const isCompleted = task.status === 'done'
-  const overdue = task.due_date && isOverdue(task.due_date) && !isCompleted
 
   return (
     <div
@@ -78,15 +79,15 @@ export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
 
       {/* Meta info */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 text-xs text-[var(--text-secondary)]">
-          {task.due_date && (
-            <span className={cn('flex items-center gap-1', overdue && 'text-[var(--color-error)]')}>
-              <Calendar className="h-3 w-3" />
-              {formatDate(task.due_date)}
-            </span>
-          )}
+        <div className="flex items-center gap-2">
+          {/* When badge (Things 3 style) */}
+          <WhenBadge value={task.when_type} whenDate={task.when_date} size="xs" />
+
+          {/* Deadline badge */}
+          <DeadlineBadge value={task.deadline} size="xs" />
+
           {task.total_time_seconds && task.total_time_seconds > 0 && (
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1 text-xs text-[var(--text-secondary)]">
               <Clock className="h-3 w-3" />
               {formatDurationShort(task.total_time_seconds)}
             </span>

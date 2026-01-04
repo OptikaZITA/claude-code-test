@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils/cn'
 interface AvatarProps {
   src?: string | null
   name?: string | null
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
   className?: string
 }
 
@@ -17,6 +17,7 @@ export function Avatar({ src, name, size = 'md', className }: AvatarProps) {
     .slice(0, 2) || '?'
 
   const sizeClasses = {
+    xs: 'h-5 w-5 text-[10px]',
     sm: 'h-6 w-6 text-xs',
     md: 'h-8 w-8 text-sm',
     lg: 'h-10 w-10 text-base',

@@ -1,12 +1,14 @@
 'use client'
 
-import { Calendar, Clock } from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { TaskWithRelations, TaskPriority } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar } from '@/components/ui/avatar'
 import { TagChipList } from '@/components/tags'
+import { WhenBadge } from '@/components/tasks/when-picker'
+import { DeadlineBadge } from '@/components/tasks/deadline-picker'
 import { cn } from '@/lib/utils/cn'
-import { formatDate, formatDurationShort, isOverdue } from '@/lib/utils/date'
+import { formatDurationShort } from '@/lib/utils/date'
 
 interface TaskItemProps {
   task: TaskWithRelations
@@ -23,7 +25,6 @@ const priorityColors: Record<TaskPriority, string> = {
 
 export function TaskItem({ task, onClick, onComplete }: TaskItemProps) {
   const isCompleted = task.status === 'done'
-  const overdue = task.due_date && isOverdue(task.due_date) && !isCompleted
 
   return (
     <div
@@ -58,17 +59,11 @@ export function TaskItem({ task, onClick, onComplete }: TaskItemProps) {
             </span>
           )}
 
-          {task.due_date && (
-            <span
-              className={cn(
-                'flex items-center gap-1 text-xs',
-                overdue ? 'text-[var(--color-error)]' : 'text-[var(--text-secondary)]'
-              )}
-            >
-              <Calendar className="h-3 w-3" />
-              {formatDate(task.due_date)}
-            </span>
-          )}
+          {/* When badge (Things 3 style) */}
+          <WhenBadge value={task.when_type} whenDate={task.when_date} />
+
+          {/* Deadline badge */}
+          <DeadlineBadge value={task.deadline} />
 
           {task.total_time_seconds && task.total_time_seconds > 0 && (
             <span className="flex items-center gap-1 text-xs text-[var(--text-secondary)]">

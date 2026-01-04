@@ -1,29 +1,29 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   X,
-  Calendar,
-  User,
-  FolderKanban,
   Tag,
   Clock,
   ChevronDown,
   ChevronUp,
+  Trash2,
 } from 'lucide-react'
-import { TaskWithRelations, TaskPriority, ChecklistItem, Tag as TagType } from '@/types'
+import { TaskWithRelations, ChecklistItem, User, Project, WhenType, Tag as TagType } from '@/types'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
-import { Avatar } from '@/components/ui/avatar'
-import { Timer, TimerDisplay } from '@/components/time-tracking/timer'
+import { Timer } from '@/components/time-tracking/timer'
 import { TimeEntriesList } from '@/components/time-tracking/time-entries-list'
 import { Checklist } from '@/components/tasks/checklist'
 import { TagSelector } from '@/components/tags'
+import { WhenPicker } from '@/components/tasks/when-picker'
+import { DeadlinePicker } from '@/components/tasks/deadline-picker'
+import { ProjectSelector } from '@/components/tasks/project-selector'
+import { AssigneeSelector } from '@/components/tasks/assignee-selector'
 import { useTimeTracking } from '@/lib/hooks/use-time-tracking'
-import { formatDate, formatDurationShort } from '@/lib/utils/date'
+import { formatDurationShort } from '@/lib/utils/date'
 import { cn } from '@/lib/utils/cn'
 
 interface TaskDetailProps {
@@ -35,20 +35,6 @@ interface TaskDetailProps {
   onComplete?: (completed: boolean) => void
 }
 
-const priorityLabels: Record<TaskPriority, string> = {
-  urgent: 'Urgentná',
-  high: 'Vysoká',
-  medium: 'Stredná',
-  low: 'Nízka',
-}
-
-const priorityColors: Record<TaskPriority, string> = {
-  urgent: 'bg-[#FF3B30]',
-  high: 'bg-[#FF9500]',
-  medium: 'bg-[#007AFF]',
-  low: 'bg-[#86868B]',
-}
-
 export function TaskDetail({
   task,
   isOpen,
@@ -56,13 +42,19 @@ export function TaskDetail({
   onUpdate,
   onDelete,
 }: TaskDetailProps) {
-  const [isEditing, setIsEditing] = useState(false)
+  // Local state for editing
   const [title, setTitle] = useState(task.title)
-  const [description, setDescription] = useState(task.description || '')
+  const [notes, setNotes] = useState(task.notes || task.description || '')
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>(
     task.checklist_items || []
   )
+  const [whenType, setWhenType] = useState<WhenType>(task.when_type)
+  const [whenDate, setWhenDate] = useState<string | null>(task.when_date)
+  const [deadline, setDeadline] = useState<string | null>(task.deadline)
+  const [project, setProject] = useState<Project | null>(task.project || null)
+  const [assignee, setAssignee] = useState<User | null>(task.assignee || null)
   const [showTimeEntries, setShowTimeEntries] = useState(false)
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
 
   const {
     timeEntries,
@@ -74,73 +66,224 @@ export function TaskDetail({
     deleteTimeEntry,
   } = useTimeTracking(task.id)
 
-  const handleSave = () => {
-    if (onUpdate) {
-      onUpdate({ title, description, checklist_items: checklistItems })
+  const isCompleted = task.status === 'done'
+
+  // Sync state when task changes
+  useEffect(() => {
+    setTitle(task.title)
+    setNotes(task.notes || task.description || '')
+    setChecklistItems(task.checklist_items || [])
+    setWhenType(task.when_type)
+    setWhenDate(task.when_date)
+    setDeadline(task.deadline)
+    setProject(task.project || null)
+    setAssignee(task.assignee || null)
+  }, [task])
+
+  // Auto-save handlers
+  const handleTitleBlur = useCallback(() => {
+    setIsEditingTitle(false)
+    if (title !== task.title && onUpdate) {
+      onUpdate({ title })
     }
-    setIsEditing(false)
-  }
+  }, [title, task.title, onUpdate])
+
+  const handleNotesBlur = useCallback(() => {
+    if (notes !== (task.notes || task.description || '') && onUpdate) {
+      onUpdate({ notes, description: notes })
+    }
+  }, [notes, task.notes, task.description, onUpdate])
 
   const handleChecklistChange = useCallback((items: ChecklistItem[]) => {
     setChecklistItems(items)
-    // Auto-save checklist changes
     if (onUpdate) {
       onUpdate({ checklist_items: items })
     }
   }, [onUpdate])
 
-  const handleCancel = () => {
-    setTitle(task.title)
-    setDescription(task.description || '')
-    setIsEditing(false)
-  }
+  const handleWhenChange = useCallback((type: WhenType, date?: string | null) => {
+    setWhenType(type)
+    setWhenDate(date || null)
+    if (onUpdate) {
+      onUpdate({ when_type: type, when_date: date || null })
+    }
+  }, [onUpdate])
 
-  const isCompleted = task.status === 'done'
+  const handleDeadlineChange = useCallback((date: string | null) => {
+    setDeadline(date)
+    if (onUpdate) {
+      onUpdate({ deadline: date })
+    }
+  }, [onUpdate])
+
+  const handleProjectChange = useCallback((proj: Project | null) => {
+    setProject(proj)
+    if (onUpdate) {
+      onUpdate({ project_id: proj?.id || null, project: proj })
+    }
+  }, [onUpdate])
+
+  const handleAssigneeChange = useCallback((user: User | null) => {
+    setAssignee(user)
+    if (onUpdate) {
+      onUpdate({ assignee_id: user?.id || null, assignee: user })
+    }
+  }, [onUpdate])
+
+  const handleComplete = useCallback((completed: boolean) => {
+    if (onUpdate) {
+      onUpdate({
+        status: completed ? 'done' : 'todo',
+        completed_at: completed ? new Date().toISOString() : null,
+      })
+    }
+  }, [onUpdate])
+
+  const handleTagsChange = useCallback((tags: TagType[]) => {
+    if (onUpdate) {
+      onUpdate({ tags })
+    }
+  }, [onUpdate])
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <div className="flex h-full flex-col">
-        {/* Header */}
-        <div className="flex items-start justify-between border-b border-[#E5E5E5] p-4">
-          <div className="flex-1">
-            {isEditing ? (
-              <Input
+        {/* Header - Title with checkbox */}
+        <div className="flex items-start gap-3 border-b border-[var(--border-primary)] p-4">
+          <div className="pt-1">
+            <Checkbox
+              checked={isCompleted}
+              onChange={(checked) => handleComplete(checked)}
+            />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            {isEditingTitle ? (
+              <input
+                type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="text-lg font-semibold"
+                onBlur={handleTitleBlur}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleTitleBlur()
+                  if (e.key === 'Escape') {
+                    setTitle(task.title)
+                    setIsEditingTitle(false)
+                  }
+                }}
+                className={cn(
+                  'w-full text-lg font-semibold bg-transparent outline-none',
+                  'text-[var(--text-primary)]',
+                  'border-b-2 border-[var(--color-primary)]'
+                )}
                 autoFocus
               />
             ) : (
               <h2
+                onClick={() => setIsEditingTitle(true)}
                 className={cn(
-                  'text-lg font-semibold text-[#1D1D1F]',
-                  isCompleted && 'line-through text-[#86868B]'
+                  'text-lg font-semibold cursor-text hover:bg-[var(--bg-secondary)] rounded px-1 -mx-1',
+                  'text-[var(--text-primary)]',
+                  isCompleted && 'line-through text-[var(--text-secondary)]'
                 )}
               >
-                {task.title}
+                {title}
               </h2>
             )}
           </div>
+
           <button
             onClick={onClose}
-            className="ml-4 rounded p-1 text-[#86868B] transition-colors hover:bg-[#F5F5F7]"
+            className="rounded p-1 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-secondary)]"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {/* Timer Section */}
-          <div className="mb-6 rounded-xl bg-[#F5F5F7] p-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Tags Row */}
+          <div className="flex items-start gap-3">
+            <Tag className="h-4 w-4 text-[var(--text-secondary)] mt-2 shrink-0" />
+            <TagSelector
+              taskId={task.id}
+              selectedTags={task.tags || []}
+              onTagsChange={handleTagsChange}
+              className="flex-1"
+            />
+          </div>
+
+          {/* When Row */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-[var(--text-secondary)] w-20">Kedy:</span>
+            <WhenPicker
+              value={whenType}
+              whenDate={whenDate}
+              onChange={handleWhenChange}
+            />
+          </div>
+
+          {/* Deadline Row */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-[var(--text-secondary)] w-20">Deadline:</span>
+            <DeadlinePicker
+              value={deadline}
+              onChange={handleDeadlineChange}
+            />
+          </div>
+
+          {/* Project Row */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-[var(--text-secondary)] w-20">Projekt:</span>
+            <ProjectSelector
+              value={project}
+              onChange={handleProjectChange}
+            />
+          </div>
+
+          {/* Assignee Row */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-[var(--text-secondary)] w-20">Pridelene:</span>
+            <AssigneeSelector
+              value={assignee}
+              onChange={handleAssigneeChange}
+            />
+          </div>
+
+          {/* Notes Section */}
+          <div className="pt-2">
+            <label className="mb-2 block text-sm font-medium text-[var(--text-primary)]">
+              Poznamky
+            </label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              onBlur={handleNotesBlur}
+              placeholder="Pridat poznamky..."
+              rows={3}
+              className="resize-none"
+            />
+          </div>
+
+          {/* Checklist Section */}
+          <div className="rounded-xl bg-[var(--bg-secondary)] p-4">
+            <Checklist
+              items={checklistItems}
+              onChange={handleChecklistChange}
+            />
+          </div>
+
+          {/* Time Tracking Section */}
+          <div className="rounded-xl bg-[var(--bg-secondary)] p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="mb-1 text-sm font-medium text-[#1D1D1F]">
-                  Sledovanie času
+                <p className="mb-1 text-sm font-medium text-[var(--text-primary)]">
+                  Sledovanie casu
                 </p>
-                <p className="text-xs text-[#86868B]">
-                  Celkový čas: {formatDurationShort(task.total_time_seconds || totalTime)}
-                </p>
+                <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+                  <Clock className="h-3 w-3" />
+                  <span>Celkovo: {formatDurationShort(task.total_time_seconds || totalTime)}</span>
+                </div>
               </div>
               <Timer
                 elapsedSeconds={elapsedSeconds}
@@ -154,9 +297,9 @@ export function TaskDetail({
             {/* Time entries toggle */}
             <button
               onClick={() => setShowTimeEntries(!showTimeEntries)}
-              className="mt-3 flex w-full items-center justify-between text-sm text-[#007AFF]"
+              className="mt-3 flex w-full items-center justify-between text-sm text-[var(--color-primary)]"
             >
-              <span>Zobraziť záznamy ({timeEntries.length})</span>
+              <span>Zobrazit zaznamy ({timeEntries.length})</span>
               {showTimeEntries ? (
                 <ChevronUp className="h-4 w-4" />
               ) : (
@@ -173,117 +316,19 @@ export function TaskDetail({
               </div>
             )}
           </div>
-
-          {/* Description */}
-          <div className="mb-6">
-            <label className="mb-2 block text-sm font-medium text-[var(--text-primary)]">
-              Popis
-            </label>
-            {isEditing ? (
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Pridať popis..."
-                rows={4}
-              />
-            ) : (
-              <p className="text-sm text-[var(--text-secondary)]">
-                {task.description || 'Žiadny popis'}
-              </p>
-            )}
-          </div>
-
-          {/* Checklist */}
-          <div className="mb-6 rounded-xl bg-[var(--bg-secondary)] p-4">
-            <Checklist
-              items={checklistItems}
-              onChange={handleChecklistChange}
-            />
-          </div>
-
-          {/* Meta information */}
-          <div className="space-y-4">
-            {/* Priority */}
-            <div className="flex items-center gap-3">
-              <div
-                className={cn('h-3 w-3 rounded-full', priorityColors[task.priority])}
-              />
-              <span className="text-sm text-[#1D1D1F]">
-                {priorityLabels[task.priority]} priorita
-              </span>
-            </div>
-
-            {/* Due date */}
-            {task.due_date && (
-              <div className="flex items-center gap-3">
-                <Calendar className="h-4 w-4 text-[#86868B]" />
-                <span className="text-sm text-[#1D1D1F]">
-                  {formatDate(task.due_date)}
-                </span>
-              </div>
-            )}
-
-            {/* Assignee */}
-            {task.assignee && (
-              <div className="flex items-center gap-3">
-                <Avatar
-                  src={task.assignee.avatar_url}
-                  name={task.assignee.full_name}
-                  size="sm"
-                />
-                <span className="text-sm text-[#1D1D1F]">
-                  {task.assignee.full_name}
-                </span>
-              </div>
-            )}
-
-            {/* Project */}
-            {task.project && (
-              <div className="flex items-center gap-3">
-                <FolderKanban className="h-4 w-4 text-[#86868B]" />
-                <span className="text-sm text-[#1D1D1F]">{task.project.name}</span>
-              </div>
-            )}
-
-            {/* Tags */}
-            <div className="flex items-start gap-3">
-              <Tag className="h-4 w-4 text-[var(--text-secondary)] mt-1" />
-              <TagSelector
-                taskId={task.id}
-                selectedTags={task.tags || []}
-              />
-            </div>
-
-            {/* Total time */}
-            <div className="flex items-center gap-3">
-              <Clock className="h-4 w-4 text-[#86868B]" />
-              <span className="text-sm text-[#1D1D1F]">
-                {formatDurationShort(task.total_time_seconds || 0)} celkovo
-              </span>
-            </div>
-          </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-[#E5E5E5] p-4">
-          {isEditing ? (
-            <>
-              <Button variant="ghost" onClick={handleCancel}>
-                Zrušiť
-              </Button>
-              <Button onClick={handleSave}>Uložiť</Button>
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" onClick={() => setIsEditing(true)}>
-                Upraviť
-              </Button>
-              {onDelete && (
-                <Button variant="danger" onClick={onDelete}>
-                  Odstrániť
-                </Button>
-              )}
-            </>
+        <div className="flex items-center justify-end gap-2 border-t border-[var(--border-primary)] p-4">
+          {onDelete && (
+            <Button
+              variant="ghost"
+              onClick={onDelete}
+              className="text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Odstranit
+            </Button>
           )}
         </div>
       </div>
