@@ -39,6 +39,7 @@ function SignupForm() {
             full_name: fullName,
             invite_token: inviteToken,
           },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       })
 
@@ -58,23 +59,23 @@ function SignupForm() {
   }
 
   return (
-    <div className="rounded-xl bg-white p-8 shadow-lg">
+    <div className="rounded-xl bg-[var(--bg-primary)] p-8 shadow-lg border border-[var(--border-primary)]">
       <div className="mb-8 text-center">
-        <h1 className="text-2xl font-bold text-[#1D1D1F]">ZITA TODO</h1>
-        <p className="mt-2 text-[#86868B]">
+        <h1 className="text-2xl font-bold text-[var(--color-primary)]">ZITA TODO</h1>
+        <p className="mt-2 text-[var(--text-secondary)]">
           {inviteToken ? 'Prijmite pozvánku' : 'Vytvorte si účet'}
         </p>
       </div>
 
       <form onSubmit={handleSignup} className="space-y-4">
         {error && (
-          <div className={`rounded-lg p-3 text-sm ${error.includes('email') ? 'bg-[#34C759]/10 text-[#34C759]' : 'bg-[#FF3B30]/10 text-[#FF3B30]'}`}>
+          <div className={`rounded-lg p-3 text-sm ${error.includes('email') ? 'bg-[var(--color-success)]/10 text-[var(--color-success)]' : 'bg-[var(--color-error)]/10 text-[var(--color-error)]'}`}>
             {error}
           </div>
         )}
 
         <div>
-          <label htmlFor="fullName" className="mb-1 block text-sm font-medium text-[#1D1D1F]">
+          <label htmlFor="fullName" className="mb-1 block text-sm font-medium text-[var(--text-primary)]">
             Celé meno
           </label>
           <Input
@@ -88,7 +89,7 @@ function SignupForm() {
         </div>
 
         <div>
-          <label htmlFor="email" className="mb-1 block text-sm font-medium text-[#1D1D1F]">
+          <label htmlFor="email" className="mb-1 block text-sm font-medium text-[var(--text-primary)]">
             Email
           </label>
           <Input
@@ -102,7 +103,7 @@ function SignupForm() {
         </div>
 
         <div>
-          <label htmlFor="password" className="mb-1 block text-sm font-medium text-[#1D1D1F]">
+          <label htmlFor="password" className="mb-1 block text-sm font-medium text-[var(--text-primary)]">
             Heslo
           </label>
           <Input
@@ -121,9 +122,9 @@ function SignupForm() {
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-[#86868B]">
+      <p className="mt-6 text-center text-sm text-[var(--text-secondary)]">
         Už máte účet?{' '}
-        <Link href="/login" className="text-[#007AFF] hover:underline">
+        <Link href="/login" className="text-[var(--color-primary)] hover:underline">
           Prihlásiť sa
         </Link>
       </p>
@@ -133,7 +134,7 @@ function SignupForm() {
 
 export default function SignupPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center p-8">Načítavam...</div>}>
+    <Suspense fallback={<div className="flex justify-center p-8 text-[var(--text-secondary)]">Načítavam...</div>}>
       <SignupForm />
     </Suspense>
   )

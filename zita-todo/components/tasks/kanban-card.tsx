@@ -16,10 +16,10 @@ interface KanbanCardProps {
 }
 
 const priorityDots: Record<TaskPriority, string> = {
-  urgent: 'bg-[#FF3B30]',
-  high: 'bg-[#FF9500]',
-  medium: 'bg-[#007AFF]',
-  low: 'bg-[#86868B]',
+  urgent: 'bg-[var(--color-error)]',
+  high: 'bg-[var(--color-warning)]',
+  medium: 'bg-[var(--color-primary)]',
+  low: 'bg-[var(--text-secondary)]',
 }
 
 export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
@@ -48,7 +48,7 @@ export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
       {...listeners}
       onClick={onClick}
       className={cn(
-        'cursor-pointer rounded-lg bg-white p-3 shadow-sm transition-all hover:shadow-md',
+        'cursor-pointer rounded-lg bg-[var(--bg-primary)] p-3 shadow-sm transition-all hover:shadow-md border border-[var(--border-primary)]',
         (isDragging || isSortableDragging) && 'opacity-50 shadow-lg rotate-2',
         isCompleted && 'opacity-60'
       )}
@@ -70,8 +70,8 @@ export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
       {/* Title */}
       <p
         className={cn(
-          'mb-2 text-sm font-medium text-[#1D1D1F]',
-          isCompleted && 'line-through text-[#86868B]'
+          'mb-2 text-sm font-medium text-[var(--text-primary)]',
+          isCompleted && 'line-through text-[var(--text-secondary)]'
         )}
       >
         {task.title}
@@ -79,9 +79,9 @@ export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
 
       {/* Meta info */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 text-xs text-[#86868B]">
+        <div className="flex items-center gap-3 text-xs text-[var(--text-secondary)]">
           {task.due_date && (
-            <span className={cn('flex items-center gap-1', overdue && 'text-[#FF3B30]')}>
+            <span className={cn('flex items-center gap-1', overdue && 'text-[var(--color-error)]')}>
               <Calendar className="h-3 w-3" />
               {formatDate(task.due_date)}
             </span>

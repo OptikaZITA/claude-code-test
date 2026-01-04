@@ -20,8 +20,8 @@ export function Checkbox({ checked = false, onChange, className }: CheckboxProps
       className={cn(
         'flex h-5 w-5 items-center justify-center rounded border-2 transition-colors',
         checked
-          ? 'border-[#007AFF] bg-[#007AFF] text-white'
-          : 'border-[#E5E5E5] hover:border-[#007AFF]',
+          ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
+          : 'border-[var(--border-primary)] hover:border-[var(--color-primary)]',
         className
       )}
     >

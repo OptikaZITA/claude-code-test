@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
+import { ExportMenu } from '@/components/export/export-menu'
+import { ErrorDisplay } from '@/components/layout/error-display'
 import { useInboxTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { TaskWithRelations } from '@/types'
 import { Inbox } from 'lucide-react'
 
 export default function InboxPage() {
-  const { tasks, loading, refetch } = useInboxTasks('personal')
+  const { tasks, loading, error, refetch } = useInboxTasks('personal')
   const { createTask, completeTask } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
 
@@ -40,7 +42,18 @@ export default function InboxPage() {
       <div className="h-full">
         <Header title="Inbox" />
         <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#007AFF] border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent" />
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="h-full">
+        <Header title="Inbox" />
+        <div className="p-6">
+          <ErrorDisplay error={error} onRetry={refetch} />
         </div>
       </div>
     )
@@ -48,14 +61,16 @@ export default function InboxPage() {
 
   return (
     <div className="h-full">
-      <Header title="Inbox" />
+      <Header title="Inbox">
+        <ExportMenu tasks={tasks} title="Inbox" filename="inbox" />
+      </Header>
 
       <div className="p-6">
         {tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Inbox className="mb-4 h-12 w-12 text-[#86868B]" />
-            <p className="mb-2 text-lg font-medium text-[#1D1D1F]">Váš inbox je prázdny</p>
-            <p className="mb-6 text-[#86868B]">
+            <Inbox className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
+            <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Váš inbox je prázdny</p>
+            <p className="mb-6 text-[var(--text-secondary)]">
               Pridajte úlohy pomocou formulára nižšie
             </p>
           </div>

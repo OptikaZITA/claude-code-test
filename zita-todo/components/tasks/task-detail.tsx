@@ -30,6 +30,7 @@ interface TaskDetailProps {
   onClose: () => void
   onUpdate?: (updates: Partial<TaskWithRelations>) => void
   onDelete?: () => void
+  onComplete?: (completed: boolean) => void
 }
 
 const priorityLabels: Record<TaskPriority, string> = {

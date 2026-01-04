@@ -15,10 +15,10 @@ interface TaskItemProps {
 }
 
 const priorityColors: Record<TaskPriority, string> = {
-  urgent: 'border-l-[#FF3B30]',
-  high: 'border-l-[#FF9500]',
-  medium: 'border-l-[#007AFF]',
-  low: 'border-l-[#86868B]',
+  urgent: 'border-l-[var(--color-error)]',
+  high: 'border-l-[var(--color-warning)]',
+  medium: 'border-l-[var(--color-primary)]',
+  low: 'border-l-[var(--text-secondary)]',
 }
 
 export function TaskItem({ task, onClick, onComplete }: TaskItemProps) {
@@ -28,7 +28,7 @@ export function TaskItem({ task, onClick, onComplete }: TaskItemProps) {
   return (
     <div
       className={cn(
-        'group flex items-start gap-3 rounded-lg border-l-4 bg-white p-3 transition-colors hover:bg-[#F5F5F7] cursor-pointer',
+        'group flex items-start gap-3 rounded-lg border-l-4 bg-[var(--bg-primary)] p-3 transition-colors hover:bg-[var(--bg-hover)] cursor-pointer',
         priorityColors[task.priority],
         isCompleted && 'opacity-60'
       )}
@@ -44,8 +44,8 @@ export function TaskItem({ task, onClick, onComplete }: TaskItemProps) {
       <div className="flex-1 min-w-0">
         <p
           className={cn(
-            'text-sm font-medium text-[#1D1D1F]',
-            isCompleted && 'line-through text-[#86868B]'
+            'text-sm font-medium text-[var(--text-primary)]',
+            isCompleted && 'line-through text-[var(--text-secondary)]'
           )}
         >
           {task.title}
@@ -53,7 +53,7 @@ export function TaskItem({ task, onClick, onComplete }: TaskItemProps) {
 
         <div className="mt-1 flex flex-wrap items-center gap-2">
           {task.project && (
-            <span className="text-xs text-[#86868B]">
+            <span className="text-xs text-[var(--text-secondary)]">
               {task.project.name}
             </span>
           )}
@@ -62,7 +62,7 @@ export function TaskItem({ task, onClick, onComplete }: TaskItemProps) {
             <span
               className={cn(
                 'flex items-center gap-1 text-xs',
-                overdue ? 'text-[#FF3B30]' : 'text-[#86868B]'
+                overdue ? 'text-[var(--color-error)]' : 'text-[var(--text-secondary)]'
               )}
             >
               <Calendar className="h-3 w-3" />
@@ -71,7 +71,7 @@ export function TaskItem({ task, onClick, onComplete }: TaskItemProps) {
           )}
 
           {task.total_time_seconds && task.total_time_seconds > 0 && (
-            <span className="flex items-center gap-1 text-xs text-[#86868B]">
+            <span className="flex items-center gap-1 text-xs text-[var(--text-secondary)]">
               <Clock className="h-3 w-3" />
               {formatDurationShort(task.total_time_seconds)}
             </span>

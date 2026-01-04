@@ -38,21 +38,21 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="rounded-xl bg-white p-8 shadow-lg">
+    <div className="rounded-xl bg-[var(--bg-primary)] p-8 shadow-lg border border-[var(--border-primary)]">
       <div className="mb-8 text-center">
-        <h1 className="text-2xl font-bold text-[#1D1D1F]">ZITA TODO</h1>
-        <p className="mt-2 text-[#86868B]">Prihláste sa do svojho účtu</p>
+        <h1 className="text-2xl font-bold text-[var(--color-primary)]">ZITA TODO</h1>
+        <p className="mt-2 text-[var(--text-secondary)]">Prihláste sa do svojho účtu</p>
       </div>
 
       <form onSubmit={handleLogin} className="space-y-4">
         {error && (
-          <div className="rounded-lg bg-[#FF3B30]/10 p-3 text-sm text-[#FF3B30]">
+          <div className="rounded-lg bg-[var(--color-error)]/10 p-3 text-sm text-[var(--color-error)]">
             {error}
           </div>
         )}
 
         <div>
-          <label htmlFor="email" className="mb-1 block text-sm font-medium text-[#1D1D1F]">
+          <label htmlFor="email" className="mb-1 block text-sm font-medium text-[var(--text-primary)]">
             Email
           </label>
           <Input
@@ -66,7 +66,7 @@ export default function LoginPage() {
         </div>
 
         <div>
-          <label htmlFor="password" className="mb-1 block text-sm font-medium text-[#1D1D1F]">
+          <label htmlFor="password" className="mb-1 block text-sm font-medium text-[var(--text-primary)]">
             Heslo
           </label>
           <Input
@@ -84,9 +84,9 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-[#86868B]">
+      <p className="mt-6 text-center text-sm text-[var(--text-secondary)]">
         Máte pozvánku?{' '}
-        <Link href="/signup" className="text-[#007AFF] hover:underline">
+        <Link href="/signup" className="text-[var(--color-primary)] hover:underline">
           Prijať pozvánku
         </Link>
       </p>

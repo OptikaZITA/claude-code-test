@@ -28,8 +28,8 @@ export function KanbanColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        'flex h-full w-72 flex-shrink-0 flex-col rounded-xl bg-[#F5F5F7]/50',
-        isOver && 'bg-[#007AFF]/5'
+        'flex h-full w-72 flex-shrink-0 flex-col rounded-xl bg-[var(--bg-secondary)]/50',
+        isOver && 'bg-[var(--color-primary)]/5'
       )}
     >
       {/* Column Header */}
@@ -39,8 +39,8 @@ export function KanbanColumn({
             className="h-2 w-2 rounded-full"
             style={{ backgroundColor: column.color }}
           />
-          <h3 className="font-medium text-[#1D1D1F]">{column.title}</h3>
-          <span className="rounded-full bg-white px-2 py-0.5 text-xs text-[#86868B]">
+          <h3 className="font-medium text-[var(--text-primary)]">{column.title}</h3>
+          <span className="rounded-full bg-[var(--bg-primary)] px-2 py-0.5 text-xs text-[var(--text-secondary)]">
             {tasks.length}
           </span>
         </div>
@@ -64,7 +64,7 @@ export function KanbanColumn({
         </SortableContext>
 
         {tasks.length === 0 && (
-          <div className="flex h-24 items-center justify-center text-sm text-[#86868B]">
+          <div className="flex h-24 items-center justify-center text-sm text-[var(--text-secondary)]">
             Presuňte úlohy sem
           </div>
         )}

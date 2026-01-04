@@ -1,10 +1,12 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Sidebar } from '@/components/layout/sidebar'
 import { MobileNav } from '@/components/layout/mobile-nav'
+import { KeyboardShortcutsModal } from '@/components/ui/keyboard-shortcuts-modal'
+import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts'
 
 interface User {
   full_name: string | null
@@ -32,8 +34,24 @@ export default function DashboardLayout({
   const [areas, setAreas] = useState<Area[]>([])
   const router = useRouter()
   const supabase = createClient()
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const [loading, setLoading] = useState(true)
+
+  const { shortcuts, showHelp, setShowHelp } = useKeyboardShortcuts({
+    onNewTask: () => {
+      // Dispatch custom event that inbox/project pages can listen to
+      window.dispatchEvent(new CustomEvent('keyboard:newTask'))
+    },
+    onSearch: () => {
+      // Focus search input if available
+      const searchInput = document.querySelector('input[type="search"]') as HTMLInputElement
+      if (searchInput) {
+        searchInput.focus()
+      }
+    },
+    onToggleHelp: () => setShowHelp(false),
+  })
 
   useEffect(() => {
     const fetchData = async () => {
@@ -106,14 +124,14 @@ export default function DashboardLayout({
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#F5F5F7]">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#007AFF] border-t-transparent" />
+      <div className="flex h-screen items-center justify-center bg-[var(--bg-secondary)]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent" />
       </div>
     )
   }
 
   return (
-    <div className="flex h-screen bg-[#F5F5F7]">
+    <div className="flex h-screen bg-[var(--bg-secondary)]">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block">
         <Sidebar
@@ -132,6 +150,13 @@ export default function DashboardLayout({
       <main className="flex-1 overflow-auto pt-14 lg:pt-0 pb-16 lg:pb-0">
         {children}
       </main>
+
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcutsModal
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+        shortcuts={shortcuts}
+      />
     </div>
   )
 }
