@@ -36,23 +36,34 @@ export function useTags() {
     if (!user) throw new Error('Not authenticated')
 
     // Get user's organization_id
-    const { data: userData } = await supabase
+    const { data: userData, error: userError } = await supabase
       .from('users')
       .select('organization_id')
       .eq('id', user.id)
       .single()
+
+    if (userError) {
+      console.error('Error fetching user data:', userError)
+    }
+
+    // Ensure we pass null explicitly, not undefined
+    const organizationId = userData?.organization_id ?? null
 
     const { data, error } = await supabase
       .from('tags')
       .insert({
         name,
         color: color || '#007AFF',
-        organization_id: userData?.organization_id,
+        organization_id: organizationId,
       })
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('Error inserting tag:', error)
+      throw error
+    }
+
     await fetchTags()
     return data
   }

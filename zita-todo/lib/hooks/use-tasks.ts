@@ -410,7 +410,10 @@ export function useTrashTasks() {
       .update({ deleted_at: null })
       .eq('id', taskId)
 
-    if (error) throw error
+    if (error) {
+      console.error('Error restoring task:', error)
+      throw error
+    }
     await fetchTasks()
   }
 
@@ -420,18 +423,24 @@ export function useTrashTasks() {
       .delete()
       .eq('id', taskId)
 
-    if (error) throw error
+    if (error) {
+      console.error('Error permanently deleting task:', error)
+      throw error
+    }
     await fetchTasks()
   }
 
   const emptyTrash = async () => {
-    // Get all deleted tasks older than 30 days or all if admin
+    // Delete all soft-deleted tasks the user has access to
     const { error } = await supabase
       .from('tasks')
       .delete()
       .not('deleted_at', 'is', null)
 
-    if (error) throw error
+    if (error) {
+      console.error('Error emptying trash:', error)
+      throw error
+    }
     await fetchTasks()
   }
 
