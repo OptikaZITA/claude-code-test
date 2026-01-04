@@ -1,0 +1,245 @@
+'use client'
+
+import { useState } from 'react'
+import { Trash2, RotateCcw, AlertTriangle } from 'lucide-react'
+import { Header } from '@/components/layout/header'
+import { Button } from '@/components/ui/button'
+import { Modal } from '@/components/ui/modal'
+import { Checkbox } from '@/components/ui/checkbox'
+import { useTrashTasks } from '@/lib/hooks/use-tasks'
+import { TaskWithRelations } from '@/types'
+import { formatDistanceToNow, parseISO, differenceInDays } from 'date-fns'
+import { sk } from 'date-fns/locale'
+import { cn } from '@/lib/utils/cn'
+
+export default function TrashPage() {
+  const { tasks, loading, restoreTask, emptyTrash } = useTrashTasks()
+  const [confirmEmptyTrash, setConfirmEmptyTrash] = useState(false)
+  const [restoringId, setRestoringId] = useState<string | null>(null)
+
+  const handleRestore = async (taskId: string) => {
+    try {
+      setRestoringId(taskId)
+      await restoreTask(taskId)
+    } catch (error) {
+      console.error('Error restoring task:', error)
+    } finally {
+      setRestoringId(null)
+    }
+  }
+
+  const handleEmptyTrash = async () => {
+    try {
+      await emptyTrash()
+      setConfirmEmptyTrash(false)
+    } catch (error) {
+      console.error('Error emptying trash:', error)
+    }
+  }
+
+  const getDaysUntilPermanentDelete = (deletedAt: string) => {
+    const deleted = parseISO(deletedAt)
+    const daysElapsed = differenceInDays(new Date(), deleted)
+    return Math.max(0, 30 - daysElapsed)
+  }
+
+  if (loading) {
+    return (
+      <div className="h-full">
+        <Header title="Kos" />
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent" />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="h-full">
+      <Header title="Kos">
+        {tasks.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setConfirmEmptyTrash(true)}
+            className="text-[var(--color-error)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Vyprazdnit kos
+          </Button>
+        )}
+      </Header>
+
+      <div className="p-6">
+        {/* Header */}
+        <div className="mb-6 flex items-center gap-3">
+          <Trash2 className="h-8 w-8 text-[var(--text-secondary)]" />
+          <div>
+            <h2 className="text-2xl font-bold text-[var(--text-primary)]">
+              Kos
+            </h2>
+            <p className="text-sm text-[var(--text-secondary)]">
+              Polozky v kosi sa automaticky vymazu po 30 dnoch
+            </p>
+          </div>
+        </div>
+
+        {/* Info banner */}
+        {tasks.length > 0 && (
+          <div className="mb-6 flex items-start gap-3 rounded-lg bg-[var(--color-warning)]/10 p-4 border border-[var(--color-warning)]/20">
+            <AlertTriangle className="h-5 w-5 text-[var(--color-warning)] flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-[var(--text-primary)]">
+                {tasks.length} {tasks.length === 1 ? 'polozka' : tasks.length < 5 ? 'polozky' : 'poloziek'} v kosi
+              </p>
+              <p className="text-[var(--text-secondary)] mt-1">
+                Vymazane ulohy mozete obnovit alebo budu automaticky odstranene po 30 dnoch.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Task list */}
+        {tasks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Trash2 className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
+            <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
+              Kos je prazdny
+            </p>
+            <p className="text-[var(--text-secondary)]">
+              Vymazane ulohy sa tu objavia
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {tasks.map((task) => (
+              <TrashTaskItem
+                key={task.id}
+                task={task}
+                onRestore={() => handleRestore(task.id)}
+                isRestoring={restoringId === task.id}
+                daysRemaining={getDaysUntilPermanentDelete(task.deleted_at!)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Confirm Empty Trash Modal */}
+      <Modal
+        isOpen={confirmEmptyTrash}
+        onClose={() => setConfirmEmptyTrash(false)}
+        title="Vyprazdnit kos"
+      >
+        <div className="p-4">
+          <div className="flex items-start gap-3 mb-4">
+            <AlertTriangle className="h-6 w-6 text-[var(--color-error)] flex-shrink-0" />
+            <div>
+              <p className="text-[var(--text-primary)] font-medium">
+                Naozaj chcete vyprazdnit kos?
+              </p>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">
+                Tato akcia je nevratna. Vsetky ulohy v kosi budu trvalo vymazane.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 mt-6">
+            <Button
+              variant="ghost"
+              onClick={() => setConfirmEmptyTrash(false)}
+            >
+              Zrusit
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleEmptyTrash}
+              className="bg-[var(--color-error)] hover:bg-[var(--color-error)]/90"
+            >
+              Vyprazdnit kos
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  )
+}
+
+interface TrashTaskItemProps {
+  task: TaskWithRelations
+  onRestore: () => void
+  isRestoring: boolean
+  daysRemaining: number
+}
+
+function TrashTaskItem({ task, onRestore, isRestoring, daysRemaining }: TrashTaskItemProps) {
+  const deletedTimeAgo = task.deleted_at
+    ? formatDistanceToNow(parseISO(task.deleted_at), { addSuffix: true, locale: sk })
+    : ''
+
+  return (
+    <div className={cn(
+      'group flex items-center gap-3 rounded-xl bg-[var(--bg-primary)] p-4',
+      'border border-[var(--border-primary)] hover:border-[var(--border-hover)]',
+      'transition-all duration-200'
+    )}>
+      {/* Checkbox (showing completed state, non-interactive) */}
+      <div className="opacity-50 pointer-events-none">
+        <Checkbox
+          checked={task.status === 'done'}
+          onChange={() => {}}
+        />
+      </div>
+
+      {/* Task content */}
+      <div className="flex-1 min-w-0">
+        <p className={cn(
+          'text-[var(--text-primary)] truncate',
+          task.status === 'done' && 'line-through opacity-60'
+        )}>
+          {task.title}
+        </p>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-xs text-[var(--text-secondary)]">
+            Vymazane {deletedTimeAgo}
+          </span>
+          {daysRemaining <= 7 && (
+            <span className="text-xs text-[var(--color-error)]">
+              {daysRemaining === 0 ? 'Bude vymazane dnes' : `Este ${daysRemaining} dni`}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Project badge */}
+      {task.project && (
+        <span
+          className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs bg-[var(--bg-secondary)]"
+        >
+          <span
+            className="h-2 w-2 rounded-full"
+            style={{ backgroundColor: task.project.color || 'var(--color-primary)' }}
+          />
+          {task.project.name}
+        </span>
+      )}
+
+      {/* Restore button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onRestore}
+        disabled={isRestoring}
+        className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-primary)]"
+      >
+        {isRestoring ? (
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--color-primary)] border-t-transparent" />
+        ) : (
+          <>
+            <RotateCcw className="h-4 w-4 mr-1.5" />
+            Obnovit
+          </>
+        )}
+      </Button>
+    </div>
+  )
+}

@@ -13,7 +13,7 @@ import { sk } from 'date-fns/locale'
 
 export default function TodayPage() {
   const { tasks, loading, error, refetch } = useTodayTasks()
-  const { createTask, updateTask, completeTask } = useTasks()
+  const { createTask, updateTask, completeTask, softDelete } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
 
   // Listen for task:moved events to refresh the list
@@ -77,6 +77,15 @@ export default function TodayPage() {
     }
   }
 
+  const handleTaskDelete = async (taskId: string) => {
+    try {
+      await softDelete(taskId)
+      refetch()
+    } catch (error) {
+      console.error('Error deleting task:', error)
+    }
+  }
+
   if (loading) {
     return (
       <div className="h-full">
@@ -123,6 +132,7 @@ export default function TodayPage() {
                 onTaskClick={setSelectedTask}
                 onTaskComplete={handleTaskComplete}
                 onTaskUpdate={handleInlineTaskUpdate}
+                onTaskDelete={handleTaskDelete}
                 onQuickAdd={() => {}}
                 showQuickAdd={false}
                 emptyMessage=""
@@ -149,6 +159,7 @@ export default function TodayPage() {
           onTaskClick={setSelectedTask}
           onTaskComplete={handleTaskComplete}
           onTaskUpdate={handleInlineTaskUpdate}
+          onTaskDelete={handleTaskDelete}
           onQuickAdd={handleQuickAdd}
           emptyMessage={overdueTasks.length > 0 ? '' : 'Žiadne úlohy na dnes'}
         />

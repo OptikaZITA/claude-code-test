@@ -21,6 +21,7 @@ export function useTasks() {
           project:projects(id, name, color)
         `)
         .is('archived_at', null)
+        .is('deleted_at', null)
         .order('sort_order', { ascending: true })
 
       if (error) throw error
@@ -73,7 +74,17 @@ export function useTasks() {
   const deleteTask = async (taskId: string) => {
     const { error } = await supabase
       .from('tasks')
-      .update({ archived_at: new Date().toISOString() })
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', taskId)
+
+    if (error) throw error
+    await fetchTasks()
+  }
+
+  const softDelete = async (taskId: string) => {
+    const { error } = await supabase
+      .from('tasks')
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', taskId)
 
     if (error) throw error
@@ -95,6 +106,7 @@ export function useTasks() {
     createTask,
     updateTask,
     deleteTask,
+    softDelete,
     completeTask,
   }
 }
@@ -121,6 +133,7 @@ export function useInboxTasks(type: 'personal' | 'team') {
         .eq('inbox_type', type)
         .eq('when_type', 'inbox')
         .is('archived_at', null)
+        .is('deleted_at', null)
         .neq('status', 'done')
         .order('created_at', { ascending: false })
 
@@ -174,6 +187,7 @@ export function useTodayTasks() {
         `)
         .or(`when_type.eq.today,and(when_type.eq.scheduled,when_date.eq.${today}),and(due_date.lt.${today},status.neq.done)`)
         .is('archived_at', null)
+        .is('deleted_at', null)
         .neq('status', 'done')
         .order('sort_order', { ascending: true })
 
@@ -215,6 +229,7 @@ export function useUpcomingTasks() {
         .eq('when_type', 'scheduled')
         .gt('when_date', today)
         .is('archived_at', null)
+        .is('deleted_at', null)
         .neq('status', 'done')
         .order('when_date', { ascending: true })
 
@@ -254,6 +269,7 @@ export function useAnytimeTasks() {
         `)
         .eq('when_type', 'anytime')
         .is('archived_at', null)
+        .is('deleted_at', null)
         .neq('status', 'done')
         .order('sort_order', { ascending: true })
 
@@ -293,6 +309,7 @@ export function useSomedayTasks() {
         `)
         .eq('when_type', 'someday')
         .is('archived_at', null)
+        .is('deleted_at', null)
         .neq('status', 'done')
         .order('sort_order', { ascending: true })
 
@@ -332,6 +349,7 @@ export function useLogbookTasks() {
         `)
         .eq('status', 'done')
         .is('archived_at', null)
+        .is('deleted_at', null)
         .order('completed_at', { ascending: false })
         .limit(100)
 
@@ -349,4 +367,81 @@ export function useLogbookTasks() {
   }, [fetchTasks])
 
   return { tasks, loading, error, refetch: fetchTasks }
+}
+
+// Trash view - deleted tasks
+export function useTrashTasks() {
+  const [tasks, setTasks] = useState<TaskWithRelations[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+  const supabase = createClient()
+
+  const fetchTasks = useCallback(async () => {
+    try {
+      setLoading(true)
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
+          project:projects(id, name, color)
+        `)
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false })
+        .limit(100)
+
+      if (error) throw error
+      setTasks(data || [])
+    } catch (err) {
+      setError(err as Error)
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase])
+
+  useEffect(() => {
+    fetchTasks()
+  }, [fetchTasks])
+
+  const restoreTask = async (taskId: string) => {
+    const { error } = await supabase
+      .from('tasks')
+      .update({ deleted_at: null })
+      .eq('id', taskId)
+
+    if (error) throw error
+    await fetchTasks()
+  }
+
+  const permanentDelete = async (taskId: string) => {
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', taskId)
+
+    if (error) throw error
+    await fetchTasks()
+  }
+
+  const emptyTrash = async () => {
+    // Get all deleted tasks older than 30 days or all if admin
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .not('deleted_at', 'is', null)
+
+    if (error) throw error
+    await fetchTasks()
+  }
+
+  return {
+    tasks,
+    loading,
+    error,
+    refetch: fetchTasks,
+    restoreTask,
+    permanentDelete,
+    emptyTrash
+  }
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Tag, FolderOpen, Flag, User, X } from 'lucide-react'
+import { Tag, FolderOpen, Flag, User, X, Trash2 } from 'lucide-react'
 import { TaskWithRelations, WhenType } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar } from '@/components/ui/avatar'
@@ -17,6 +17,7 @@ interface TaskItemExpandedProps {
   onUpdate: (updates: Partial<TaskWithRelations>) => void
   onComplete: (completed: boolean) => void
   onCollapse: () => void
+  onDelete?: () => void
 }
 
 export function TaskItemExpanded({
@@ -24,6 +25,7 @@ export function TaskItemExpanded({
   onUpdate,
   onComplete,
   onCollapse,
+  onDelete,
 }: TaskItemExpandedProps) {
   const [title, setTitle] = useState(task.title)
   const [notes, setNotes] = useState(task.notes || '')
@@ -172,6 +174,23 @@ export function TaskItemExpanded({
             value={task.deadline}
             onChange={handleDeadlineChange}
           />
+
+          {/* Divider */}
+          <div className="w-px h-5 bg-[var(--border-primary)] mx-1" />
+
+          {/* Delete */}
+          {onDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete()
+              }}
+              className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors"
+              title="Vymazat"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 

@@ -11,6 +11,7 @@ interface TaskListProps {
   onTaskClick?: (task: TaskWithRelations) => void
   onTaskComplete: (taskId: string, completed: boolean) => void
   onTaskUpdate?: (taskId: string, updates: Partial<TaskWithRelations>) => void
+  onTaskDelete?: (taskId: string) => void
   onQuickAdd: (title: string) => void
   emptyMessage?: string
   showQuickAdd?: boolean
@@ -23,6 +24,7 @@ export function TaskList({
   onTaskClick,
   onTaskComplete,
   onTaskUpdate,
+  onTaskDelete,
   onQuickAdd,
   emptyMessage = 'Ziadne ulohy',
   showQuickAdd = true,
@@ -113,6 +115,7 @@ export function TaskList({
                 }}
                 onComplete={(completed) => onTaskComplete(task.id, completed)}
                 onUpdate={(updates) => handleTaskUpdate(task.id, updates)}
+                onDelete={onTaskDelete ? () => onTaskDelete(task.id) : undefined}
                 enableInlineEdit={enableInlineEdit}
               />
             )

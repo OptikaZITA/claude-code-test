@@ -11,7 +11,7 @@ import { TaskWithRelations } from '@/types'
 
 export default function AnytimePage() {
   const { tasks, loading, refetch } = useAnytimeTasks()
-  const { createTask, updateTask, completeTask } = useTasks()
+  const { createTask, updateTask, completeTask, softDelete } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
 
   // Listen for task:moved events to refresh the list
@@ -57,6 +57,15 @@ export default function AnytimePage() {
       refetch()
     } catch (error) {
       console.error('Error updating task:', error)
+    }
+  }
+
+  const handleTaskDelete = async (taskId: string) => {
+    try {
+      await softDelete(taskId)
+      refetch()
+    } catch (error) {
+      console.error('Error deleting task:', error)
     }
   }
 
@@ -107,6 +116,7 @@ export default function AnytimePage() {
           onTaskClick={setSelectedTask}
           onTaskComplete={handleTaskComplete}
           onTaskUpdate={handleInlineTaskUpdate}
+          onTaskDelete={handleTaskDelete}
           onQuickAdd={handleQuickAdd}
           emptyMessage=""
         />

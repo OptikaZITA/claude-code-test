@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils/cn'
 
 export default function UpcomingPage() {
   const { tasks, loading, refetch } = useUpcomingTasks()
-  const { createTask, updateTask, completeTask } = useTasks()
+  const { createTask, updateTask, completeTask, softDelete } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const dateRefs = useRef<Map<string, HTMLDivElement>>(new Map())
@@ -110,6 +110,15 @@ export default function UpcomingPage() {
       refetch()
     } catch (error) {
       console.error('Error updating task:', error)
+    }
+  }
+
+  const handleTaskDelete = async (taskId: string) => {
+    try {
+      await softDelete(taskId)
+      refetch()
+    } catch (error) {
+      console.error('Error deleting task:', error)
     }
   }
 
@@ -236,6 +245,7 @@ export default function UpcomingPage() {
                         onTaskClick={setSelectedTask}
                         onTaskComplete={handleTaskComplete}
                         onTaskUpdate={handleInlineTaskUpdate}
+                        onTaskDelete={handleTaskDelete}
                         onQuickAdd={handleQuickAdd}
                         showQuickAdd={!!isSelectedDateGroup}
                         emptyMessage=""

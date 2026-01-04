@@ -109,6 +109,7 @@ export interface Task {
   total_time_seconds: number
   sort_order: number
   archived_at: string | null
+  deleted_at: string | null
   checklist_items: ChecklistItem[]
   recurrence_rule: RecurrenceRule | null
   created_at: string

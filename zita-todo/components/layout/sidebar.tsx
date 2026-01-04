@@ -18,6 +18,7 @@ import {
   Clock,
   Moon,
   BookOpen,
+  Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Avatar } from '@/components/ui/avatar'
@@ -150,6 +151,18 @@ export function Sidebar({
           >
             <BookOpen className="h-4 w-4 text-[var(--color-success)]" />
             <span>Logbook</span>
+          </Link>
+          <Link
+            href="/trash"
+            className={cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+              isActive('/trash')
+                ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
+                : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+            )}
+          >
+            <Trash2 className="h-4 w-4 text-[var(--text-secondary)]" />
+            <span>Kos</span>
           </Link>
           <Link
             href="/calendar"

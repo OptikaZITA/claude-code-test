@@ -20,6 +20,7 @@ interface TaskItemProps {
   onClick?: () => void
   onComplete: (completed: boolean) => void
   onUpdate?: (updates: Partial<TaskWithRelations>) => void
+  onDelete?: () => void
   enableInlineEdit?: boolean
 }
 
@@ -52,6 +53,7 @@ export function TaskItem({
   onClick,
   onComplete,
   onUpdate,
+  onDelete,
   enableInlineEdit = true,
 }: TaskItemProps) {
   const isCompleted = task.status === 'done'
@@ -81,6 +83,7 @@ export function TaskItem({
         onUpdate={onUpdate || (() => {})}
         onComplete={onComplete}
         onCollapse={onCollapse || (() => {})}
+        onDelete={onDelete}
       />
     )
   }
