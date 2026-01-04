@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 4. januára 2026
-**Verzia špecifikácie**: 2.1 (all features implemented)
+**Verzia špecifikácie**: 2.3 (Things 3 UI + Drag & Drop complete)
 
 ---
 
@@ -602,8 +602,10 @@ zita-todo/
 │   └── globals.css
 ├── components/
 │   ├── calendar/
+│   │   ├── index.ts                      # Exporty
 │   │   ├── calendar-view.tsx
-│   │   └── calendar-day.tsx
+│   │   ├── calendar-day.tsx
+│   │   └── mini-calendar.tsx             # NOVÉ v2.3 - Mini kalendár s indikátormi
 │   ├── export/
 │   │   └── export-menu.tsx
 │   ├── headings/                      # NOVÉ
@@ -615,6 +617,7 @@ zita-todo/
 │   │   └── email-settings.tsx
 │   ├── layout/
 │   │   ├── sidebar.tsx
+│   │   ├── sidebar-drop-item.tsx         # NOVÉ v2.3 - Droppable sidebar položky
 │   │   ├── header.tsx
 │   │   ├── mobile-nav.tsx
 │   │   ├── connection-status.tsx
@@ -632,9 +635,15 @@ zita-todo/
 │   │   ├── task-list.tsx
 │   │   ├── task-item.tsx
 │   │   ├── task-quick-add.tsx
-│   │   ├── task-detail.tsx
+│   │   ├── task-detail.tsx               # PREPÍSANÉ v2.3 - Things 3 štýl
 │   │   ├── task-filters.tsx
-│   │   ├── when-picker.tsx           # NOVÉ - Today/Anytime/Someday/Scheduled
+│   │   ├── when-picker.tsx               # Today/Anytime/Someday/Scheduled
+│   │   ├── checklist.tsx                 # NOVÉ v2.3 - Drag & drop checklist
+│   │   ├── tag-selector.tsx              # NOVÉ v2.3 - Multi-select tags
+│   │   ├── project-selector.tsx          # NOVÉ v2.3 - Project dropdown
+│   │   ├── assignee-selector.tsx         # NOVÉ v2.3 - Team member dropdown
+│   │   ├── deadline-picker.tsx           # NOVÉ v2.3 - Deadline picker s badge
+│   │   ├── draggable-task.tsx            # NOVÉ v2.3 - Wrapper pre drag
 │   │   ├── recurrence-config.tsx
 │   │   ├── kanban-board.tsx
 │   │   ├── kanban-column.tsx
@@ -660,12 +669,15 @@ zita-todo/
 ├── lib/
 │   ├── contexts/
 │   │   ├── toast-context.tsx
-│   │   └── theme-context.tsx
+│   │   ├── theme-context.tsx
+│   │   └── sidebar-drop-context.tsx      # NOVÉ v2.3 - Drag & drop stav
 │   ├── hooks/
 │   │   ├── use-tasks.ts              # + useTodayTasks, useUpcomingTasks, useAnytimeTasks, useSomedayTasks, useLogbookTasks
 │   │   ├── use-projects.ts
-│   │   ├── use-areas.ts              # NOVÉ - useArea, useAreaProjects, useAreaTasks, useAreas
-│   │   ├── use-headings.ts           # NOVÉ
+│   │   ├── use-areas.ts              # useArea, useAreaProjects, useAreaTasks, useAreas
+│   │   ├── use-headings.ts
+│   │   ├── use-tags.ts               # NOVÉ v2.3 - Tags CRUD hook
+│   │   ├── use-task-moved.ts         # NOVÉ v2.3 - Event listener pre refresh
 │   │   ├── use-time-tracking.ts      # + useGlobalTimer, useTimeTotals
 │   │   ├── use-organization.ts
 │   │   ├── use-task-filters.ts
@@ -965,6 +977,16 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 - [x] Globálny timer indikátor
 - [x] Hierarchia: Area → Project → Heading → Todo
 
+### UI vylepšenia v2.3 - VŠETKY DOKONČENÉ ✅
+- [x] Checklist s drag & drop (@dnd-kit)
+- [x] Tags UI s multi-select a farbami
+- [x] Task Detail - Things 3 štýl s auto-save
+- [x] Project selector dropdown
+- [x] Assignee selector s avatarmi
+- [x] Deadline picker s quick options
+- [x] Sidebar drag & drop (presun úloh medzi views)
+- [x] Mini kalendár v Upcoming view s indikátormi úloh
+
 ---
 
 ## Známe problémy a riešenia
@@ -984,6 +1006,47 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.3 (4. januára 2026)
+**Things 3 UI + Sidebar Drag & Drop:**
+
+**Fáza 1 - Checklist UI:**
+- ✅ `components/tasks/checklist.tsx` - Interaktívny checklist s @dnd-kit drag & drop
+- ✅ Inline pridávanie položiek, delete, complete toggle
+- ✅ Integrácia do task-detail.tsx
+
+**Fáza 2 - Tags UI:**
+- ✅ `components/tasks/tag-selector.tsx` - Multi-select dropdown s farebnými indikátormi
+- ✅ `lib/hooks/use-tags.ts` - CRUD hook pre tagy
+- ✅ Vytvorenie nových tagov priamo v dropdown
+
+**Fáza 3 - Task Detail Panel Redesign:**
+- ✅ `components/tasks/project-selector.tsx` - Project dropdown s vyhľadávaním
+- ✅ `components/tasks/assignee-selector.tsx` - Team member dropdown s avatarmi
+- ✅ `components/tasks/deadline-picker.tsx` - Deadline picker s quick options + DeadlineBadge
+- ✅ Prepísaný `task-detail.tsx` v Things 3 štýle s inline editovateľným titulkom
+- ✅ Auto-save pattern pre všetky polia
+- ✅ Avatar 'xs' size pre kompaktné zobrazenie
+
+**Fáza 4 - Sidebar Drag & Drop:**
+- ✅ `lib/contexts/sidebar-drop-context.tsx` - Context pre globálny drag stav
+- ✅ `components/layout/sidebar-drop-item.tsx` - Droppable sidebar položky
+- ✅ `components/tasks/draggable-task.tsx` - Wrapper pre draggable úlohy
+- ✅ `lib/hooks/use-task-moved.ts` - Event listener pre refresh listov
+- ✅ Native HTML5 Drag & Drop API (nie @dnd-kit pre sidebar)
+- ✅ Vizuálny feedback pri drag over
+- ✅ Custom event `task:moved` pre cross-component komunikáciu
+
+**Fáza 5 - Upcoming Mini Calendar:**
+- ✅ `components/calendar/mini-calendar.tsx` - Kompaktný kalendár
+- ✅ Task indikátory (bodky) - modrá 1-2 úlohy, oranžová/červená 3+
+- ✅ Klik na deň scrolluje k úlohám daného dňa
+- ✅ Integrácia do Upcoming page s quick stats
+
+**Opravy:**
+- Fix: `showQuickAdd` type error (`boolean | null` → `!!value`)
+
+---
 
 ### v2.1 (4. januára 2026)
 **Všetky Things 3 funkcie implementované:**
@@ -1027,5 +1090,5 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 
 ---
 
-**Verzia:** 2.1 (all features implemented)
+**Verzia:** 2.3 (Things 3 UI + Drag & Drop complete)
 **Posledná aktualizácia:** 4. januára 2026
