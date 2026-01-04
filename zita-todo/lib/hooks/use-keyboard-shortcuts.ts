@@ -80,12 +80,6 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
       category: 'navigation',
     },
     {
-      key: 's',
-      description: 'Niekedy (Someday)',
-      action: () => router.push('/someday'),
-      category: 'navigation',
-    },
-    {
       key: 'l',
       description: 'Logbook',
       action: () => router.push('/logbook'),

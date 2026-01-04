@@ -12,7 +12,7 @@ import { Inbox } from 'lucide-react'
 
 export default function InboxPage() {
   const { tasks, loading, error, refetch } = useInboxTasks('personal')
-  const { createTask, updateTask, completeTask, softDelete } = useTasks()
+  const { createTask, updateTask, completeTask, softDelete, reorderTasks } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
 
   // Listen for task:moved events to refresh the list
@@ -56,6 +56,15 @@ export default function InboxPage() {
       refetch()
     } catch (error) {
       console.error('Error deleting task:', error)
+    }
+  }
+
+  const handleReorder = async (taskId: string, newIndex: number, currentTasks: TaskWithRelations[]) => {
+    try {
+      await reorderTasks(taskId, newIndex, currentTasks)
+      refetch()
+    } catch (error) {
+      console.error('Error reordering tasks:', error)
     }
   }
 
@@ -105,6 +114,7 @@ export default function InboxPage() {
           onTaskUpdate={handleTaskUpdate}
           onTaskDelete={handleTaskDelete}
           onQuickAdd={handleQuickAdd}
+          onReorder={handleReorder}
           emptyMessage=""
         />
       </div>

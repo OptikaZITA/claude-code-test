@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/header'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { TaskItem } from '@/components/tasks/task-item'
 import { useLogbookTasks, useTasks } from '@/lib/hooks/use-tasks'
+import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { TaskWithRelations } from '@/types'
 import { format, parseISO, startOfDay, isToday, isYesterday, isThisWeek, isThisMonth } from 'date-fns'
 import { sk } from 'date-fns/locale'
@@ -14,6 +15,9 @@ export default function LogbookPage() {
   const { tasks, loading, refetch } = useLogbookTasks()
   const { updateTask, completeTask } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
+
+  // Listen for task:moved events to refresh the list
+  useTaskMoved(refetch)
 
   // Group tasks by time period
   const groupedTasks = useMemo(() => {

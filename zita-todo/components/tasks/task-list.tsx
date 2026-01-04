@@ -1,10 +1,28 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
 import { TaskWithRelations } from '@/types'
 import { TaskItem } from './task-item'
 import { TaskQuickAdd } from './task-quick-add'
+import { SortableTaskItem } from './sortable-task-item'
 import { DraggableTask } from './draggable-task'
+import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
 
 interface TaskListProps {
   tasks: TaskWithRelations[]
@@ -13,9 +31,11 @@ interface TaskListProps {
   onTaskUpdate?: (taskId: string, updates: Partial<TaskWithRelations>) => void
   onTaskDelete?: (taskId: string) => void
   onQuickAdd: (title: string) => void
+  onReorder?: (taskId: string, newIndex: number, tasks: TaskWithRelations[]) => void
   emptyMessage?: string
   showQuickAdd?: boolean
   enableDrag?: boolean
+  enableReorder?: boolean
   enableInlineEdit?: boolean
 }
 
@@ -26,13 +46,29 @@ export function TaskList({
   onTaskUpdate,
   onTaskDelete,
   onQuickAdd,
+  onReorder,
   emptyMessage = 'Ziadne ulohy',
   showQuickAdd = true,
   enableDrag = true,
+  enableReorder = true,
   enableInlineEdit = true,
 }: TaskListProps) {
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null)
+  const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const { dropTarget, handleDrop: handleSidebarDrop, setDropTarget } = useSidebarDrop()
+
+  // Sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 8px movement before drag starts
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   // Handle click outside to collapse
   useEffect(() => {
@@ -105,46 +141,138 @@ export function TaskList({
     onTaskUpdate?.(taskId, updates)
   }
 
+  // Drag handlers for sortable
+  const handleDragStart = (event: DragStartEvent) => {
+    const task = tasks.find((t) => t.id === event.active.id)
+    setActiveTask(task || null)
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    setActiveTask(null)
+
+    // Check if there's a sidebar drop target (trash, when, project, area)
+    if (dropTarget) {
+      handleSidebarDrop(dropTarget)
+      setDropTarget(null)
+      return
+    }
+
+    if (!over || active.id === over.id) return
+
+    const oldIndex = tasks.findIndex((t) => t.id === active.id)
+    const newIndex = tasks.findIndex((t) => t.id === over.id)
+
+    if (oldIndex !== -1 && newIndex !== -1 && onReorder) {
+      onReorder(active.id as string, newIndex, tasks)
+    }
+  }
+
+  const handleDragCancel = () => {
+    setActiveTask(null)
+    setDropTarget(null)
+  }
+
+  // Render with sortable context if reorder is enabled
+  const shouldUseSortable = enableReorder && onReorder && tasks.length > 1
+
+  const renderTaskItem = (task: TaskWithRelations) => {
+    const isExpanded = expandedTaskId === task.id
+
+    if (shouldUseSortable) {
+      return (
+        <SortableTaskItem
+          key={task.id}
+          task={task}
+          isExpanded={isExpanded}
+          onExpand={() => handleTaskExpand(task.id)}
+          onCollapse={handleTaskCollapse}
+          onClick={() => {
+            if (!enableInlineEdit) {
+              onTaskClick?.(task)
+            }
+          }}
+          onComplete={(completed) => onTaskComplete(task.id, completed)}
+          onUpdate={(updates) => handleTaskUpdate(task.id, updates)}
+          onDelete={onTaskDelete ? () => onTaskDelete(task.id) : undefined}
+          enableInlineEdit={enableInlineEdit}
+        />
+      )
+    }
+
+    const taskItem = (
+      <TaskItem
+        task={task}
+        isExpanded={isExpanded}
+        onExpand={() => handleTaskExpand(task.id)}
+        onCollapse={handleTaskCollapse}
+        onClick={() => {
+          if (!enableInlineEdit) {
+            onTaskClick?.(task)
+          }
+        }}
+        onComplete={(completed) => onTaskComplete(task.id, completed)}
+        onUpdate={(updates) => handleTaskUpdate(task.id, updates)}
+        onDelete={onTaskDelete ? () => onTaskDelete(task.id) : undefined}
+        enableInlineEdit={enableInlineEdit}
+      />
+    )
+
+    return enableDrag && !isExpanded ? (
+      <DraggableTask key={task.id} task={task}>
+        {taskItem}
+      </DraggableTask>
+    ) : (
+      <div key={task.id}>{taskItem}</div>
+    )
+  }
+
+  const taskList = (
+    <div className="space-y-2">
+      {tasks.map((task) => renderTaskItem(task))}
+    </div>
+  )
+
   return (
-    <div className="space-y-2" ref={containerRef}>
+    <div className="space-y-2 pl-6" ref={containerRef}>
       {showQuickAdd && <TaskQuickAdd onAdd={onQuickAdd} />}
 
       {tasks.length === 0 ? (
-        <div className="py-8 text-center text-[var(--text-secondary)]">
-          {emptyMessage}
-        </div>
+        emptyMessage ? (
+          <div className="py-8 text-center text-[var(--text-secondary)]">
+            {emptyMessage}
+          </div>
+        ) : null
+      ) : shouldUseSortable ? (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
+          <SortableContext
+            items={tasks.map((t) => t.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {taskList}
+          </SortableContext>
+
+          <DragOverlay>
+            {activeTask && (
+              <div className="opacity-90 shadow-lg rounded-lg">
+                <TaskItem
+                  task={activeTask}
+                  isExpanded={false}
+                  onComplete={() => {}}
+                  enableInlineEdit={false}
+                />
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
       ) : (
-        <div className="space-y-2">
-          {tasks.map((task) => {
-            const isExpanded = expandedTaskId === task.id
-
-            const taskItem = (
-              <TaskItem
-                task={task}
-                isExpanded={isExpanded}
-                onExpand={() => handleTaskExpand(task.id)}
-                onCollapse={handleTaskCollapse}
-                onClick={() => {
-                  if (!enableInlineEdit) {
-                    onTaskClick?.(task)
-                  }
-                }}
-                onComplete={(completed) => onTaskComplete(task.id, completed)}
-                onUpdate={(updates) => handleTaskUpdate(task.id, updates)}
-                onDelete={onTaskDelete ? () => onTaskDelete(task.id) : undefined}
-                enableInlineEdit={enableInlineEdit}
-              />
-            )
-
-            return enableDrag && !isExpanded ? (
-              <DraggableTask key={task.id} task={task}>
-                {taskItem}
-              </DraggableTask>
-            ) : (
-              <div key={task.id}>{taskItem}</div>
-            )
-          })}
-        </div>
+        taskList
       )}
     </div>
   )

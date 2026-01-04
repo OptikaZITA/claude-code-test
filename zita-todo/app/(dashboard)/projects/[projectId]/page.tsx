@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { useProject, useProjectTasks } from '@/lib/hooks/use-projects'
 import { useTasks } from '@/lib/hooks/use-tasks'
 import { useHeadings } from '@/lib/hooks/use-headings'
+import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { TaskWithRelations } from '@/types'
 
 export default function ProjectPage() {
@@ -22,6 +23,9 @@ export default function ProjectPage() {
   const { headings, loading: headingsLoading, createHeading, updateHeading, deleteHeading } = useHeadings(projectId)
   const { createTask, updateTask, completeTask } = useTasks()
 
+  // Listen for task:moved events to refresh the list
+  useTaskMoved(refetchTasks)
+
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
 
   const handleQuickAdd = async (title: string, headingId?: string) => {
@@ -31,7 +35,6 @@ export default function ProjectPage() {
         project_id: projectId,
         heading_id: headingId || null,
         kanban_column: 'backlog',
-        when_type: 'anytime',
         is_inbox: false,
       })
       refetchTasks()

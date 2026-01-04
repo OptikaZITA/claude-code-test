@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 4. januára 2026
-**Verzia špecifikácie**: 2.3 (Things 3 UI + Drag & Drop complete)
+**Verzia špecifikácie**: 2.5 (Inline Components + Drag & Drop Sorting + Calendar Drop)
 
 ---
 
@@ -125,6 +125,9 @@ assignee_id (uuid FK → users, nullable)
 -- Checklist a metadáta
 checklist_items (jsonb DEFAULT '[]')
 recurrence_rule (jsonb, nullable)
+
+-- Soft delete
+deleted_at (timestamptz, nullable)  -- NOVÉ v2.4
 
 created_at (timestamptz)
 updated_at (timestamptz)
@@ -321,17 +324,18 @@ PUT /api/tasks/:id/kanban
 ### Sidebar (permanent left)
 
 ```
-📥 Inbox (personal)
-👥 Team Inbox
+📥 Inbox (personal)     [počet]     ← badge s počtom úloh
+👥 Team Inbox           [počet]     ← badge s počtom úloh
 ─────────────
-📅 Today        ← when_type = 'today' OR (scheduled + when_date = today)
-🔮 Upcoming     ← when_type = 'scheduled' + budúce deadlines (NOVÉ)
-⏳ Anytime      ← when_type = 'anytime' AND status = 'open' (NOVÉ)
-💭 Someday      ← when_type = 'someday' (NOVÉ)
-📚 Logbook      ← status = 'completed' ORDER BY completed_at DESC (NOVÉ)
+📅 Today        [🔴3]               ← červená badge ak deadline=today, inak sivá
+🔮 Upcoming     [počet]             ← when_type = 'scheduled' + budúce deadlines
+⏳ Anytime      [počet]             ← when_type = 'anytime' AND status = 'open'
+💭 Someday      [počet]             ← when_type = 'someday'
+📚 Logbook                          ← status = 'completed' ORDER BY completed_at DESC
+🗑️ Kôš                              ← deleted_at IS NOT NULL (NOVÉ v2.4)
 📆 Calendar
 ─────────────
-📁 Areas
+📁 Oddelenia
   └─ 💼 Práca
       └─ Projekt A
       └─ Projekt B
@@ -351,8 +355,9 @@ PUT /api/tasks/:id/kanban
 | **Anytime** | `/anytime` | `when_type='anytime' AND status='open'` |
 | **Someday** | `/someday` | `when_type='someday' AND status='open'` |
 | **Logbook** | `/logbook` | `status='completed' ORDER BY completed_at DESC` |
+| **Kôš (Trash)** | `/trash` | `deleted_at IS NOT NULL` (NOVÉ v2.4) |
 | **Calendar** | `/calendar` | Všetky úlohy s dátumom (mesačný pohľad) |
-| **Area Detail** | `/areas/[id]` | Projekty + voľné úlohy v danej oblasti |
+| **Area Detail** | `/areas/[id]` | Projekty + voľné úlohy v danom oddelení |
 | **Project List** | `/projects/[id]` | Úlohy + headings v projekte (list view) |
 | **Project Kanban** | `/projects/[id]/kanban` | Úlohy v projekte (kanban view) |
 
@@ -577,6 +582,7 @@ zita-todo/
 │   │   ├── anytime/page.tsx          # NOVÉ
 │   │   ├── someday/page.tsx          # NOVÉ
 │   │   ├── logbook/page.tsx          # NOVÉ
+│   │   ├── trash/page.tsx            # NOVÉ v2.4 - Kôš
 │   │   ├── calendar/page.tsx
 │   │   ├── areas/
 │   │   │   └── [areaId]/page.tsx     # NOVÉ
@@ -618,11 +624,14 @@ zita-todo/
 │   ├── layout/
 │   │   ├── sidebar.tsx
 │   │   ├── sidebar-drop-item.tsx         # NOVÉ v2.3 - Droppable sidebar položky
+│   │   ├── calendar-drop-picker.tsx      # NOVÉ v2.5 - Kalendár pre drag & drop
 │   │   ├── header.tsx
 │   │   ├── mobile-nav.tsx
 │   │   ├── connection-status.tsx
 │   │   ├── offline-indicator.tsx
 │   │   └── error-display.tsx
+│   ├── areas/                            # NOVÉ v2.5
+│   │   └── area-form.tsx                 # Formulár pre vytvorenie/úpravu area
 │   ├── notifications/
 │   │   └── notification-settings.tsx
 │   ├── organization/
@@ -630,15 +639,25 @@ zita-todo/
 │   ├── projects/
 │   │   ├── project-card.tsx
 │   │   ├── project-form.tsx
+│   │   ├── project-form-modal.tsx        # NOVÉ v2.5 - Modal pre vytvorenie projektu
 │   │   └── project-list.tsx
 │   ├── tasks/
 │   │   ├── task-list.tsx
-│   │   ├── task-item.tsx
+│   │   ├── task-item.tsx                 # Swipe-to-delete na mobile (NOVÉ v2.4)
+│   │   ├── task-item-expanded.tsx        # NOVÉ v2.4 - Inline rozbalená úloha
 │   │   ├── task-quick-add.tsx
 │   │   ├── task-detail.tsx               # PREPÍSANÉ v2.3 - Things 3 štýl
 │   │   ├── task-filters.tsx
 │   │   ├── when-picker.tsx               # Today/Anytime/Someday/Scheduled
+│   │   ├── inline-when-picker.tsx        # NOVÉ v2.5 - Inline When picker
+│   │   ├── inline-deadline-picker.tsx    # NOVÉ v2.5 - Inline Deadline picker
+│   │   ├── inline-tag-selector.tsx       # NOVÉ v2.5 - Inline Tag selector
+│   │   ├── inline-project-selector.tsx   # NOVÉ v2.5 - Inline Project selector
+│   │   ├── inline-time-tracker.tsx       # NOVÉ v2.5 - Inline Time tracker
+│   │   ├── inline-location-selector.tsx  # NOVÉ v2.5 - Inline Location selector
+│   │   ├── sortable-task-item.tsx        # NOVÉ v2.5 - Drag & drop triediteľná úloha
 │   │   ├── checklist.tsx                 # NOVÉ v2.3 - Drag & drop checklist
+│   │   ├── checklist-item.tsx            # Jednotlivá položka checklistu
 │   │   ├── tag-selector.tsx              # NOVÉ v2.3 - Multi-select tags
 │   │   ├── project-selector.tsx          # NOVÉ v2.3 - Project dropdown
 │   │   ├── assignee-selector.tsx         # NOVÉ v2.3 - Team member dropdown
@@ -648,6 +667,10 @@ zita-todo/
 │   │   ├── kanban-board.tsx
 │   │   ├── kanban-column.tsx
 │   │   └── kanban-card.tsx
+│   ├── tags/                         # NOVÉ v2.3
+│   │   ├── index.ts                  # Exporty
+│   │   ├── tag-chip.tsx              # Jednotlivý tag chip
+│   │   └── tag-selector.tsx          # Multi-select tag dropdown
 │   ├── time-tracking/
 │   │   ├── timer.tsx
 │   │   ├── timer-indicator.tsx       # NOVÉ - globálny indikátor v headeri
@@ -672,7 +695,8 @@ zita-todo/
 │   │   ├── theme-context.tsx
 │   │   └── sidebar-drop-context.tsx      # NOVÉ v2.3 - Drag & drop stav
 │   ├── hooks/
-│   │   ├── use-tasks.ts              # + useTodayTasks, useUpcomingTasks, useAnytimeTasks, useSomedayTasks, useLogbookTasks
+│   │   ├── use-tasks.ts              # + useTodayTasks, useUpcomingTasks, useAnytimeTasks, useSomedayTasks, useLogbookTasks, useTrashTasks
+│   │   ├── use-task-counts.ts        # NOVÉ v2.4 - Počítadlá úloh pre sidebar
 │   │   ├── use-projects.ts
 │   │   ├── use-areas.ts              # useArea, useAreaProjects, useAreaTasks, useAreas
 │   │   ├── use-headings.ts
@@ -697,7 +721,8 @@ zita-todo/
 │       ├── cn.ts
 │       ├── date.ts
 │       ├── recurrence.ts
-│       └── export.ts
+│       ├── export.ts
+│       └── task-sorting.ts               # NOVÉ v2.5 - Utility pre triedenie úloh
 ├── public/
 │   ├── sw.js
 │   ├── manifest.json
@@ -748,7 +773,7 @@ zita-todo/
 - [x] **Anytime view** - úlohy "kedykoľvek" (`app/(dashboard)/anytime/page.tsx`)
 - [x] **Someday view** - úlohy "niekedy" (`app/(dashboard)/someday/page.tsx`)
 - [x] **Logbook view** - dokončené úlohy (`app/(dashboard)/logbook/page.tsx`)
-- [x] **Area detail view** - projekty a úlohy v oblasti (`app/(dashboard)/areas/[areaId]/page.tsx`)
+- [x] **Area detail view** - projekty a úlohy v oddelení (`app/(dashboard)/areas/[areaId]/page.tsx`)
 - [x] **Definované Kanban stĺpce** - Backlog/Todo/In Progress/Review/Done
 - [x] **Vylepšený Time Tracking** - totals per project/area, globálny indikátor (`components/time-tracking/timer-indicator.tsx`)
 
@@ -866,6 +891,7 @@ UPDATE tasks SET when_type = 'anytime', is_inbox = false WHERE project_id IS NOT
 | `/` | Vyhľadávanie |
 | `D` | Prepnúť dark mode |
 | `⌘T` | Prepnúť časovač |
+| `Backspace` / `Delete` | Vymazať úlohu (keď je rozbalená) - NOVÉ v2.4 |
 
 ### Ostatné
 | Skratka | Akcia |
@@ -987,6 +1013,30 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 - [x] Sidebar drag & drop (presun úloh medzi views)
 - [x] Mini kalendár v Upcoming view s indikátormi úloh
 
+### Funkcie v2.4 - VŠETKY DOKONČENÉ ✅
+- [x] Kôš (Trash) - soft delete, obnovenie, trvalé vymazanie
+- [x] Inline editovanie úloh - rozbalenie priamo v zozname
+- [x] Swipe-to-delete na mobile
+- [x] Keyboard shortcut pre mazanie (Backspace/Delete)
+- [x] Task counters v sidebar s realtime aktualizáciami
+- [x] Červená badge pre deadline úlohy
+- [x] RLS opravy pre tímový inbox
+
+### Funkcie v2.5 - VŠETKY DOKONČENÉ ✅
+- [x] **Inline komponenty** pre task-item-expanded:
+  - [x] `inline-when-picker.tsx` - Výber When (Today/Anytime/Someday/Scheduled)
+  - [x] `inline-deadline-picker.tsx` - Výber deadlinu s mini kalendárom
+  - [x] `inline-tag-selector.tsx` - Výber tagov s farebnými indikátormi
+  - [x] `inline-project-selector.tsx` - Výber projektu
+  - [x] `inline-time-tracker.tsx` - Inline time tracker s start/stop
+  - [x] `inline-location-selector.tsx` - Výber lokácie
+- [x] **Calendar drop picker** - Drag & drop úloh na kalendárový dátum
+- [x] **Sortable task item** - Drag & drop preusporiadanie úloh v zozname
+- [x] **Task sorting utilities** - Utility funkcie pre triedenie úloh
+- [x] **Project form modal** - Modal pre vytvorenie nového projektu
+- [x] **Area form** - Formulár pre vytvorenie/úpravu oddelenia
+- [x] **Vylepšené task counts** - Realtime počítadlá s archive support
+
 ---
 
 ## Známe problémy a riešenia
@@ -1003,9 +1053,131 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 **Problém:** VAPID key conversion
 **Riešenie:** Return type `ArrayBuffer`
 
+### 4. Error updating task v tímovom inboxe (NOVÉ v2.4)
+**Problém:** Používatelia nemohli upravovať úlohy v tímovom inboxe
+**Príčina:** RLS UPDATE politika neobsahovala podmienku pre `inbox_type = 'team'`
+**Riešenie:** Pridaná podmienka `OR (inbox_type = 'team' AND auth.uid() IS NOT NULL)` do UPDATE a DELETE politík
+
+### 5. Error creating tag (NOVÉ v2.4)
+**Problém:** Vytváranie tagov zlyhávalo
+**Príčina:** `undefined` namiesto `null` pre `organization_id`
+**Riešenie:** Použitie `?? null` namiesto `?.` operátora
+
 ---
 
 ## Changelog
+
+### v2.5 (4. januára 2026)
+**Inline Components + Drag & Drop Sorting + Calendar Drop:**
+
+**Fáza 1 - Inline komponenty pre task-item-expanded:**
+- ✅ `components/tasks/inline-when-picker.tsx` - Kompaktný When picker pre inline editáciu
+- ✅ `components/tasks/inline-deadline-picker.tsx` - Kompaktný Deadline picker s mini kalendárom
+- ✅ `components/tasks/inline-tag-selector.tsx` - Multi-select tags pre inline editáciu
+- ✅ `components/tasks/inline-project-selector.tsx` - Project dropdown pre inline editáciu
+- ✅ `components/tasks/inline-time-tracker.tsx` - Inline time tracker s elapsed time
+- ✅ `components/tasks/inline-location-selector.tsx` - Location selector pre task lokáciu
+
+**Fáza 2 - Calendar Drop Picker:**
+- ✅ `components/layout/calendar-drop-picker.tsx` - Mini kalendár pre drag & drop na sidebar
+- ✅ Vizuálne zvýraznenie pri drag over dňa
+- ✅ Automatická zmena `when_type` na `scheduled` a nastavenie `when_date`
+
+**Fáza 3 - Sortable Task Items:**
+- ✅ `components/tasks/sortable-task-item.tsx` - Wrapper pre drag & drop triedenie
+- ✅ `lib/utils/task-sorting.ts` - Utility funkcie pre triedenie (priority, date, manual)
+- ✅ Perzistentné uloženie sort_order do databázy
+
+**Fáza 4 - Project & Area Forms:**
+- ✅ `components/projects/project-form-modal.tsx` - Modal pre vytvorenie nového projektu
+- ✅ `components/areas/area-form.tsx` - Formulár pre vytvorenie/úpravu oddelenia
+- ✅ Integrácia s sidebar pre rýchle vytváranie
+
+**Fáza 5 - Vylepšené Task Counts:**
+- ✅ Podpora pre `archived_at` stĺpec v počítadlách
+- ✅ Optimalizované paralelné queries pre rýchlejšie načítanie
+- ✅ Realtime subscription na zmeny v tasks tabuľke
+
+**Nové súbory:**
+- `components/tasks/inline-when-picker.tsx`
+- `components/tasks/inline-deadline-picker.tsx`
+- `components/tasks/inline-tag-selector.tsx`
+- `components/tasks/inline-project-selector.tsx`
+- `components/tasks/inline-time-tracker.tsx`
+- `components/tasks/inline-location-selector.tsx`
+- `components/tasks/sortable-task-item.tsx`
+- `components/layout/calendar-drop-picker.tsx`
+- `components/projects/project-form-modal.tsx`
+- `components/areas/area-form.tsx`
+- `lib/utils/task-sorting.ts`
+
+**Upravené súbory:**
+- `components/tasks/task-item-expanded.tsx` - integrácia inline komponentov
+- `components/tasks/task-list.tsx` - podpora pre sortable items
+- `components/layout/sidebar.tsx` - integrácia calendar drop picker
+- `lib/hooks/use-task-counts.ts` - podpora archive_at
+- `lib/hooks/use-tasks.ts` - nové sorting funkcie
+- `lib/hooks/use-areas.ts` - CRUD operácie pre areas
+- `lib/hooks/use-projects.ts` - CRUD operácie pre projects
+
+---
+
+### v2.4 (4. januára 2026)
+**Trash + Inline Edit + Task Counters:**
+
+**Fáza 1 - Kôš (Trash):**
+- ✅ `app/(dashboard)/trash/page.tsx` - Nová stránka pre vymazané úlohy
+- ✅ `deleted_at` stĺpec v tabuľke tasks
+- ✅ Soft delete namiesto trvalého mazania
+- ✅ Obnovenie úloh z koša
+- ✅ Trvalé vymazanie jednotlivých úloh
+- ✅ Vyprázdnenie celého koša s potvrdením
+
+**Fáza 2 - Inline editovanie úloh:**
+- ✅ `components/tasks/task-item-expanded.tsx` - Rozbalená úloha priamo v zozname
+- ✅ Dvojklik na desktop / klik na mobile pre rozbalenie
+- ✅ Inline editovateľný názov a poznámky
+- ✅ When picker, Deadline, Tags, Project selector v rozbalenom stave
+- ✅ Click-outside a Escape pre zatvorenie
+
+**Fáza 3 - Swipe-to-delete:**
+- ✅ Touch gestá v `task-item.tsx` pre mobilné zariadenia
+- ✅ Swipe doľava odhalí delete button
+- ✅ Vizuálny feedback s červeným pozadím
+- ✅ Threshold 80px pre aktiváciu
+
+**Fáza 4 - Keyboard shortcut pre mazanie:**
+- ✅ Backspace/Delete klávesy pre vymazanie rozbalenej úlohy
+- ✅ Pridané do `keyboard-shortcuts-modal.tsx`
+
+**Fáza 5 - Task counters v sidebar:**
+- ✅ `lib/hooks/use-task-counts.ts` - Hook pre počítanie úloh
+- ✅ Realtime subscription pre automatické aktualizácie
+- ✅ Sivé badges pre bežné počty
+- ✅ Červená badge pre deadline úlohy na Today
+- ✅ Podpora dark mode pre badges
+
+**Opravy:**
+- ✅ RLS politika pre UPDATE/DELETE tímových inbox úloh
+- ✅ Tag creation s `null` namiesto `undefined` pre organization_id
+- ✅ Lepšie error logging v team inbox page
+
+**Nové súbory:**
+- `app/(dashboard)/trash/page.tsx`
+- `components/tasks/task-item-expanded.tsx`
+- `lib/hooks/use-task-counts.ts`
+
+**Upravené súbory:**
+- `components/tasks/task-item.tsx` - swipe gestá
+- `components/tasks/task-list.tsx` - keyboard delete, expand state
+- `components/layout/sidebar.tsx` - task counters
+- `components/layout/sidebar-drop-item.tsx` - count badges
+- `lib/hooks/use-tasks.ts` - softDelete, useTrashTasks
+- `lib/hooks/use-tags.ts` - null fix pre organization_id
+- `types/index.ts` - deleted_at field
+- `supabase-rls-fix.sql` - team inbox UPDATE/DELETE politiky
+
+---
 
 ### v2.3 (4. januára 2026)
 **Things 3 UI + Sidebar Drag & Drop:**
@@ -1090,5 +1262,5 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 
 ---
 
-**Verzia:** 2.3 (Things 3 UI + Drag & Drop complete)
+**Verzia:** 2.5 (Inline Components + Drag & Drop Sorting + Calendar Drop)
 **Posledná aktualizácia:** 4. januára 2026

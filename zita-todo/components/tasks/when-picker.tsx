@@ -3,9 +3,8 @@
 import { useState } from 'react'
 import {
   Inbox,
-  Sun,
+  Star,
   Clock,
-  Moon,
   Calendar,
   ChevronDown,
   X
@@ -34,7 +33,7 @@ const whenOptions: { value: WhenType; label: string; icon: React.ReactNode; desc
   {
     value: 'today',
     label: 'Dnes',
-    icon: <Sun className="w-4 h-4 text-[var(--color-warning)]" />,
+    icon: <Star className="w-4 h-4 text-[var(--color-warning)]" />,
     description: 'Urobiť dnes'
   },
   {
@@ -42,12 +41,6 @@ const whenOptions: { value: WhenType; label: string; icon: React.ReactNode; desc
     label: 'Kedykoľvek',
     icon: <Clock className="w-4 h-4 text-[var(--color-primary)]" />,
     description: 'Bez konkrétneho termínu'
-  },
-  {
-    value: 'someday',
-    label: 'Niekedy',
-    icon: <Moon className="w-4 h-4 text-[var(--text-secondary)]" />,
-    description: 'Možno v budúcnosti'
   },
   {
     value: 'scheduled',
@@ -210,7 +203,6 @@ export function WhenBadge({
       size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-1.5 py-0.5 text-[10px]',
       value === 'today' && 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]',
       value === 'anytime' && 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
-      value === 'someday' && 'bg-[var(--text-secondary)]/10 text-[var(--text-secondary)]',
       value === 'scheduled' && 'bg-[var(--color-success)]/10 text-[var(--color-success)]',
     )}>
       {option.icon}
@@ -220,6 +212,38 @@ export function WhenBadge({
           : option.label
         }
       </span>
+    </span>
+  )
+}
+
+// Area/Department badge for task items
+export function AreaBadge({
+  area,
+  size = 'sm'
+}: {
+  area: { name: string; color: string | null } | null | undefined
+  size?: 'sm' | 'xs'
+}) {
+  if (!area) return null
+
+  const color = area.color || '#007AFF' // Default to primary color
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full font-medium",
+        size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-1.5 py-0.5 text-[10px]'
+      )}
+      style={{
+        backgroundColor: `${color}20`, // 20 = ~12% opacity in hex
+        color: color
+      }}
+    >
+      <span
+        className="w-1.5 h-1.5 rounded-full"
+        style={{ backgroundColor: color }}
+      />
+      <span>{area.name}</span>
     </span>
   )
 }

@@ -3,9 +3,8 @@
 import { useState, useRef, useEffect } from 'react'
 import {
   Inbox,
-  Sun,
+  Star,
   Clock,
-  Moon,
   Calendar,
   X
 } from 'lucide-react'
@@ -24,7 +23,7 @@ const whenOptions: { value: WhenType; label: string; icon: React.ReactNode; colo
   {
     value: 'today',
     label: 'Dnes',
-    icon: <Sun className="w-3.5 h-3.5" />,
+    icon: <Star className="w-3.5 h-3.5" />,
     color: 'bg-[var(--color-warning)]/10 text-[var(--color-warning)] border-[var(--color-warning)]/30'
   },
   {
@@ -32,12 +31,6 @@ const whenOptions: { value: WhenType; label: string; icon: React.ReactNode; colo
     label: 'Kedykolvek',
     icon: <Clock className="w-3.5 h-3.5" />,
     color: 'bg-[var(--color-primary)]/10 text-[var(--color-primary)] border-[var(--color-primary)]/30'
-  },
-  {
-    value: 'someday',
-    label: 'Niekedy',
-    icon: <Moon className="w-3.5 h-3.5" />,
-    color: 'bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] border-[var(--text-secondary)]/30'
   },
   {
     value: 'scheduled',
@@ -112,10 +105,10 @@ export function InlineWhenPicker({
     <div ref={containerRef} className="relative">
       {/* Badge trigger */}
       {hasValue ? (
-        <button
+        <div
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border transition-colors',
+            'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border transition-colors cursor-pointer',
             currentOption?.color
           )}
         >
@@ -132,7 +125,7 @@ export function InlineWhenPicker({
           >
             <X className="w-3 h-3" />
           </button>
-        </button>
+        </div>
       ) : (
         <button
           onClick={() => setIsOpen(!isOpen)}

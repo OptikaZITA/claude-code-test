@@ -7,14 +7,18 @@ import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useTrashTasks } from '@/lib/hooks/use-tasks'
+import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { TaskWithRelations } from '@/types'
 import { formatDistanceToNow, parseISO, differenceInDays } from 'date-fns'
 import { sk } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
 
 export default function TrashPage() {
-  const { tasks, loading, restoreTask, emptyTrash } = useTrashTasks()
+  const { tasks, loading, refetch, restoreTask, emptyTrash } = useTrashTasks()
   const [confirmEmptyTrash, setConfirmEmptyTrash] = useState(false)
+
+  // Listen for task:moved events to refresh the list
+  useTaskMoved(refetch)
   const [restoringId, setRestoringId] = useState<string | null>(null)
 
   const handleRestore = async (taskId: string) => {

@@ -8,6 +8,8 @@ import { MobileNav } from '@/components/layout/mobile-nav'
 import { KeyboardShortcutsModal } from '@/components/ui/keyboard-shortcuts-modal'
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts'
 import { SidebarDropProvider } from '@/lib/contexts/sidebar-drop-context'
+import { ProjectFormModal } from '@/components/projects/project-form-modal'
+import { CalendarDropPicker } from '@/components/layout/calendar-drop-picker'
 
 interface User {
   full_name: string | null
@@ -38,6 +40,8 @@ export default function DashboardLayout({
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const [loading, setLoading] = useState(true)
+  const [showProjectForm, setShowProjectForm] = useState(false)
+  const [selectedAreaIdForProject, setSelectedAreaIdForProject] = useState<string | undefined>()
 
   const { shortcuts, showHelp, setShowHelp } = useKeyboardShortcuts({
     onNewTask: () => {
@@ -107,20 +111,36 @@ export default function DashboardLayout({
     fetchData()
   }, [supabase, router])
 
+  const refetchAreas = async () => {
+    const { data: areasData } = await supabase
+      .from('areas')
+      .select(`
+        id,
+        name,
+        color,
+        projects (
+          id,
+          name,
+          color
+        )
+      `)
+      .is('archived_at', null)
+      .order('sort_order')
+
+    if (areasData) {
+      setAreas(areasData as Area[])
+    }
+  }
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
   }
 
-  const handleCreateArea = () => {
-    // TODO: Open create area modal
-    console.log('Create area')
-  }
-
   const handleCreateProject = (areaId?: string) => {
-    // TODO: Open create project modal
-    console.log('Create project in area:', areaId)
+    setSelectedAreaIdForProject(areaId)
+    setShowProjectForm(true)
   }
 
   if (loading) {
@@ -140,7 +160,6 @@ export default function DashboardLayout({
             user={user}
             areas={areas}
             onLogout={handleLogout}
-            onCreateArea={handleCreateArea}
             onCreateProject={handleCreateProject}
           />
         </div>
@@ -159,6 +178,20 @@ export default function DashboardLayout({
           onClose={() => setShowHelp(false)}
           shortcuts={shortcuts}
         />
+
+        {/* Project Form Modal */}
+        <ProjectFormModal
+          isOpen={showProjectForm}
+          onClose={() => {
+            setShowProjectForm(false)
+            setSelectedAreaIdForProject(undefined)
+          }}
+          onSuccess={refetchAreas}
+          preselectedAreaId={selectedAreaIdForProject}
+        />
+
+        {/* Calendar Drop Picker Modal */}
+        <CalendarDropPicker />
       </div>
     </SidebarDropProvider>
   )

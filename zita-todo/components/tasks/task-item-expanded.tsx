@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Tag, FolderOpen, Flag, User, X, Trash2 } from 'lucide-react'
+import { Tag, FolderOpen, Layers, Flag, User, X, Trash2 } from 'lucide-react'
 import { TaskWithRelations, WhenType } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar } from '@/components/ui/avatar'
@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils/cn'
 import { InlineWhenPicker } from './inline-when-picker'
 import { InlineDeadlinePicker } from './inline-deadline-picker'
 import { InlineTagSelector } from './inline-tag-selector'
-import { InlineProjectSelector } from './inline-project-selector'
+import { InlineLocationSelector } from './inline-location-selector'
 
 interface TaskItemExpandedProps {
   task: TaskWithRelations
@@ -93,9 +93,9 @@ export function TaskItemExpanded({
     onUpdate({ deadline })
   }
 
-  // Project change
-  const handleProjectChange = (projectId: string | null) => {
-    onUpdate({ project_id: projectId })
+  // Location (area/project) change
+  const handleLocationChange = (areaId: string | null, projectId: string | null) => {
+    onUpdate({ area_id: areaId, project_id: projectId })
   }
 
   return (
@@ -163,10 +163,10 @@ export function TaskItemExpanded({
             selectedTags={task.tags || []}
           />
 
-          {/* Project */}
-          <InlineProjectSelector
-            value={task.project}
-            onChange={handleProjectChange}
+          {/* Location (Area/Project) */}
+          <InlineLocationSelector
+            value={{ area: task.area, project: task.project }}
+            onChange={handleLocationChange}
           />
 
           {/* Deadline */}
@@ -196,10 +196,15 @@ export function TaskItemExpanded({
 
       {/* Row 4: Metadata (right aligned) */}
       <div className="mt-3 pl-8 flex items-center justify-end gap-3 text-xs text-[var(--text-secondary)]">
-        {task.project && (
+        {task.project ? (
           <span className="flex items-center gap-1">
             <FolderOpen className="h-3 w-3" />
             {task.project.name}
+          </span>
+        ) : task.area && (
+          <span className="flex items-center gap-1">
+            <Layers className="h-3 w-3" />
+            {task.area.name}
           </span>
         )}
 

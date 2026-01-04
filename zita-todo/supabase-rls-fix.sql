@@ -55,7 +55,7 @@ CREATE POLICY "Users can create tasks" ON tasks
     )
   );
 
--- UPDATE: Users can update their own tasks or organization tasks
+-- UPDATE: Users can update their own tasks, organization tasks, or team inbox tasks
 CREATE POLICY "Users can update tasks" ON tasks
   FOR UPDATE USING (
     created_by = auth.uid()
@@ -67,13 +67,17 @@ CREATE POLICY "Users can update tasks" ON tasks
         SELECT organization_id FROM users WHERE id = auth.uid() AND organization_id IS NOT NULL
       )
     )
+    -- Team inbox tasks can be updated by any authenticated user
+    OR (inbox_type = 'team' AND auth.uid() IS NOT NULL)
   );
 
--- DELETE: Users can delete their own tasks
+-- DELETE: Users can delete their own tasks or team inbox tasks
 CREATE POLICY "Users can delete tasks" ON tasks
   FOR DELETE USING (
     created_by = auth.uid()
     OR inbox_user_id = auth.uid()
+    -- Team inbox tasks can be deleted by any authenticated user
+    OR (inbox_type = 'team' AND auth.uid() IS NOT NULL)
   );
 
 -- ============================================
@@ -181,16 +185,21 @@ CREATE POLICY "Users can delete time entries" ON time_entries
 -- ============================================
 
 DROP POLICY IF EXISTS "Users can view organization areas" ON areas;
+DROP POLICY IF EXISTS "Users can view areas" ON areas;
 
+-- Areas/Departments - public ones visible to all authenticated users
 CREATE POLICY "Users can view areas" ON areas
   FOR SELECT USING (
-    owner_id = auth.uid()
+    -- Public areas (departments) visible to all authenticated users
+    (is_private = false AND auth.uid() IS NOT NULL)
+    -- Or owner
+    OR owner_id = auth.uid()
+    -- Or organization member
     OR (
       organization_id IS NOT NULL
-      AND organization_id IN (
-        SELECT organization_id FROM users WHERE id = auth.uid() AND organization_id IS NOT NULL
-      )
+      AND organization_id = public.get_my_organization_id()
     )
+    -- Or area member
     OR id IN (SELECT area_id FROM area_members WHERE user_id = auth.uid())
   );
 

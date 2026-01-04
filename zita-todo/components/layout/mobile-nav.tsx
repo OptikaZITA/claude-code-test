@@ -3,10 +3,9 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, Inbox, Users, FolderKanban, Settings, Calendar, Sun, Clock, Moon, BookOpen } from 'lucide-react'
+import { Menu, X, Inbox, Users, FolderKanban, Settings, Calendar, Star, Clock, BookOpen } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { TimerIndicatorCompact } from '@/components/time-tracking/timer-indicator'
 
 export function MobileNav() {
@@ -17,7 +16,7 @@ export function MobileNav() {
 
   const navItems = [
     { href: '/inbox', label: 'Inbox', icon: Inbox },
-    { href: '/today', label: 'Dnes', icon: Sun },
+    { href: '/today', label: 'Dnes', icon: Star },
     { href: '/inbox/team', label: 'Tím', icon: Users },
     { href: '/settings', label: 'Nastavenia', icon: Settings },
   ]
@@ -25,10 +24,9 @@ export function MobileNav() {
   const menuItems = [
     { href: '/inbox', label: 'Inbox', icon: Inbox },
     { href: '/inbox/team', label: 'Tímový Inbox', icon: Users },
-    { href: '/today', label: 'Dnes', icon: Sun },
+    { href: '/today', label: 'Dnes', icon: Star },
     { href: '/upcoming', label: 'Nadchádzajúce', icon: Calendar },
     { href: '/anytime', label: 'Kedykoľvek', icon: Clock },
-    { href: '/someday', label: 'Niekedy', icon: Moon },
     { href: '/logbook', label: 'Logbook', icon: BookOpen },
     { href: '/calendar', label: 'Kalendár', icon: Calendar },
     { href: '/settings', label: 'Nastavenia', icon: Settings },
@@ -75,9 +73,6 @@ export function MobileNav() {
                   <span>{item.label}</span>
                 </Link>
               ))}
-            </div>
-            <div className="mt-6 border-t border-[var(--border-primary)] pt-4">
-              <ThemeToggle />
             </div>
           </nav>
         </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Area, Project, TaskWithRelations } from '@/types'
+import { sortTasksTodayFirst } from '@/lib/utils/task-sorting'
 
 export interface AreaWithDetails extends Area {
   projects: Project[]
@@ -100,6 +101,58 @@ export function useAreaTasks(areaId: string) {
 
       if (error) throw error
       setTasks(data || [])
+    } catch (err) {
+      setError(err as Error)
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase, areaId])
+
+  useEffect(() => {
+    if (areaId) {
+      fetchTasks()
+    }
+  }, [areaId, fetchTasks])
+
+  return { tasks, loading, error, refetch: fetchTasks }
+}
+
+// Fetch all tasks in an area (including those in projects)
+export function useAllAreaTasks(areaId: string) {
+  const [tasks, setTasks] = useState<TaskWithRelations[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+  const supabase = createClient()
+
+  const fetchTasks = useCallback(async () => {
+    try {
+      setLoading(true)
+      // Fetch all tasks in the area (with or without project)
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
+          project:projects(id, name, color),
+          area:areas(id, name, color),
+          tags:task_tags(tag:tags(*))
+        `)
+        .eq('area_id', areaId)
+        .is('deleted_at', null)
+        .is('archived_at', null)
+        .neq('status', 'done')
+        .order('sort_order', { ascending: true })
+
+      if (error) throw error
+
+      // Transform tags structure
+      const transformedTasks = (data || []).map(task => ({
+        ...task,
+        tags: task.tags?.map((tt: any) => tt.tag).filter(Boolean) || []
+      }))
+
+      // Apply today-first sorting
+      setTasks(sortTasksTodayFirst(transformedTasks))
     } catch (err) {
       setError(err as Error)
     } finally {

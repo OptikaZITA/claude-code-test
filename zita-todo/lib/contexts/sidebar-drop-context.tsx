@@ -18,18 +18,57 @@ interface SidebarDropContextValue {
 
   // Is dragging
   isDragging: boolean
+
+  // Calendar date picker
+  showCalendarPicker: boolean
+  setShowCalendarPicker: (show: boolean) => void
+  pendingCalendarTask: TaskWithRelations | null
+  handleCalendarDateSelect: (date: string) => Promise<void>
 }
 
 export type DropTarget =
   | { type: 'when'; value: WhenType }
   | { type: 'project'; projectId: string }
+  | { type: 'area'; areaId: string }
+  | { type: 'trash' }
+  | { type: 'calendar' }
 
 const SidebarDropContext = createContext<SidebarDropContextValue | null>(null)
 
 export function SidebarDropProvider({ children }: { children: ReactNode }) {
   const [draggedTask, setDraggedTask] = useState<TaskWithRelations | null>(null)
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null)
+  const [showCalendarPicker, setShowCalendarPicker] = useState(false)
+  const [pendingCalendarTask, setPendingCalendarTask] = useState<TaskWithRelations | null>(null)
   const supabase = createClient()
+
+  const handleCalendarDateSelect = useCallback(async (date: string) => {
+    if (!pendingCalendarTask) return
+
+    try {
+      await supabase
+        .from('tasks')
+        .update({
+          deadline: date,
+          when_type: 'scheduled',
+          when_date: date,
+        })
+        .eq('id', pendingCalendarTask.id)
+
+      // Dispatch event to refresh task lists
+      window.dispatchEvent(new CustomEvent('task:moved', {
+        detail: {
+          taskId: pendingCalendarTask.id,
+          target: { type: 'calendar', date }
+        }
+      }))
+    } catch (error) {
+      console.error('Error setting task deadline:', error)
+    } finally {
+      setPendingCalendarTask(null)
+      setShowCalendarPicker(false)
+    }
+  }, [pendingCalendarTask, supabase])
 
   const handleDrop = useCallback(async (target: DropTarget) => {
     if (!draggedTask) return
@@ -56,15 +95,51 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
           .eq('id', draggedTask.id)
 
       } else if (target.type === 'project') {
-        // Move task to project
+        // Move task to project - get project's area_id first
+        const { data: project } = await supabase
+          .from('projects')
+          .select('area_id')
+          .eq('id', target.projectId)
+          .single()
+
         await supabase
           .from('tasks')
           .update({
             project_id: target.projectId,
+            area_id: project?.area_id || null,
             is_inbox: false,
             when_type: 'anytime',
           })
           .eq('id', draggedTask.id)
+
+      } else if (target.type === 'area') {
+        // Move task to area (without project)
+        await supabase
+          .from('tasks')
+          .update({
+            area_id: target.areaId,
+            project_id: null,
+            is_inbox: false,
+            when_type: 'anytime',
+          })
+          .eq('id', draggedTask.id)
+
+      } else if (target.type === 'trash') {
+        // Soft delete the task
+        await supabase
+          .from('tasks')
+          .update({
+            deleted_at: new Date().toISOString(),
+          })
+          .eq('id', draggedTask.id)
+
+      } else if (target.type === 'calendar') {
+        // Show calendar picker modal
+        setPendingCalendarTask(draggedTask)
+        setShowCalendarPicker(true)
+        setDraggedTask(null)
+        setDropTarget(null)
+        return // Don't dispatch event yet, wait for date selection
       }
 
       // Dispatch event to refresh task lists
@@ -92,6 +167,10 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
         setDropTarget,
         handleDrop,
         isDragging: !!draggedTask,
+        showCalendarPicker,
+        setShowCalendarPicker,
+        pendingCalendarTask,
+        handleCalendarDateSelect,
       }}
     >
       {children}

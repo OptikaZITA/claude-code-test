@@ -12,7 +12,7 @@ import { Users } from 'lucide-react'
 
 export default function TeamInboxPage() {
   const { tasks, loading, error, refetch } = useInboxTasks('team')
-  const { createTask, updateTask, completeTask, softDelete } = useTasks()
+  const { createTask, updateTask, completeTask, softDelete, reorderTasks } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
 
   // Listen for task:moved events to refresh the list
@@ -43,8 +43,15 @@ export default function TeamInboxPage() {
     try {
       await updateTask(taskId, updates)
       refetch()
-    } catch (error) {
-      console.error('Error updating task:', error)
+    } catch (error: any) {
+      console.error('Error updating task:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        taskId,
+        updates,
+      })
     }
   }
 
@@ -54,6 +61,15 @@ export default function TeamInboxPage() {
       refetch()
     } catch (error) {
       console.error('Error deleting task:', error)
+    }
+  }
+
+  const handleReorder = async (taskId: string, newIndex: number, currentTasks: TaskWithRelations[]) => {
+    try {
+      await reorderTasks(taskId, newIndex, currentTasks)
+      refetch()
+    } catch (error) {
+      console.error('Error reordering tasks:', error)
     }
   }
 
@@ -103,6 +119,7 @@ export default function TeamInboxPage() {
           onTaskUpdate={handleTaskUpdate}
           onTaskDelete={handleTaskDelete}
           onQuickAdd={handleQuickAdd}
+          onReorder={handleReorder}
           emptyMessage=""
         />
       </div>

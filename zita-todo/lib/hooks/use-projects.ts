@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Project, TaskWithRelations } from '@/types'
+import { sortTasksTodayFirst } from '@/lib/utils/task-sorting'
 
 export function useProject(projectId: string) {
   const [project, setProject] = useState<Project | null>(null)
@@ -57,7 +58,8 @@ export function useProjectTasks(projectId: string) {
         .order('sort_order', { ascending: true })
 
       if (error) throw error
-      setTasks(data || [])
+      // Apply today-first sorting
+      setTasks(sortTasksTodayFirst(data || []))
     } catch (err) {
       setError(err as Error)
     } finally {

@@ -11,7 +11,7 @@ import { TaskWithRelations } from '@/types'
 
 export default function AnytimePage() {
   const { tasks, loading, refetch } = useAnytimeTasks()
-  const { createTask, updateTask, completeTask, softDelete } = useTasks()
+  const { createTask, updateTask, completeTask, softDelete, reorderTasks } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
 
   // Listen for task:moved events to refresh the list
@@ -69,6 +69,15 @@ export default function AnytimePage() {
     }
   }
 
+  const handleReorder = async (taskId: string, newIndex: number, currentTasks: TaskWithRelations[]) => {
+    try {
+      await reorderTasks(taskId, newIndex, currentTasks)
+      refetch()
+    } catch (error) {
+      console.error('Error reordering tasks:', error)
+    }
+  }
+
   if (loading) {
     return (
       <div className="h-full">
@@ -118,6 +127,7 @@ export default function AnytimePage() {
           onTaskUpdate={handleInlineTaskUpdate}
           onTaskDelete={handleTaskDelete}
           onQuickAdd={handleQuickAdd}
+          onReorder={handleReorder}
           emptyMessage=""
         />
       </div>

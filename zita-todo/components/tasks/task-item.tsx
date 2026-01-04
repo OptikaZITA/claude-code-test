@@ -1,16 +1,17 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Clock, Trash2 } from 'lucide-react'
+import { Trash2, Star } from 'lucide-react'
 import { TaskWithRelations, TaskPriority } from '@/types'
+import { isToday, parseISO } from 'date-fns'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar } from '@/components/ui/avatar'
 import { TagChipList } from '@/components/tags'
-import { WhenBadge } from '@/components/tasks/when-picker'
+import { WhenBadge, AreaBadge } from '@/components/tasks/when-picker'
 import { DeadlineBadge } from '@/components/tasks/deadline-picker'
 import { TaskItemExpanded } from '@/components/tasks/task-item-expanded'
+import { InlineTimeTracker } from '@/components/tasks/inline-time-tracker'
 import { cn } from '@/lib/utils/cn'
-import { formatDurationShort } from '@/lib/utils/date'
 
 const SWIPE_THRESHOLD = 80 // pixels to trigger delete action
 const DELETE_BUTTON_WIDTH = 80 // width of delete button
@@ -32,6 +33,19 @@ const priorityColors: Record<TaskPriority, string> = {
   high: 'border-l-[var(--color-warning)]',
   medium: 'border-l-[var(--color-primary)]',
   low: 'border-l-[var(--text-secondary)]',
+}
+
+// Helper to check if task is "today"
+function isTaskToday(task: TaskWithRelations): boolean {
+  if (task.when_type === 'today') return true
+  if (task.when_type === 'scheduled' && task.when_date) {
+    try {
+      return isToday(parseISO(task.when_date))
+    } catch {
+      return false
+    }
+  }
+  return false
 }
 
 // Hook to detect mobile
@@ -222,6 +236,13 @@ export function TaskItem({
         onTouchMove={isMobile && onDelete ? handleTouchMove : undefined}
         onTouchEnd={isMobile && onDelete ? handleTouchEnd : undefined}
       >
+        {/* Star indicator for today tasks */}
+        {isTaskToday(task) && (
+          <Star
+            className="h-4 w-4 text-[var(--color-warning)] fill-[var(--color-warning)] shrink-0"
+          />
+        )}
+
         <div onClick={(e) => e.stopPropagation()}>
           <Checkbox
             checked={isCompleted}
@@ -249,15 +270,8 @@ export function TaskItem({
             {/* When badge (Things 3 style) */}
             <WhenBadge value={task.when_type} whenDate={task.when_date} />
 
-            {/* Deadline badge */}
-            <DeadlineBadge value={task.deadline} />
-
-            {task.total_time_seconds && task.total_time_seconds > 0 && (
-              <span className="flex items-center gap-1 text-xs text-[var(--text-secondary)]">
-                <Clock className="h-3 w-3" />
-                {formatDurationShort(task.total_time_seconds)}
-              </span>
-            )}
+            {/* Area/Department badge */}
+            <AreaBadge area={task.area} />
 
             {task.tags && task.tags.length > 0 && (
               <TagChipList tags={task.tags} size="sm" />
@@ -265,13 +279,27 @@ export function TaskItem({
           </div>
         </div>
 
-        {task.assignee && (
-          <Avatar
-            src={task.assignee.avatar_url}
-            name={task.assignee.full_name}
-            size="sm"
+        {/* Right side: Time tracker, Deadline, Avatar */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Inline Time Tracker */}
+          <InlineTimeTracker
+            taskId={task.id}
+            taskAssigneeId={task.assignee_id}
+            taskCreatedBy={task.created_by}
+            totalTimeSeconds={task.total_time_seconds || 0}
           />
-        )}
+
+          {/* Deadline badge */}
+          <DeadlineBadge value={task.deadline} />
+
+          {task.assignee && (
+            <Avatar
+              src={task.assignee.avatar_url}
+              name={task.assignee.full_name}
+              size="sm"
+            />
+          )}
+        </div>
       </div>
     </div>
   )

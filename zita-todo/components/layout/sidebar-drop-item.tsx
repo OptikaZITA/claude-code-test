@@ -2,6 +2,8 @@
 
 import { ReactNode, useCallback } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { ChevronDown, ChevronRight, Plus } from 'lucide-react'
 import { useSidebarDrop, DropTarget } from '@/lib/contexts/sidebar-drop-context'
 import { cn } from '@/lib/utils/cn'
 
@@ -12,6 +14,8 @@ interface SidebarDropItemProps {
   icon: ReactNode
   label: string
   className?: string
+  count?: number
+  isDeadline?: boolean // Show red badge for deadline tasks
 }
 
 export function SidebarDropItem({
@@ -21,6 +25,8 @@ export function SidebarDropItem({
   icon,
   label,
   className,
+  count,
+  isDeadline,
 }: SidebarDropItemProps) {
   const {
     isDragging,
@@ -34,6 +40,20 @@ export function SidebarDropItem({
     currentDropTarget &&
     JSON.stringify(currentDropTarget) === JSON.stringify(dropTarget)
 
+  // Use pointer events for @dnd-kit compatibility
+  const handlePointerEnter = useCallback(() => {
+    if (isDragging) {
+      setDropTarget(dropTarget)
+    }
+  }, [isDragging, setDropTarget, dropTarget])
+
+  const handlePointerLeave = useCallback(() => {
+    if (isDragging) {
+      setDropTarget(null)
+    }
+  }, [isDragging, setDropTarget])
+
+  // Keep drag events for native drag (DraggableTask)
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault()
@@ -49,7 +69,6 @@ export function SidebarDropItem({
     (e: React.DragEvent) => {
       e.preventDefault()
       e.stopPropagation()
-      // Only clear if we're leaving this specific element
       const rect = e.currentTarget.getBoundingClientRect()
       const { clientX, clientY } = e
       if (
@@ -78,6 +97,8 @@ export function SidebarDropItem({
   return (
     <Link
       href={href}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDropEvent}
@@ -92,13 +113,179 @@ export function SidebarDropItem({
       )}
     >
       {icon}
-      <span>{label}</span>
-      {isDropTarget && (
-        <span className="ml-auto text-xs text-[var(--color-primary)] font-medium">
+      <span className="flex-1">{label}</span>
+      {isDropTarget ? (
+        <span className="text-xs text-[var(--color-primary)] font-medium">
           Pustiť sem
         </span>
-      )}
+      ) : count !== undefined && count > 0 ? (
+        <span
+          className={cn(
+            'min-w-[20px] h-5 flex items-center justify-center rounded-full px-1.5 text-xs font-medium',
+            isDeadline
+              ? 'bg-red-500 text-white'
+              : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+          )}
+        >
+          {count > 99 ? '99+' : count}
+        </span>
+      ) : null}
     </Link>
+  )
+}
+
+// Droppable area item (department)
+interface SidebarDropAreaProps {
+  areaId: string
+  areaName: string
+  areaColor: string | null
+  isExpanded: boolean
+  hasProjects: boolean
+  onToggle: () => void
+  onCreateProject: () => void
+  children?: ReactNode
+}
+
+export function SidebarDropArea({
+  areaId,
+  areaName,
+  areaColor,
+  isExpanded,
+  hasProjects,
+  onToggle,
+  onCreateProject,
+  children,
+}: SidebarDropAreaProps) {
+  const pathname = usePathname()
+  const {
+    isDragging,
+    draggedTask,
+    dropTarget: currentDropTarget,
+    setDropTarget,
+    handleDrop,
+  } = useSidebarDrop()
+
+  const dropTarget: DropTarget = { type: 'area', areaId }
+  const isActive = pathname === `/areas/${areaId}`
+
+  const isDropTarget =
+    currentDropTarget &&
+    currentDropTarget.type === 'area' &&
+    currentDropTarget.areaId === areaId
+
+  // Use pointer events for @dnd-kit compatibility
+  const handlePointerEnter = useCallback(() => {
+    if (isDragging) {
+      setDropTarget(dropTarget)
+    }
+  }, [isDragging, setDropTarget, dropTarget])
+
+  const handlePointerLeave = useCallback(() => {
+    if (isDragging) {
+      setDropTarget(null)
+    }
+  }, [isDragging, setDropTarget])
+
+  const handleDragOver = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (isDragging) {
+        setDropTarget(dropTarget)
+      }
+    },
+    [isDragging, setDropTarget, dropTarget]
+  )
+
+  const handleDragLeave = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const rect = e.currentTarget.getBoundingClientRect()
+      const { clientX, clientY } = e
+      if (
+        clientX < rect.left ||
+        clientX > rect.right ||
+        clientY < rect.top ||
+        clientY > rect.bottom
+      ) {
+        setDropTarget(null)
+      }
+    },
+    [setDropTarget]
+  )
+
+  const handleDropEvent = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (draggedTask) {
+        handleDrop(dropTarget)
+      }
+    },
+    [draggedTask, handleDrop, dropTarget]
+  )
+
+  return (
+    <div>
+      <div
+        onPointerEnter={handlePointerEnter}
+        onPointerLeave={handlePointerLeave}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDropEvent}
+        className={cn(
+          'group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all',
+          isActive
+            ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
+            : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]',
+          isDragging && 'cursor-copy',
+          isDropTarget && 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/10 scale-[1.02]'
+        )}
+      >
+        <button
+          onClick={onToggle}
+          className="p-0.5"
+        >
+          {isExpanded ? (
+            <ChevronDown className="h-3 w-3" />
+          ) : (
+            <ChevronRight className="h-3 w-3" />
+          )}
+        </button>
+        <Link
+          href={`/areas/${areaId}`}
+          className="flex flex-1 items-center gap-2 min-w-0"
+        >
+          <span
+            className="h-2 w-2 rounded-full shrink-0"
+            style={{ backgroundColor: areaColor || 'var(--color-primary)' }}
+          />
+          <span className="flex-1 text-left truncate">{areaName}</span>
+        </Link>
+        {isDropTarget ? (
+          <span className="text-xs text-[var(--color-primary)] font-medium">
+            +
+          </span>
+        ) : (
+          <span
+            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded hover:bg-[var(--bg-tertiary)] shrink-0"
+            onClick={(e) => {
+              e.stopPropagation()
+              onCreateProject()
+            }}
+          >
+            <Plus className="h-3 w-3" />
+          </span>
+        )}
+      </div>
+
+      {isExpanded && children && (
+        <div className="ml-4 space-y-1">
+          {children}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -133,6 +320,19 @@ export function SidebarDropProject({
     currentDropTarget.type === 'project' &&
     currentDropTarget.projectId === projectId
 
+  // Use pointer events for @dnd-kit compatibility
+  const handlePointerEnter = useCallback(() => {
+    if (isDragging) {
+      setDropTarget(dropTarget)
+    }
+  }, [isDragging, setDropTarget, dropTarget])
+
+  const handlePointerLeave = useCallback(() => {
+    if (isDragging) {
+      setDropTarget(null)
+    }
+  }, [isDragging, setDropTarget])
+
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault()
@@ -176,6 +376,8 @@ export function SidebarDropProject({
   return (
     <Link
       href={href}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDropEvent}

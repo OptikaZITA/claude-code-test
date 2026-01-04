@@ -13,19 +13,18 @@ import {
   Settings,
   LogOut,
   Calendar,
-  Sun,
+  Star,
   CalendarDays,
   Clock,
-  Moon,
   BookOpen,
   Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/ui/theme-toggle'
-import { SidebarDropItem, SidebarDropProject } from '@/components/layout/sidebar-drop-item'
+import { SidebarDropItem, SidebarDropProject, SidebarDropArea } from '@/components/layout/sidebar-drop-item'
 import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
+import { useTaskCounts } from '@/lib/hooks/use-task-counts'
 
 interface Area {
   id: string
@@ -46,7 +45,6 @@ interface SidebarProps {
   } | null
   areas: Area[]
   onLogout: () => void
-  onCreateArea: () => void
   onCreateProject: (areaId?: string) => void
 }
 
@@ -54,12 +52,12 @@ export function Sidebar({
   user,
   areas,
   onLogout,
-  onCreateArea,
   onCreateProject,
 }: SidebarProps) {
   const pathname = usePathname()
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set())
   const { isDragging } = useSidebarDrop()
+  const { counts } = useTaskCounts()
 
   const toggleArea = (areaId: string) => {
     const newExpanded = new Set(expandedAreas)
@@ -93,6 +91,7 @@ export function Sidebar({
             dropTarget={{ type: 'when', value: 'inbox' }}
             icon={<Inbox className="h-4 w-4" />}
             label="Inbox"
+            count={counts.inbox}
           />
           <Link
             href="/inbox/team"
@@ -104,7 +103,12 @@ export function Sidebar({
             )}
           >
             <Users className="h-4 w-4" />
-            <span>Timovy Inbox</span>
+            <span className="flex-1">Timovy Inbox</span>
+            {counts.teamInbox > 0 && (
+              <span className="min-w-[20px] h-5 flex items-center justify-center rounded-full px-1.5 text-xs font-medium bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                {counts.teamInbox > 99 ? '99+' : counts.teamInbox}
+              </span>
+            )}
           </Link>
         </div>
 
@@ -116,8 +120,10 @@ export function Sidebar({
             href="/today"
             isActive={isActive('/today')}
             dropTarget={{ type: 'when', value: 'today' }}
-            icon={<Sun className="h-4 w-4 text-[var(--color-warning)]" />}
+            icon={<Star className="h-4 w-4 text-[var(--color-warning)]" />}
             label="Dnes"
+            count={counts.todayDeadline > 0 ? counts.todayDeadline : counts.today}
+            isDeadline={counts.todayDeadline > 0}
           />
           <SidebarDropItem
             href="/upcoming"
@@ -125,6 +131,7 @@ export function Sidebar({
             dropTarget={{ type: 'when', value: 'scheduled' }}
             icon={<CalendarDays className="h-4 w-4 text-[var(--color-success)]" />}
             label="Nadchadzajuce"
+            count={counts.upcoming}
           />
           <SidebarDropItem
             href="/anytime"
@@ -132,13 +139,7 @@ export function Sidebar({
             dropTarget={{ type: 'when', value: 'anytime' }}
             icon={<Clock className="h-4 w-4 text-[var(--color-primary)]" />}
             label="Kedykolvek"
-          />
-          <SidebarDropItem
-            href="/someday"
-            isActive={isActive('/someday')}
-            dropTarget={{ type: 'when', value: 'someday' }}
-            icon={<Moon className="h-4 w-4 text-[var(--text-secondary)]" />}
-            label="Niekedy"
+            count={counts.anytime}
           />
           <Link
             href="/logbook"
@@ -152,98 +153,60 @@ export function Sidebar({
             <BookOpen className="h-4 w-4 text-[var(--color-success)]" />
             <span>Logbook</span>
           </Link>
-          <Link
+          <SidebarDropItem
             href="/trash"
-            className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-              isActive('/trash')
-                ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
-                : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
-            )}
-          >
-            <Trash2 className="h-4 w-4 text-[var(--text-secondary)]" />
-            <span>Kos</span>
-          </Link>
-          <Link
+            isActive={isActive('/trash')}
+            dropTarget={{ type: 'trash' }}
+            icon={<Trash2 className="h-4 w-4 text-[var(--text-secondary)]" />}
+            label="Kôš"
+          />
+          <SidebarDropItem
             href="/calendar"
-            className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-              isActive('/calendar')
-                ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
-                : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
-            )}
-          >
-            <Calendar className="h-4 w-4" />
-            <span>Kalendar</span>
-          </Link>
+            isActive={isActive('/calendar')}
+            dropTarget={{ type: 'calendar' }}
+            icon={<Calendar className="h-4 w-4" />}
+            label="Kalendár"
+          />
         </div>
 
         <div className="my-2 h-px bg-[var(--border-primary)]" />
 
-        {/* Areas Section */}
-        <div className="mb-2 flex items-center justify-between px-3 py-1">
+        {/* Departments Section - Fixed, cannot add new */}
+        <div className="mb-2 px-3 py-1">
           <span className="text-xs font-medium uppercase text-[var(--text-secondary)]">
-            Oblasti
+            Oddelenia
           </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0"
-            onClick={onCreateArea}
-          >
-            <Plus className="h-3 w-3" />
-          </Button>
         </div>
 
         {areas.map((area) => (
-          <div key={area.id}>
-            <button
-              onClick={() => toggleArea(area.id)}
-              className="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
-            >
-              {expandedAreas.has(area.id) ? (
-                <ChevronDown className="h-3 w-3" />
-              ) : (
-                <ChevronRight className="h-3 w-3" />
-              )}
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{ backgroundColor: area.color || 'var(--color-primary)' }}
+          <SidebarDropArea
+            key={area.id}
+            areaId={area.id}
+            areaName={area.name}
+            areaColor={area.color}
+            isExpanded={expandedAreas.has(area.id)}
+            hasProjects={area.projects.length > 0}
+            onToggle={() => toggleArea(area.id)}
+            onCreateProject={() => onCreateProject(area.id)}
+          >
+            {area.projects.map((project) => (
+              <SidebarDropProject
+                key={project.id}
+                href={`/projects/${project.id}`}
+                isActive={isActive(`/projects/${project.id}`)}
+                projectId={project.id}
+                icon={<FolderKanban className="h-4 w-4" />}
+                label={project.name}
               />
-              <span className="flex-1 text-left">{area.name}</span>
-              <span
-                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded hover:bg-[var(--bg-tertiary)]"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onCreateProject(area.id)
-                }}
-              >
-                <Plus className="h-3 w-3" />
-              </span>
+            ))}
+            <button
+              onClick={() => onCreateProject(area.id)}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Pridať projekt</span>
             </button>
-
-            {expandedAreas.has(area.id) && (
-              <div className="ml-4 space-y-1">
-                {area.projects.map((project) => (
-                  <SidebarDropProject
-                    key={project.id}
-                    href={`/projects/${project.id}`}
-                    isActive={isActive(`/projects/${project.id}`)}
-                    projectId={project.id}
-                    icon={<FolderKanban className="h-4 w-4" />}
-                    label={project.name}
-                  />
-                ))}
-                <button
-                  onClick={() => onCreateProject(area.id)}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Pridat projekt</span>
-                </button>
-              </div>
-            )}
-          </div>
+          </SidebarDropArea>
         ))}
       </nav>
 
@@ -253,11 +216,6 @@ export function Sidebar({
           Potiahni ulohu na sekciu pre jej presun
         </div>
       )}
-
-      {/* Theme Toggle */}
-      <div className="border-t border-[var(--border-primary)] p-3">
-        <ThemeToggle />
-      </div>
 
       {/* User Section */}
       <div className="border-t border-[var(--border-primary)] p-2">

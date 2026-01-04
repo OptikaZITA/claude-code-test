@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Sun, AlertCircle } from 'lucide-react'
+import { Star, AlertCircle } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
 import { TaskDetail } from '@/components/tasks/task-detail'
@@ -13,7 +13,7 @@ import { sk } from 'date-fns/locale'
 
 export default function TodayPage() {
   const { tasks, loading, error, refetch } = useTodayTasks()
-  const { createTask, updateTask, completeTask, softDelete } = useTasks()
+  const { createTask, updateTask, completeTask, softDelete, reorderTasks } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
 
   // Listen for task:moved events to refresh the list
@@ -86,6 +86,15 @@ export default function TodayPage() {
     }
   }
 
+  const handleReorder = async (taskId: string, newIndex: number, currentTasks: TaskWithRelations[]) => {
+    try {
+      await reorderTasks(taskId, newIndex, currentTasks)
+      refetch()
+    } catch (error) {
+      console.error('Error reordering tasks:', error)
+    }
+  }
+
   if (loading) {
     return (
       <div className="h-full">
@@ -97,54 +106,38 @@ export default function TodayPage() {
     )
   }
 
-  const todayDate = format(new Date(), "EEEE, d. MMMM", { locale: sk })
-
   return (
     <div className="h-full">
       <Header title="Dnes" />
 
       <div className="p-6">
-        {/* Today's date */}
-        <div className="mb-6 flex items-center gap-3">
-          <Sun className="h-8 w-8 text-[var(--color-warning)]" />
-          <div>
-            <h2 className="text-2xl font-bold text-[var(--text-primary)] capitalize">
-              {todayDate}
-            </h2>
-            <p className="text-sm text-[var(--text-secondary)]">
-              {tasks.length} {tasks.length === 1 ? 'úloha' : tasks.length < 5 ? 'úlohy' : 'úloh'}
-            </p>
-          </div>
-        </div>
-
         {/* Overdue section */}
         {overdueTasks.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <AlertCircle className="h-5 w-5 text-[var(--color-error)]" />
-              <h3 className="text-sm font-semibold text-[var(--color-error)]">
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="h-4 w-4 text-[var(--color-error)]" />
+              <h3 className="text-xs font-semibold text-[var(--color-error)] uppercase tracking-wide">
                 Po termíne ({overdueTasks.length})
               </h3>
             </div>
-            <div className="rounded-xl border border-[var(--color-error)]/20 bg-[var(--color-error)]/5 p-4">
-              <TaskList
-                tasks={overdueTasks}
-                onTaskClick={setSelectedTask}
-                onTaskComplete={handleTaskComplete}
-                onTaskUpdate={handleInlineTaskUpdate}
-                onTaskDelete={handleTaskDelete}
-                onQuickAdd={() => {}}
-                showQuickAdd={false}
-                emptyMessage=""
-              />
-            </div>
+            <TaskList
+              tasks={overdueTasks}
+              onTaskClick={setSelectedTask}
+              onTaskComplete={handleTaskComplete}
+              onTaskUpdate={handleInlineTaskUpdate}
+              onTaskDelete={handleTaskDelete}
+              onQuickAdd={() => {}}
+              onReorder={handleReorder}
+              showQuickAdd={false}
+              emptyMessage=""
+            />
           </div>
         )}
 
         {/* Today's tasks */}
         {tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Sun className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
+            <Star className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
             <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
               Žiadne úlohy na dnes
             </p>
@@ -161,7 +154,8 @@ export default function TodayPage() {
           onTaskUpdate={handleInlineTaskUpdate}
           onTaskDelete={handleTaskDelete}
           onQuickAdd={handleQuickAdd}
-          emptyMessage={overdueTasks.length > 0 ? '' : 'Žiadne úlohy na dnes'}
+          onReorder={handleReorder}
+          emptyMessage={overdueTasks.length > 0 ? '' : ''}
         />
       </div>
 
