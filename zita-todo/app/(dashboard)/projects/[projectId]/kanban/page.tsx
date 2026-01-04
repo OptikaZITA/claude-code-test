@@ -28,12 +28,14 @@ export default function KanbanPage() {
         backlog: 'todo',
         todo: 'todo',
         in_progress: 'in_progress',
+        review: 'in_progress',
         done: 'done',
       }
 
       await updateTask(taskId, {
         kanban_column: newColumn,
         status: statusMap[newColumn],
+        completed_at: newColumn === 'done' ? new Date().toISOString() : null,
       })
       refetch()
     } catch (error) {
@@ -47,6 +49,7 @@ export default function KanbanPage() {
         backlog: 'todo',
         todo: 'todo',
         in_progress: 'in_progress',
+        review: 'in_progress',
         done: 'done',
       }
 

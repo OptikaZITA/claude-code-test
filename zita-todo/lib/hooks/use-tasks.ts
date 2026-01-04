@@ -46,6 +46,8 @@ export function useTasks() {
         ...task,
         created_by: user.id,
         inbox_user_id: task.inbox_type === 'personal' ? user.id : null,
+        when_type: task.when_type || (task.project_id ? 'anytime' : 'inbox'),
+        is_inbox: task.is_inbox !== undefined ? task.is_inbox : !task.project_id,
       })
       .select()
       .single()
