@@ -6,12 +6,16 @@ import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { useAnytimeTasks, useTasks } from '@/lib/hooks/use-tasks'
+import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { TaskWithRelations } from '@/types'
 
 export default function AnytimePage() {
   const { tasks, loading, refetch } = useAnytimeTasks()
   const { createTask, updateTask, completeTask } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
+
+  // Listen for task:moved events to refresh the list
+  useTaskMoved(refetch)
 
   const handleQuickAdd = async (title: string) => {
     try {

@@ -6,6 +6,7 @@ import { TaskList } from '@/components/tasks/task-list'
 import { ExportMenu } from '@/components/export/export-menu'
 import { ErrorDisplay } from '@/components/layout/error-display'
 import { useInboxTasks, useTasks } from '@/lib/hooks/use-tasks'
+import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { TaskWithRelations } from '@/types'
 import { Users } from 'lucide-react'
 
@@ -13,6 +14,9 @@ export default function TeamInboxPage() {
   const { tasks, loading, error, refetch } = useInboxTasks('team')
   const { createTask, completeTask } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
+
+  // Listen for task:moved events to refresh the list
+  useTaskMoved(refetch)
 
   const handleQuickAdd = async (title: string) => {
     try {

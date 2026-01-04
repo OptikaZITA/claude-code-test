@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { useTodayTasks, useTasks } from '@/lib/hooks/use-tasks'
+import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { TaskWithRelations } from '@/types'
 import { format, isToday, isPast, parseISO } from 'date-fns'
 import { sk } from 'date-fns/locale'
@@ -14,6 +15,9 @@ export default function TodayPage() {
   const { tasks, loading, error, refetch } = useTodayTasks()
   const { createTask, updateTask, completeTask } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
+
+  // Listen for task:moved events to refresh the list
+  useTaskMoved(refetch)
 
   // Separate overdue tasks from today's tasks
   const overdueTasks = tasks.filter(task => {

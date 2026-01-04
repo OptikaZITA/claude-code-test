@@ -7,6 +7,7 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { MobileNav } from '@/components/layout/mobile-nav'
 import { KeyboardShortcutsModal } from '@/components/ui/keyboard-shortcuts-modal'
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts'
+import { SidebarDropProvider } from '@/lib/contexts/sidebar-drop-context'
 
 interface User {
   full_name: string | null
@@ -131,32 +132,34 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-[var(--bg-secondary)]">
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:block">
-        <Sidebar
-          user={user}
-          areas={areas}
-          onLogout={handleLogout}
-          onCreateArea={handleCreateArea}
-          onCreateProject={handleCreateProject}
+    <SidebarDropProvider>
+      <div className="flex h-screen bg-[var(--bg-secondary)]">
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:block">
+          <Sidebar
+            user={user}
+            areas={areas}
+            onLogout={handleLogout}
+            onCreateArea={handleCreateArea}
+            onCreateProject={handleCreateProject}
+          />
+        </div>
+
+        {/* Mobile Navigation */}
+        <MobileNav />
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto pt-14 lg:pt-0 pb-16 lg:pb-0">
+          {children}
+        </main>
+
+        {/* Keyboard Shortcuts Modal */}
+        <KeyboardShortcutsModal
+          isOpen={showHelp}
+          onClose={() => setShowHelp(false)}
+          shortcuts={shortcuts}
         />
       </div>
-
-      {/* Mobile Navigation */}
-      <MobileNav />
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto pt-14 lg:pt-0 pb-16 lg:pb-0">
-        {children}
-      </main>
-
-      {/* Keyboard Shortcuts Modal */}
-      <KeyboardShortcutsModal
-        isOpen={showHelp}
-        onClose={() => setShowHelp(false)}
-        shortcuts={shortcuts}
-      />
-    </div>
+    </SidebarDropProvider>
   )
 }

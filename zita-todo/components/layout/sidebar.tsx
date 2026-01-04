@@ -23,6 +23,8 @@ import { cn } from '@/lib/utils/cn'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { SidebarDropItem, SidebarDropProject } from '@/components/layout/sidebar-drop-item'
+import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
 
 interface Area {
   id: string
@@ -56,6 +58,7 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname()
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set())
+  const { isDragging } = useSidebarDrop()
 
   const toggleArea = (areaId: string) => {
     const newExpanded = new Set(expandedAreas)
@@ -70,7 +73,10 @@ export function Sidebar({
   const isActive = (path: string) => pathname === path
 
   return (
-    <aside className="flex h-screen w-64 flex-col border-r border-[var(--border-primary)] bg-[var(--bg-primary)]">
+    <aside className={cn(
+      'flex h-screen w-64 flex-col border-r border-[var(--border-primary)] bg-[var(--bg-primary)] transition-all',
+      isDragging && 'bg-[var(--bg-secondary)]'
+    )}>
       {/* Logo */}
       <div className="flex h-14 items-center px-4">
         <h1 className="text-xl font-bold text-[var(--color-primary)]">ZITA TODO</h1>
@@ -78,20 +84,15 @@ export function Sidebar({
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-2">
-        {/* Inbox Section */}
+        {/* Inbox Section - Not droppable (regular links) */}
         <div className="mb-2">
-          <Link
+          <SidebarDropItem
             href="/inbox"
-            className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-              isActive('/inbox')
-                ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
-                : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
-            )}
-          >
-            <Inbox className="h-4 w-4" />
-            <span>Inbox</span>
-          </Link>
+            isActive={isActive('/inbox')}
+            dropTarget={{ type: 'when', value: 'inbox' }}
+            icon={<Inbox className="h-4 w-4" />}
+            label="Inbox"
+          />
           <Link
             href="/inbox/team"
             className={cn(
@@ -102,62 +103,42 @@ export function Sidebar({
             )}
           >
             <Users className="h-4 w-4" />
-            <span>Tímový Inbox</span>
+            <span>Timovy Inbox</span>
           </Link>
         </div>
 
         <div className="my-2 h-px bg-[var(--border-primary)]" />
 
-        {/* Things 3 Views */}
+        {/* Things 3 Views - Droppable */}
         <div className="mb-2">
-          <Link
+          <SidebarDropItem
             href="/today"
-            className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-              isActive('/today')
-                ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
-                : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
-            )}
-          >
-            <Sun className="h-4 w-4 text-[var(--color-warning)]" />
-            <span>Dnes</span>
-          </Link>
-          <Link
+            isActive={isActive('/today')}
+            dropTarget={{ type: 'when', value: 'today' }}
+            icon={<Sun className="h-4 w-4 text-[var(--color-warning)]" />}
+            label="Dnes"
+          />
+          <SidebarDropItem
             href="/upcoming"
-            className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-              isActive('/upcoming')
-                ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
-                : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
-            )}
-          >
-            <CalendarDays className="h-4 w-4 text-[var(--color-success)]" />
-            <span>Nadchádzajúce</span>
-          </Link>
-          <Link
+            isActive={isActive('/upcoming')}
+            dropTarget={{ type: 'when', value: 'scheduled' }}
+            icon={<CalendarDays className="h-4 w-4 text-[var(--color-success)]" />}
+            label="Nadchadzajuce"
+          />
+          <SidebarDropItem
             href="/anytime"
-            className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-              isActive('/anytime')
-                ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
-                : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
-            )}
-          >
-            <Clock className="h-4 w-4 text-[var(--color-primary)]" />
-            <span>Kedykoľvek</span>
-          </Link>
-          <Link
+            isActive={isActive('/anytime')}
+            dropTarget={{ type: 'when', value: 'anytime' }}
+            icon={<Clock className="h-4 w-4 text-[var(--color-primary)]" />}
+            label="Kedykolvek"
+          />
+          <SidebarDropItem
             href="/someday"
-            className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-              isActive('/someday')
-                ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
-                : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
-            )}
-          >
-            <Moon className="h-4 w-4 text-[var(--text-secondary)]" />
-            <span>Niekedy</span>
-          </Link>
+            isActive={isActive('/someday')}
+            dropTarget={{ type: 'when', value: 'someday' }}
+            icon={<Moon className="h-4 w-4 text-[var(--text-secondary)]" />}
+            label="Niekedy"
+          />
           <Link
             href="/logbook"
             className={cn(
@@ -180,7 +161,7 @@ export function Sidebar({
             )}
           >
             <Calendar className="h-4 w-4" />
-            <span>Kalendár</span>
+            <span>Kalendar</span>
           </Link>
         </div>
 
@@ -231,32 +212,34 @@ export function Sidebar({
             {expandedAreas.has(area.id) && (
               <div className="ml-4 space-y-1">
                 {area.projects.map((project) => (
-                  <Link
+                  <SidebarDropProject
                     key={project.id}
                     href={`/projects/${project.id}`}
-                    className={cn(
-                      'flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors',
-                      isActive(`/projects/${project.id}`)
-                        ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
-                        : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
-                    )}
-                  >
-                    <FolderKanban className="h-4 w-4" />
-                    <span>{project.name}</span>
-                  </Link>
+                    isActive={isActive(`/projects/${project.id}`)}
+                    projectId={project.id}
+                    icon={<FolderKanban className="h-4 w-4" />}
+                    label={project.name}
+                  />
                 ))}
                 <button
                   onClick={() => onCreateProject(area.id)}
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
                 >
                   <Plus className="h-4 w-4" />
-                  <span>Pridať projekt</span>
+                  <span>Pridat projekt</span>
                 </button>
               </div>
             )}
           </div>
         ))}
       </nav>
+
+      {/* Drag indicator */}
+      {isDragging && (
+        <div className="mx-2 mb-2 rounded-lg bg-[var(--color-primary)]/10 p-3 text-center text-xs text-[var(--color-primary)]">
+          Potiahni ulohu na sekciu pre jej presun
+        </div>
+      )}
 
       {/* Theme Toggle */}
       <div className="border-t border-[var(--border-primary)] p-3">
