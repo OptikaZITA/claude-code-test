@@ -94,10 +94,13 @@ export function useTasks() {
   }
 
   const completeTask = async (taskId: string, completed: boolean) => {
+    // AUTO-LOGBOOK: Keď task je done, presunie sa do Logbooku (when_type = null)
+    // Keď sa odznačí, vráti sa do inbox
     await updateTask(taskId, {
       status: completed ? 'done' : 'todo',
       completed_at: completed ? new Date().toISOString() : null,
-    })
+      when_type: completed ? null : 'inbox', // Auto-logbook: null = Logbook
+    } as Partial<Task>)
   }
 
   // Reorder tasks - update sort_order for affected tasks

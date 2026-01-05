@@ -11,15 +11,15 @@ import {
   useSensors,
   closestCorners,
 } from '@dnd-kit/core'
-import { TaskWithRelations, KanbanColumn, DEFAULT_KANBAN_COLUMNS } from '@/types'
+import { TaskWithRelations, TaskStatus, DEFAULT_KANBAN_COLUMNS } from '@/types'
 import { KanbanColumn as KanbanColumnComponent } from './kanban-column'
 import { KanbanCard } from './kanban-card'
 
 interface KanbanBoardProps {
   tasks: TaskWithRelations[]
-  onTaskMove: (taskId: string, newColumn: KanbanColumn) => void
+  onTaskMove: (taskId: string, newStatus: TaskStatus) => void
   onTaskClick: (task: TaskWithRelations) => void
-  onQuickAdd: (title: string, column: KanbanColumn) => void
+  onQuickAdd: (title: string, status: TaskStatus) => void
 }
 
 export function KanbanBoard({
@@ -38,8 +38,8 @@ export function KanbanBoard({
     })
   )
 
-  const getTasksByColumn = (column: KanbanColumn) => {
-    return tasks.filter((task) => task.kanban_column === column)
+  const getTasksByStatus = (status: TaskStatus) => {
+    return tasks.filter((task) => task.status === status)
   }
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -56,25 +56,25 @@ export function KanbanBoard({
     const taskId = active.id as string
     const overId = over.id as string
 
-    // Check if dropped on a column
+    // Check if dropped on a column (status)
     const isColumn = DEFAULT_KANBAN_COLUMNS.some((col) => col.id === overId)
 
     if (isColumn) {
-      const newColumn = overId as KanbanColumn
+      const newStatus = overId as TaskStatus
       const task = tasks.find((t) => t.id === taskId)
 
-      if (task && task.kanban_column !== newColumn) {
-        onTaskMove(taskId, newColumn)
+      if (task && task.status !== newStatus) {
+        onTaskMove(taskId, newStatus)
       }
     } else {
-      // Dropped on another task - find its column
+      // Dropped on another task - find its status
       const targetTask = tasks.find((t) => t.id === overId)
       if (targetTask) {
-        const newColumn = targetTask.kanban_column as KanbanColumn
+        const newStatus = targetTask.status as TaskStatus
         const task = tasks.find((t) => t.id === taskId)
 
-        if (task && task.kanban_column !== newColumn) {
-          onTaskMove(taskId, newColumn)
+        if (task && task.status !== newStatus) {
+          onTaskMove(taskId, newStatus)
         }
       }
     }
@@ -92,7 +92,7 @@ export function KanbanBoard({
           <KanbanColumnComponent
             key={column.id}
             column={column}
-            tasks={getTasksByColumn(column.id)}
+            tasks={getTasksByStatus(column.id)}
             onTaskClick={onTaskClick}
             onQuickAdd={(title) => onQuickAdd(title, column.id)}
           />

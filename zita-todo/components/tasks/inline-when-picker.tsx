@@ -14,7 +14,7 @@ import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, 
 import { sk } from 'date-fns/locale'
 
 interface InlineWhenPickerProps {
-  value: WhenType
+  value: WhenType | null  // null = Logbook
   whenDate?: string | null
   onChange: (whenType: WhenType, whenDate?: string | null) => void
 }
@@ -49,8 +49,9 @@ export function InlineWhenPicker({
   const [currentMonth, setCurrentMonth] = useState(whenDate ? new Date(whenDate) : new Date())
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const currentOption = whenOptions.find(opt => opt.value === value)
-  const hasValue = value !== 'inbox'
+  // null = Logbook, treat as no specific when_type
+  const currentOption = value ? whenOptions.find(opt => opt.value === value) : undefined
+  const hasValue = value !== null && value !== 'inbox'
 
   // Close on click outside
   useEffect(() => {

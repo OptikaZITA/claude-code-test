@@ -48,7 +48,7 @@ export function TaskDetail({
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>(
     task.checklist_items || []
   )
-  const [whenType, setWhenType] = useState<WhenType>(task.when_type)
+  const [whenType, setWhenType] = useState<WhenType | null>(task.when_type)
   const [whenDate, setWhenDate] = useState<string | null>(task.when_date)
   const [deadline, setDeadline] = useState<string | null>(task.deadline)
   const [project, setProject] = useState<Project | null>(task.project || null)

@@ -34,7 +34,8 @@ export default function ProjectPage() {
         title,
         project_id: projectId,
         heading_id: headingId || null,
-        kanban_column: 'backlog',
+        status: 'backlog', // Nové úlohy v projekte začínajú v Backlog
+        when_type: 'anytime',
         is_inbox: false,
       })
       refetchTasks()

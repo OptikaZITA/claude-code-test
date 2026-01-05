@@ -9,7 +9,7 @@ import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { Button } from '@/components/ui/button'
 import { useProject, useProjectTasks } from '@/lib/hooks/use-projects'
 import { useTasks } from '@/lib/hooks/use-tasks'
-import { TaskWithRelations, KanbanColumn, TaskStatus } from '@/types'
+import { TaskWithRelations, TaskStatus } from '@/types'
 
 export default function KanbanPage() {
   const params = useParams()
@@ -21,43 +21,36 @@ export default function KanbanPage() {
 
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
 
-  const handleTaskMove = async (taskId: string, newColumn: KanbanColumn) => {
+  const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
     try {
-      // Map kanban column to task status
-      const statusMap: Record<KanbanColumn, TaskStatus> = {
-        backlog: 'todo',
-        todo: 'todo',
-        in_progress: 'in_progress',
-        review: 'in_progress',
-        done: 'done',
+      // Update status directly - status IS the kanban column now
+      const updates: Partial<TaskWithRelations> = {
+        status: newStatus,
       }
 
-      await updateTask(taskId, {
-        kanban_column: newColumn,
-        status: statusMap[newColumn],
-        completed_at: newColumn === 'done' ? new Date().toISOString() : null,
-      })
+      // AUTO-LOGBOOK: Keď task → Done, presunúť do Logbooku
+      if (newStatus === 'done') {
+        updates.completed_at = new Date().toISOString()
+        updates.when_type = null // null = Logbook
+      } else {
+        updates.completed_at = null
+      }
+
+      await updateTask(taskId, updates)
       refetch()
     } catch (error) {
       console.error('Error moving task:', error)
     }
   }
 
-  const handleQuickAdd = async (title: string, column: KanbanColumn) => {
+  const handleQuickAdd = async (title: string, status: TaskStatus) => {
     try {
-      const statusMap: Record<KanbanColumn, TaskStatus> = {
-        backlog: 'todo',
-        todo: 'todo',
-        in_progress: 'in_progress',
-        review: 'in_progress',
-        done: 'done',
-      }
-
       await createTask({
         title,
         project_id: projectId,
-        kanban_column: column,
-        status: statusMap[column],
+        status: status,
+        when_type: 'anytime', // Nové úlohy v projekte idú do Anytime
+        is_inbox: false,
       })
       refetch()
     } catch (error) {

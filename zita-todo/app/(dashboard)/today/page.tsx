@@ -5,16 +5,18 @@ import { Star, AlertCircle } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
 import { TaskDetail } from '@/components/tasks/task-detail'
+import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { useTodayTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
-import { TaskWithRelations } from '@/types'
-import { format, isToday, isPast, parseISO } from 'date-fns'
-import { sk } from 'date-fns/locale'
+import { useViewPreference } from '@/lib/hooks/use-view-preference'
+import { TaskWithRelations, TaskStatus } from '@/types'
+import { isToday, isPast, parseISO } from 'date-fns'
 
 export default function TodayPage() {
-  const { tasks, loading, error, refetch } = useTodayTasks()
+  const { tasks, loading, refetch } = useTodayTasks()
   const { createTask, updateTask, completeTask, softDelete, reorderTasks } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
+  const { viewMode, setViewMode, isLoaded } = useViewPreference('today')
 
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
@@ -95,7 +97,37 @@ export default function TodayPage() {
     }
   }
 
-  if (loading) {
+  // Kanban handlers (status-based)
+  const handleKanbanTaskMove = async (taskId: string, newStatus: TaskStatus) => {
+    try {
+      const updates: Partial<TaskWithRelations> = { status: newStatus }
+      if (newStatus === 'done') {
+        updates.completed_at = new Date().toISOString()
+        updates.when_type = null
+      }
+      await updateTask(taskId, updates)
+      refetch()
+    } catch (error) {
+      console.error('Error moving task:', error)
+    }
+  }
+
+  const handleKanbanQuickAdd = async (title: string, status: TaskStatus) => {
+    try {
+      await createTask({
+        title,
+        status,
+        when_type: 'today',
+        is_inbox: false,
+        inbox_type: 'personal',
+      })
+      refetch()
+    } catch (error) {
+      console.error('Error creating task:', error)
+    }
+  }
+
+  if (loading || !isLoaded) {
     return (
       <div className="h-full">
         <Header title="Dnes" />
@@ -107,57 +139,73 @@ export default function TodayPage() {
   }
 
   return (
-    <div className="h-full">
-      <Header title="Dnes" />
+    <div className="h-full flex flex-col">
+      <Header
+        title="Dnes"
+        showViewToggle
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      />
 
-      <div className="p-6">
-        {/* Overdue section */}
-        {overdueTasks.length > 0 && (
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <AlertCircle className="h-4 w-4 text-[var(--color-error)]" />
-              <h3 className="text-xs font-semibold text-[var(--color-error)] uppercase tracking-wide">
-                Po termíne ({overdueTasks.length})
-              </h3>
+      {viewMode === 'kanban' ? (
+        <div className="flex-1 overflow-hidden">
+          <KanbanBoard
+            tasks={tasks}
+            onTaskMove={handleKanbanTaskMove}
+            onTaskClick={setSelectedTask}
+            onQuickAdd={handleKanbanQuickAdd}
+          />
+        </div>
+      ) : (
+        <div className="flex-1 overflow-auto p-6">
+          {/* Overdue section */}
+          {overdueTasks.length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="h-4 w-4 text-[var(--color-error)]" />
+                <h3 className="text-xs font-semibold text-[var(--color-error)] uppercase tracking-wide">
+                  Po termine ({overdueTasks.length})
+                </h3>
+              </div>
+              <TaskList
+                tasks={overdueTasks}
+                onTaskClick={setSelectedTask}
+                onTaskComplete={handleTaskComplete}
+                onTaskUpdate={handleInlineTaskUpdate}
+                onTaskDelete={handleTaskDelete}
+                onQuickAdd={() => {}}
+                onReorder={handleReorder}
+                showQuickAdd={false}
+                emptyMessage=""
+              />
             </div>
-            <TaskList
-              tasks={overdueTasks}
-              onTaskClick={setSelectedTask}
-              onTaskComplete={handleTaskComplete}
-              onTaskUpdate={handleInlineTaskUpdate}
-              onTaskDelete={handleTaskDelete}
-              onQuickAdd={() => {}}
-              onReorder={handleReorder}
-              showQuickAdd={false}
-              emptyMessage=""
-            />
-          </div>
-        )}
+          )}
 
-        {/* Today's tasks */}
-        {tasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Star className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
-            <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
-              Žiadne úlohy na dnes
-            </p>
-            <p className="mb-6 text-[var(--text-secondary)]">
-              Pridajte úlohy alebo ich presuňte na dnes
-            </p>
-          </div>
-        ) : null}
+          {/* Today's tasks */}
+          {tasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Star className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
+              <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
+                Ziadne ulohy na dnes
+              </p>
+              <p className="mb-6 text-[var(--text-secondary)]">
+                Pridajte ulohy alebo ich presun'te na dnes
+              </p>
+            </div>
+          ) : null}
 
-        <TaskList
-          tasks={todayTasks}
-          onTaskClick={setSelectedTask}
-          onTaskComplete={handleTaskComplete}
-          onTaskUpdate={handleInlineTaskUpdate}
-          onTaskDelete={handleTaskDelete}
-          onQuickAdd={handleQuickAdd}
-          onReorder={handleReorder}
-          emptyMessage={overdueTasks.length > 0 ? '' : ''}
-        />
-      </div>
+          <TaskList
+            tasks={todayTasks}
+            onTaskClick={setSelectedTask}
+            onTaskComplete={handleTaskComplete}
+            onTaskUpdate={handleInlineTaskUpdate}
+            onTaskDelete={handleTaskDelete}
+            onQuickAdd={handleQuickAdd}
+            onReorder={handleReorder}
+            emptyMessage={overdueTasks.length > 0 ? '' : ''}
+          />
+        </div>
+      )}
 
       {/* Task Detail Modal */}
       {selectedTask && (

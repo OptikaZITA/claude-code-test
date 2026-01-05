@@ -175,37 +175,6 @@ export default function AreaDetailPage() {
       <Header title={area.name} />
 
       <div className="p-6">
-        {/* Area Header with color */}
-        <div
-          className="mb-6 pb-4 border-b-2"
-          style={{ borderColor: area.color || 'var(--border-primary)' }}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className="h-10 w-10 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: area.color ? `${area.color}20` : 'var(--bg-secondary)' }}
-            >
-              <Layers
-                className="h-5 w-5"
-                style={{ color: area.color || 'var(--text-secondary)' }}
-              />
-            </div>
-            <div>
-              <h2
-                className="text-2xl font-bold"
-                style={{ color: area.color || 'var(--text-primary)' }}
-              >
-                {area.name}
-              </h2>
-              {area.description && (
-                <p className="text-sm text-[var(--text-secondary)]">
-                  {area.description}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* Projects with their tasks */}
         {activeProjects.map(project => {
           const projectTaskList = projectTasks.get(project.id) || []

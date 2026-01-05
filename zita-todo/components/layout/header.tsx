@@ -4,20 +4,38 @@ import { Search, Bell } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { TimerIndicator } from '@/components/time-tracking/timer-indicator'
+import { ViewToggle, ViewMode } from '@/components/ui/view-toggle'
 import { ReactNode } from 'react'
 
 interface HeaderProps {
   title: string
   children?: ReactNode
+  /** Show view toggle (list/kanban) */
+  showViewToggle?: boolean
+  /** Current view mode */
+  viewMode?: ViewMode
+  /** Callback when view mode changes */
+  onViewModeChange?: (mode: ViewMode) => void
 }
 
-export function Header({ title, children }: HeaderProps) {
+export function Header({
+  title,
+  children,
+  showViewToggle = false,
+  viewMode = 'list',
+  onViewModeChange,
+}: HeaderProps) {
   return (
     <header className="flex h-14 items-center justify-between border-b border-[var(--border-primary)] bg-[var(--bg-primary)] px-6">
       <h1 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h1>
 
       <div className="flex items-center gap-4">
         {children}
+
+        {/* View Toggle (List/Kanban) */}
+        {showViewToggle && onViewModeChange && (
+          <ViewToggle value={viewMode} onChange={onViewModeChange} />
+        )}
 
         {/* Global Timer Indicator */}
         <TimerIndicator />

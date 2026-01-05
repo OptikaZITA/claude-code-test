@@ -75,19 +75,6 @@ export default function TrashPage() {
       </Header>
 
       <div className="p-6">
-        {/* Header */}
-        <div className="mb-6 flex items-center gap-3">
-          <Trash2 className="h-8 w-8 text-[var(--text-secondary)]" />
-          <div>
-            <h2 className="text-2xl font-bold text-[var(--text-primary)]">
-              Kos
-            </h2>
-            <p className="text-sm text-[var(--text-secondary)]">
-              Polozky v kosi sa automaticky vymazu po 30 dnoch
-            </p>
-          </div>
-        </div>
-
         {/* Info banner */}
         {tasks.length > 0 && (
           <div className="mb-6 flex items-start gap-3 rounded-lg bg-[var(--color-warning)]/10 p-4 border border-[var(--color-warning)]/20">

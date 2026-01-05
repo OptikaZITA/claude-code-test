@@ -16,7 +16,7 @@ import { format } from 'date-fns'
 import { sk } from 'date-fns/locale'
 
 interface WhenPickerProps {
-  value: WhenType
+  value: WhenType | null  // null = Logbook
   whenDate?: string | null
   onChange: (whenType: WhenType, whenDate?: string | null) => void
   showLabel?: boolean
@@ -60,7 +60,8 @@ export function WhenPicker({
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [tempDate, setTempDate] = useState(whenDate || '')
 
-  const currentOption = whenOptions.find(opt => opt.value === value) || whenOptions[0]
+  // null = Logbook, show inbox as default
+  const currentOption = whenOptions.find(opt => opt.value === (value || 'inbox')) || whenOptions[0]
 
   const handleOptionClick = (optionValue: WhenType) => {
     if (optionValue === 'scheduled') {
@@ -182,10 +183,13 @@ export function WhenBadge({
   whenDate,
   size = 'sm'
 }: {
-  value: WhenType
+  value: WhenType | null
   whenDate?: string | null
   size?: 'sm' | 'xs'
 }) {
+  // null = Logbook (dokončené úlohy), nezobrazuj badge
+  if (!value) return null
+
   const option = whenOptions.find(opt => opt.value === value)
   if (!option || value === 'inbox') return null
 

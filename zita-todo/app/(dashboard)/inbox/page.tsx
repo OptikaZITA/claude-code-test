@@ -3,17 +3,21 @@
 import { useState } from 'react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
+import { TaskDetail } from '@/components/tasks/task-detail'
+import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { ExportMenu } from '@/components/export/export-menu'
 import { ErrorDisplay } from '@/components/layout/error-display'
 import { useInboxTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
-import { TaskWithRelations } from '@/types'
+import { useViewPreference } from '@/lib/hooks/use-view-preference'
+import { TaskWithRelations, TaskStatus } from '@/types'
 import { Inbox } from 'lucide-react'
 
 export default function InboxPage() {
   const { tasks, loading, error, refetch } = useInboxTasks('personal')
   const { createTask, updateTask, completeTask, softDelete, reorderTasks } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
+  const { viewMode, setViewMode, isLoaded } = useViewPreference('inbox')
 
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
@@ -41,7 +45,7 @@ export default function InboxPage() {
     }
   }
 
-  const handleTaskUpdate = async (taskId: string, updates: Partial<TaskWithRelations>) => {
+  const handleInlineTaskUpdate = async (taskId: string, updates: Partial<TaskWithRelations>) => {
     try {
       await updateTask(taskId, updates)
       refetch()
@@ -68,7 +72,49 @@ export default function InboxPage() {
     }
   }
 
-  if (loading) {
+  const handleTaskUpdate = async (updates: Partial<TaskWithRelations>) => {
+    if (!selectedTask) return
+    try {
+      await updateTask(selectedTask.id, updates)
+      refetch()
+      setSelectedTask(null)
+    } catch (error) {
+      console.error('Error updating task:', error)
+    }
+  }
+
+  // Kanban handlers (status-based)
+  const handleKanbanTaskMove = async (taskId: string, newStatus: TaskStatus) => {
+    try {
+      const updates: Partial<TaskWithRelations> = { status: newStatus }
+      // Auto-logbook: when task is done, move to logbook
+      if (newStatus === 'done') {
+        updates.completed_at = new Date().toISOString()
+        updates.when_type = null
+      }
+      await updateTask(taskId, updates)
+      refetch()
+    } catch (error) {
+      console.error('Error moving task:', error)
+    }
+  }
+
+  const handleKanbanQuickAdd = async (title: string, status: TaskStatus) => {
+    try {
+      const { data: { user } } = await (await import('@/lib/supabase/client')).createClient().auth.getUser()
+      await createTask({
+        title,
+        status,
+        inbox_type: 'personal',
+        inbox_user_id: user?.id,
+      })
+      refetch()
+    } catch (error) {
+      console.error('Error creating task:', error)
+    }
+  }
+
+  if (loading || !isLoaded) {
     return (
       <div className="h-full">
         <Header title="Inbox" />
@@ -91,33 +137,59 @@ export default function InboxPage() {
   }
 
   return (
-    <div className="h-full">
-      <Header title="Inbox">
+    <div className="h-full flex flex-col">
+      <Header
+        title="Inbox"
+        showViewToggle
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      >
         <ExportMenu tasks={tasks} title="Inbox" filename="inbox" />
       </Header>
 
-      <div className="p-6">
-        {tasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Inbox className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
-            <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Váš inbox je prázdny</p>
-            <p className="mb-6 text-[var(--text-secondary)]">
-              Pridajte úlohy pomocou formulára nižšie
-            </p>
-          </div>
-        ) : null}
+      {viewMode === 'kanban' ? (
+        <div className="flex-1 overflow-hidden">
+          <KanbanBoard
+            tasks={tasks}
+            onTaskMove={handleKanbanTaskMove}
+            onTaskClick={setSelectedTask}
+            onQuickAdd={handleKanbanQuickAdd}
+          />
+        </div>
+      ) : (
+        <div className="flex-1 overflow-auto p-6">
+          {tasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Inbox className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
+              <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Vas inbox je prazdny</p>
+              <p className="mb-6 text-[var(--text-secondary)]">
+                Pridajte ulohy pomocou formulara nizsie
+              </p>
+            </div>
+          ) : null}
 
-        <TaskList
-          tasks={tasks}
-          onTaskClick={setSelectedTask}
-          onTaskComplete={handleTaskComplete}
-          onTaskUpdate={handleTaskUpdate}
-          onTaskDelete={handleTaskDelete}
-          onQuickAdd={handleQuickAdd}
-          onReorder={handleReorder}
-          emptyMessage=""
+          <TaskList
+            tasks={tasks}
+            onTaskClick={setSelectedTask}
+            onTaskComplete={handleTaskComplete}
+            onTaskUpdate={handleInlineTaskUpdate}
+            onTaskDelete={handleTaskDelete}
+            onQuickAdd={handleQuickAdd}
+            onReorder={handleReorder}
+            emptyMessage=""
+          />
+        </div>
+      )}
+
+      {/* Task Detail Modal */}
+      {selectedTask && (
+        <TaskDetail
+          task={selectedTask}
+          isOpen={!!selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onUpdate={handleTaskUpdate}
         />
-      </div>
+      )}
     </div>
   )
 }

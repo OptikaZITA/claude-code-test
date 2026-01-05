@@ -117,19 +117,6 @@ export default function LogbookPage() {
       <Header title="Logbook" />
 
       <div className="p-6">
-        {/* Header */}
-        <div className="mb-6 flex items-center gap-3">
-          <BookOpen className="h-8 w-8 text-[var(--color-success)]" />
-          <div>
-            <h2 className="text-2xl font-bold text-[var(--text-primary)]">
-              Logbook
-            </h2>
-            <p className="text-sm text-[var(--text-secondary)]">
-              {tasks.length} dokončených úloh
-            </p>
-          </div>
-        </div>
-
         {/* Tasks grouped by time period */}
         {tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">

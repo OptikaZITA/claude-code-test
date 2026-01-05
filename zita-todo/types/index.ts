@@ -77,10 +77,11 @@ export interface Heading {
 }
 
 // Task types
-export type TaskStatus = 'todo' | 'in_progress' | 'done'
+// TaskStatus = workflow fázy pre Kanban (5 stĺpcov + canceled)
+export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'done' | 'canceled'
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
-export type KanbanColumn = 'backlog' | 'todo' | 'in_progress' | 'review' | 'done'
 export type InboxType = 'personal' | 'team' | null
+// WhenType = časové zaradenie pre List view (Things 3 štýl)
 export type WhenType = 'inbox' | 'today' | 'anytime' | 'someday' | 'scheduled'
 
 export interface Task {
@@ -93,11 +94,11 @@ export interface Task {
   description: string | null
   notes: string | null
   status: TaskStatus
-  kanban_column: KanbanColumn | null
+  // kanban_column removed - konsolidované do status
   priority: TaskPriority
   due_date: string | null
   start_date: string | null
-  when_type: WhenType
+  when_type: WhenType | null  // null = Logbook (dokončené úlohy)
   when_date: string | null
   deadline: string | null
   is_inbox: boolean
@@ -194,19 +195,21 @@ export interface RecurringTask extends Task {
   occurrences_count: number
 }
 
-// Kanban types
+// Kanban types - používa TaskStatus namiesto samostatného KanbanColumn
 export interface KanbanColumnConfig {
-  id: KanbanColumn
+  id: TaskStatus
   title: string
   color: string
+  icon?: string
 }
 
+// 5 stĺpcov pre Kanban board (bez 'canceled')
 export const DEFAULT_KANBAN_COLUMNS: KanbanColumnConfig[] = [
-  { id: 'backlog', title: 'Backlog', color: '#8E8E93' },
-  { id: 'todo', title: 'To Do', color: '#007AFF' },
-  { id: 'in_progress', title: 'In Progress', color: '#FF9500' },
-  { id: 'review', title: 'Review', color: '#AF52DE' },
-  { id: 'done', title: 'Done', color: '#34C759' },
+  { id: 'backlog', title: 'Backlog', color: '#8E8E93', icon: '📥' },
+  { id: 'todo', title: 'To Do', color: '#007AFF', icon: '📋' },
+  { id: 'in_progress', title: 'In Progress', color: '#FF9500', icon: '🔄' },
+  { id: 'review', title: 'Review', color: '#AF52DE', icon: '👁️' },
+  { id: 'done', title: 'Done', color: '#34C759', icon: '✅' },
 ]
 
 // Filter types

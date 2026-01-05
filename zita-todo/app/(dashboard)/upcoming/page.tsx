@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { CalendarDays } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
@@ -155,10 +155,10 @@ export default function UpcomingPage() {
   }
 
   return (
-    <div className="h-full">
+    <div className="h-full flex flex-col">
       <Header title="Nadchadzajuce" />
 
-      <div className="p-6">
+      <div className="flex-1 overflow-auto p-6">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Mini Calendar - Sidebar on desktop, top on mobile */}
           <div className="lg:w-72 flex-shrink-0">
@@ -190,19 +190,6 @@ export default function UpcomingPage() {
 
           {/* Tasks list */}
           <div className="flex-1 min-w-0">
-            {/* Header */}
-            <div className="mb-6 flex items-center gap-3">
-              <CalendarDays className="h-8 w-8 text-[var(--color-success)]" />
-              <div>
-                <h2 className="text-2xl font-bold text-[var(--text-primary)]">
-                  Nadchadzajuce
-                </h2>
-                <p className="text-sm text-[var(--text-secondary)]">
-                  {tasks.length} naplanovanych {tasks.length === 1 ? 'uloha' : tasks.length < 5 ? 'ulohy' : 'uloh'}
-                </p>
-              </div>
-            </div>
-
             {/* Selected date indicator */}
             {selectedDate && (
               <div className="mb-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20">

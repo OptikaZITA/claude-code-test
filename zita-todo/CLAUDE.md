@@ -1067,6 +1067,42 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 
 ## Changelog
 
+### v2.6 (4. januára 2026)
+**View Toggle - Prepínač Zoznam/Kanban:**
+
+**Nové komponenty:**
+- `components/ui/view-toggle.tsx` - Toggle button pre prepínanie List/Kanban zobrazenia
+- `components/tasks/when-kanban-board.tsx` - Kanban board s 5 stĺpcami podľa `when_type`
+- `components/tasks/when-kanban-column.tsx` - Stĺpec pre When-based kanban
+- `components/tasks/when-kanban-card.tsx` - Karta úlohy pre When-based kanban
+- `lib/hooks/use-view-preference.ts` - Hook pre ukladanie view preference do localStorage
+
+**Kanban stĺpce (When-based):**
+| Stĺpec | Filter |
+|--------|--------|
+| Inbox | `when_type = 'inbox'` |
+| Dnes | `when_type = 'today'` |
+| Naplánované | `when_type = 'scheduled'` |
+| Kedykoľvek | `when_type = 'anytime'` |
+| Niekedy | `when_type = 'someday'` |
+
+**Funkcie:**
+- ✅ Toggle button v headeri (vedľa vyhľadávania)
+- ✅ Drag & drop medzi stĺpcami mení `when_type` úlohy
+- ✅ Počítadlo úloh v každom stĺpci
+- ✅ Quick add v každom stĺpci
+- ✅ Perzistencia preferencie do localStorage (per-page)
+- ✅ Responzívne horizontálne scrollovanie na mobile
+
+**Aktualizované stránky:**
+- `app/(dashboard)/today/page.tsx`
+- `app/(dashboard)/inbox/page.tsx`
+- `app/(dashboard)/anytime/page.tsx`
+- `app/(dashboard)/upcoming/page.tsx`
+- `components/layout/header.tsx` - pridané props pre view toggle
+
+---
+
 ### v2.5 (4. januára 2026)
 **Inline Components + Drag & Drop Sorting + Calendar Drop:**
 
@@ -1262,5 +1298,5 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 
 ---
 
-**Verzia:** 2.5 (Inline Components + Drag & Drop Sorting + Calendar Drop)
+**Verzia:** 2.6 (View Toggle - List/Kanban)
 **Posledná aktualizácia:** 4. januára 2026

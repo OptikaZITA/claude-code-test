@@ -5,14 +5,17 @@ import { Clock } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
 import { TaskDetail } from '@/components/tasks/task-detail'
+import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { useAnytimeTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
-import { TaskWithRelations } from '@/types'
+import { useViewPreference } from '@/lib/hooks/use-view-preference'
+import { TaskWithRelations, TaskStatus } from '@/types'
 
 export default function AnytimePage() {
   const { tasks, loading, refetch } = useAnytimeTasks()
   const { createTask, updateTask, completeTask, softDelete, reorderTasks } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
+  const { viewMode, setViewMode, isLoaded } = useViewPreference('anytime')
 
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
@@ -78,10 +81,40 @@ export default function AnytimePage() {
     }
   }
 
-  if (loading) {
+  // Kanban handlers (status-based)
+  const handleKanbanTaskMove = async (taskId: string, newStatus: TaskStatus) => {
+    try {
+      const updates: Partial<TaskWithRelations> = { status: newStatus }
+      if (newStatus === 'done') {
+        updates.completed_at = new Date().toISOString()
+        updates.when_type = null
+      }
+      await updateTask(taskId, updates)
+      refetch()
+    } catch (error) {
+      console.error('Error moving task:', error)
+    }
+  }
+
+  const handleKanbanQuickAdd = async (title: string, status: TaskStatus) => {
+    try {
+      await createTask({
+        title,
+        status,
+        when_type: 'anytime',
+        is_inbox: false,
+        inbox_type: 'personal',
+      })
+      refetch()
+    } catch (error) {
+      console.error('Error creating task:', error)
+    }
+  }
+
+  if (loading || !isLoaded) {
     return (
       <div className="h-full">
-        <Header title="Kedykoľvek" />
+        <Header title="Kedykolvek" />
         <div className="flex items-center justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent" />
         </div>
@@ -90,47 +123,49 @@ export default function AnytimePage() {
   }
 
   return (
-    <div className="h-full">
-      <Header title="Kedykoľvek" />
+    <div className="h-full flex flex-col">
+      <Header
+        title="Kedykolvek"
+        showViewToggle
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      />
 
-      <div className="p-6">
-        {/* Header */}
-        <div className="mb-6 flex items-center gap-3">
-          <Clock className="h-8 w-8 text-[var(--color-primary)]" />
-          <div>
-            <h2 className="text-2xl font-bold text-[var(--text-primary)]">
-              Kedykoľvek
-            </h2>
-            <p className="text-sm text-[var(--text-secondary)]">
-              Úlohy bez konkrétneho termínu
-            </p>
-          </div>
+      {viewMode === 'kanban' ? (
+        <div className="flex-1 overflow-hidden">
+          <KanbanBoard
+            tasks={tasks}
+            onTaskMove={handleKanbanTaskMove}
+            onTaskClick={setSelectedTask}
+            onQuickAdd={handleKanbanQuickAdd}
+          />
         </div>
+      ) : (
+        <div className="flex-1 overflow-auto p-6">
+          {tasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Clock className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
+              <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
+                Ziadne ulohy
+              </p>
+              <p className="mb-6 text-[var(--text-secondary)]">
+                Ulohy ktore mozete urobit kedykolvek
+              </p>
+            </div>
+          ) : null}
 
-        {/* Tasks */}
-        {tasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Clock className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
-            <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
-              Žiadne úlohy
-            </p>
-            <p className="mb-6 text-[var(--text-secondary)]">
-              Úlohy ktoré môžete urobiť kedykoľvek
-            </p>
-          </div>
-        ) : null}
-
-        <TaskList
-          tasks={tasks}
-          onTaskClick={setSelectedTask}
-          onTaskComplete={handleTaskComplete}
-          onTaskUpdate={handleInlineTaskUpdate}
-          onTaskDelete={handleTaskDelete}
-          onQuickAdd={handleQuickAdd}
-          onReorder={handleReorder}
-          emptyMessage=""
-        />
-      </div>
+          <TaskList
+            tasks={tasks}
+            onTaskClick={setSelectedTask}
+            onTaskComplete={handleTaskComplete}
+            onTaskUpdate={handleInlineTaskUpdate}
+            onTaskDelete={handleTaskDelete}
+            onQuickAdd={handleQuickAdd}
+            onReorder={handleReorder}
+            emptyMessage=""
+          />
+        </div>
+      )}
 
       {/* Task Detail Modal */}
       {selectedTask && (
