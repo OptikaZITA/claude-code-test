@@ -1,18 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
-import Link from 'next/link'
-import { LayoutList, LayoutGrid, FolderKanban } from 'lucide-react'
+import { FolderKanban, Filter } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { ProjectTaskList } from '@/components/tasks/project-task-list'
+import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { TaskDetail } from '@/components/tasks/task-detail'
-import { Button } from '@/components/ui/button'
+import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
 import { useProject, useProjectTasks } from '@/lib/hooks/use-projects'
 import { useTasks } from '@/lib/hooks/use-tasks'
 import { useHeadings } from '@/lib/hooks/use-headings'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
-import { TaskWithRelations } from '@/types'
+import { useViewPreference } from '@/lib/hooks/use-view-preference'
+import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
+import { TaskWithRelations, TaskStatus } from '@/types'
 
 export default function ProjectPage() {
   const params = useParams()
@@ -22,6 +24,14 @@ export default function ProjectPage() {
   const { tasks, loading: tasksLoading, refetch: refetchTasks } = useProjectTasks(projectId)
   const { headings, loading: headingsLoading, createHeading, updateHeading, deleteHeading } = useHeadings(projectId)
   const { createTask, updateTask, completeTask } = useTasks()
+  const { viewMode, setViewMode, isLoaded } = useViewPreference('project')
+  const [showFilters, setShowFilters] = useState(false)
+  const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
+
+  // Apply filters to tasks
+  const filteredTasks = useMemo(() => {
+    return filterTasks(tasks, filters)
+  }, [tasks, filters])
 
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetchTasks)
@@ -77,7 +87,39 @@ export default function ProjectPage() {
     }
   }
 
-  if (projectLoading || tasksLoading || headingsLoading) {
+  // Kanban handlers
+  const handleKanbanTaskMove = async (taskId: string, newStatus: TaskStatus) => {
+    try {
+      const updates: Partial<TaskWithRelations> = { status: newStatus }
+      if (newStatus === 'done') {
+        updates.completed_at = new Date().toISOString()
+        updates.when_type = null
+      } else {
+        updates.completed_at = null
+      }
+      await updateTask(taskId, updates)
+      refetchTasks()
+    } catch (error) {
+      console.error('Error moving task:', error)
+    }
+  }
+
+  const handleKanbanQuickAdd = async (title: string, status: TaskStatus) => {
+    try {
+      await createTask({
+        title,
+        project_id: projectId,
+        status,
+        when_type: 'anytime',
+        is_inbox: false,
+      })
+      refetchTasks()
+    } catch (error) {
+      console.error('Error creating task:', error)
+    }
+  }
+
+  if (projectLoading || tasksLoading || headingsLoading || !isLoaded) {
     return (
       <div className="h-full">
         <Header title="Načítavam..." />
@@ -101,53 +143,83 @@ export default function ProjectPage() {
   }
 
   return (
-    <div className="h-full">
-      <Header title={project.name} />
+    <div className="h-full flex flex-col">
+      <Header
+        title={project.name}
+        showViewToggle
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      >
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`p-2 rounded-lg transition-colors ${
+            hasActiveFilters
+              ? 'bg-[var(--color-primary)] text-white'
+              : 'hover:bg-[var(--bg-hover)]'
+          }`}
+          title="Filtre"
+        >
+          <Filter className="h-4 w-4" />
+        </button>
+      </Header>
 
-      {/* View Toggle */}
-      <div className="border-b border-[var(--bg-secondary)] bg-[var(--bg-primary)] px-6 py-3">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-[var(--text-secondary)]">
-            {project.description || 'Žiadny popis'}
-          </p>
-          <div className="flex gap-2">
-            <Button variant="secondary" size="sm">
-              <LayoutList className="mr-1 h-4 w-4" />
-              Zoznam
-            </Button>
-            <Link href={`/projects/${projectId}/kanban`}>
-              <Button variant="ghost" size="sm">
-                <LayoutGrid className="mr-1 h-4 w-4" />
-                Kanban
-              </Button>
-            </Link>
-          </div>
+      {/* Filter Bar */}
+      {showFilters && (
+        <div className="px-6 py-3 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
+          <TaskFiltersBar
+            filters={filters}
+            onFilterChange={setFilter}
+            onClearFilters={clearFilters}
+            hasActiveFilters={hasActiveFilters}
+          />
         </div>
-      </div>
+      )}
 
-      <div className="p-6">
-        {tasks.length === 0 && headings.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <FolderKanban className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
-            <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Projekt je prázdny</p>
-            <p className="mb-6 text-[var(--text-secondary)]">
-              Pridajte prvú úlohu alebo sekciu
-            </p>
-          </div>
-        ) : null}
+      {viewMode === 'kanban' ? (
+        <div className="flex-1 overflow-hidden">
+          <KanbanBoard
+            tasks={filteredTasks}
+            onTaskMove={handleKanbanTaskMove}
+            onTaskClick={setSelectedTask}
+            onQuickAdd={handleKanbanQuickAdd}
+          />
+        </div>
+      ) : (
+        <div className="flex-1 overflow-auto p-6">
+          {filteredTasks.length === 0 && tasks.length === 0 && headings.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <FolderKanban className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
+              <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Projekt je prázdny</p>
+              <p className="mb-6 text-[var(--text-secondary)]">
+                Pridajte prvú úlohu alebo sekciu
+              </p>
+            </div>
+          ) : filteredTasks.length === 0 && hasActiveFilters ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Filter className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
+              <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Žiadne úlohy nezodpovedajú filtrom</p>
+              <button
+                onClick={clearFilters}
+                className="text-[var(--color-primary)] hover:underline"
+              >
+                Zrušiť filtre
+              </button>
+            </div>
+          ) : null}
 
-        <ProjectTaskList
-          tasks={tasks}
-          headings={headings}
-          onTaskClick={setSelectedTask}
-          onTaskComplete={handleTaskComplete}
-          onQuickAdd={handleQuickAdd}
-          onHeadingCreate={handleHeadingCreate}
-          onHeadingUpdate={handleHeadingUpdate}
-          onHeadingDelete={handleHeadingDelete}
-          emptyMessage=""
-        />
-      </div>
+          <ProjectTaskList
+            tasks={filteredTasks}
+            headings={headings}
+            onTaskClick={setSelectedTask}
+            onTaskComplete={handleTaskComplete}
+            onQuickAdd={handleQuickAdd}
+            onHeadingCreate={handleHeadingCreate}
+            onHeadingUpdate={handleHeadingUpdate}
+            onHeadingDelete={handleHeadingDelete}
+            emptyMessage=""
+          />
+        </div>
+      )}
 
       {/* Task Detail Modal */}
       {selectedTask && (

@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { BookOpen, CheckCircle2 } from 'lucide-react'
+import { BookOpen, CheckCircle2, Filter } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { TaskItem } from '@/components/tasks/task-item'
+import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
 import { useLogbookTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
+import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { TaskWithRelations } from '@/types'
 import { format, parseISO, startOfDay, isToday, isYesterday, isThisWeek, isThisMonth } from 'date-fns'
 import { sk } from 'date-fns/locale'
@@ -15,6 +17,13 @@ export default function LogbookPage() {
   const { tasks, loading, refetch } = useLogbookTasks()
   const { updateTask, completeTask } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
+  const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
+
+  // Apply filters to tasks
+  const filteredTasks = useMemo(() => {
+    return filterTasks(tasks, filters)
+  }, [tasks, filters])
 
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
@@ -35,7 +44,7 @@ export default function LogbookPage() {
       older: [],
     }
 
-    tasks.forEach(task => {
+    filteredTasks.forEach(task => {
       if (!task.completed_at) {
         groups.older.push(task)
         return
@@ -57,7 +66,7 @@ export default function LogbookPage() {
     })
 
     return groups
-  }, [tasks])
+  }, [filteredTasks])
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
     try {
@@ -113,12 +122,36 @@ export default function LogbookPage() {
   }
 
   return (
-    <div className="h-full">
-      <Header title="Logbook" />
+    <div className="h-full flex flex-col">
+      <Header title="Logbook">
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`p-2 rounded-lg transition-colors ${
+            hasActiveFilters
+              ? 'bg-[var(--color-primary)] text-white'
+              : 'hover:bg-[var(--bg-hover)]'
+          }`}
+          title="Filtre"
+        >
+          <Filter className="h-4 w-4" />
+        </button>
+      </Header>
 
-      <div className="p-6">
+      {/* Filter Bar */}
+      {showFilters && (
+        <div className="px-6 py-3 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
+          <TaskFiltersBar
+            filters={filters}
+            onFilterChange={setFilter}
+            onClearFilters={clearFilters}
+            hasActiveFilters={hasActiveFilters}
+          />
+        </div>
+      )}
+
+      <div className="flex-1 overflow-auto p-6">
         {/* Tasks grouped by time period */}
-        {tasks.length === 0 ? (
+        {filteredTasks.length === 0 && tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <CheckCircle2 className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
             <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
@@ -127,6 +160,17 @@ export default function LogbookPage() {
             <p className="text-[var(--text-secondary)]">
               Dokončené úlohy sa zobrazia tu
             </p>
+          </div>
+        ) : filteredTasks.length === 0 && hasActiveFilters ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Filter className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
+            <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Žiadne úlohy nezodpovedajú filtrom</p>
+            <button
+              onClick={clearFilters}
+              className="text-[var(--color-primary)] hover:underline"
+            >
+              Zrušiť filtre
+            </button>
           </div>
         ) : (
           <>

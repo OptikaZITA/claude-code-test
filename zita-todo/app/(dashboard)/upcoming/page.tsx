@@ -1,13 +1,15 @@
 'use client'
 
 import { useState, useMemo, useRef } from 'react'
-import { CalendarDays } from 'lucide-react'
+import { CalendarDays, Filter } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { MiniCalendar } from '@/components/calendar/mini-calendar'
+import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
 import { useUpcomingTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
+import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { TaskWithRelations } from '@/types'
 import { format, parseISO, startOfDay, addDays, isSameDay } from 'date-fns'
 import { sk } from 'date-fns/locale'
@@ -19,6 +21,13 @@ export default function UpcomingPage() {
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const dateRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+  const [showFilters, setShowFilters] = useState(false)
+  const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
+
+  // Apply filters to tasks
+  const filteredTasks = useMemo(() => {
+    return filterTasks(tasks, filters)
+  }, [tasks, filters])
 
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
@@ -27,7 +36,7 @@ export default function UpcomingPage() {
   const groupedTasks = useMemo(() => {
     const groups: Map<string, TaskWithRelations[]> = new Map()
 
-    tasks.forEach(task => {
+    filteredTasks.forEach(task => {
       if (task.when_date) {
         const dateKey = startOfDay(parseISO(task.when_date)).toISOString()
         if (!groups.has(dateKey)) {
@@ -40,7 +49,7 @@ export default function UpcomingPage() {
     // Sort by date
     return Array.from(groups.entries())
       .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
-  }, [tasks])
+  }, [filteredTasks])
 
   // Handle date selection from mini calendar
   const handleDateSelect = (date: Date) => {
@@ -156,7 +165,31 @@ export default function UpcomingPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <Header title="Nadchadzajuce" />
+      <Header title="Nadchadzajuce">
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`p-2 rounded-lg transition-colors ${
+            hasActiveFilters
+              ? 'bg-[var(--color-primary)] text-white'
+              : 'hover:bg-[var(--bg-hover)]'
+          }`}
+          title="Filtre"
+        >
+          <Filter className="h-4 w-4" />
+        </button>
+      </Header>
+
+      {/* Filter Bar */}
+      {showFilters && (
+        <div className="px-6 py-3 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
+          <TaskFiltersBar
+            filters={filters}
+            onFilterChange={setFilter}
+            onClearFilters={clearFilters}
+            hasActiveFilters={hasActiveFilters}
+          />
+        </div>
+      )}
 
       <div className="flex-1 overflow-auto p-6">
         <div className="flex flex-col lg:flex-row gap-6">
@@ -164,7 +197,7 @@ export default function UpcomingPage() {
           <div className="lg:w-72 flex-shrink-0">
             <div className="lg:sticky lg:top-6">
               <MiniCalendar
-                tasks={tasks}
+                tasks={filteredTasks}
                 selectedDate={selectedDate}
                 onDateSelect={handleDateSelect}
               />
@@ -177,7 +210,7 @@ export default function UpcomingPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-[var(--text-secondary)]">Celkom uloh</span>
-                    <span className="font-medium text-[var(--text-primary)]">{tasks.length}</span>
+                    <span className="font-medium text-[var(--text-primary)]">{filteredTasks.length}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-[var(--text-secondary)]">Dni s ulohami</span>
@@ -207,7 +240,7 @@ export default function UpcomingPage() {
             )}
 
             {/* Tasks grouped by date */}
-            {groupedTasks.length === 0 ? (
+            {groupedTasks.length === 0 && tasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <CalendarDays className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
                 <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
@@ -216,6 +249,17 @@ export default function UpcomingPage() {
                 <p className="text-[var(--text-secondary)]">
                   Naplanujte ulohy na konkretny datum
                 </p>
+              </div>
+            ) : groupedTasks.length === 0 && hasActiveFilters ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Filter className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
+                <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Žiadne úlohy nezodpovedajú filtrom</p>
+                <button
+                  onClick={clearFilters}
+                  className="text-[var(--color-primary)] hover:underline"
+                >
+                  Zrušiť filtre
+                </button>
               </div>
             ) : (
               <div className="space-y-6">

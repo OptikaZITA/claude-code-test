@@ -1,13 +1,15 @@
 'use client'
 
-import { useState } from 'react'
-import { Trash2, RotateCcw, AlertTriangle } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Trash2, RotateCcw, AlertTriangle, Filter } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { Checkbox } from '@/components/ui/checkbox'
+import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
 import { useTrashTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
+import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { TaskWithRelations } from '@/types'
 import { formatDistanceToNow, parseISO, differenceInDays } from 'date-fns'
 import { sk } from 'date-fns/locale'
@@ -16,6 +18,13 @@ import { cn } from '@/lib/utils/cn'
 export default function TrashPage() {
   const { tasks, loading, refetch, restoreTask, emptyTrash } = useTrashTasks()
   const [confirmEmptyTrash, setConfirmEmptyTrash] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
+
+  // Apply filters to tasks
+  const filteredTasks = useMemo(() => {
+    return filterTasks(tasks, filters)
+  }, [tasks, filters])
 
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
@@ -59,8 +68,19 @@ export default function TrashPage() {
   }
 
   return (
-    <div className="h-full">
+    <div className="h-full flex flex-col">
       <Header title="Kos">
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`p-2 rounded-lg transition-colors ${
+            hasActiveFilters
+              ? 'bg-[var(--color-primary)] text-white'
+              : 'hover:bg-[var(--bg-hover)]'
+          }`}
+          title="Filtre"
+        >
+          <Filter className="h-4 w-4" />
+        </button>
         {tasks.length > 0 && (
           <Button
             variant="ghost"
@@ -74,14 +94,26 @@ export default function TrashPage() {
         )}
       </Header>
 
-      <div className="p-6">
+      {/* Filter Bar */}
+      {showFilters && (
+        <div className="px-6 py-3 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
+          <TaskFiltersBar
+            filters={filters}
+            onFilterChange={setFilter}
+            onClearFilters={clearFilters}
+            hasActiveFilters={hasActiveFilters}
+          />
+        </div>
+      )}
+
+      <div className="flex-1 overflow-auto p-6">
         {/* Info banner */}
-        {tasks.length > 0 && (
+        {filteredTasks.length > 0 && (
           <div className="mb-6 flex items-start gap-3 rounded-lg bg-[var(--color-warning)]/10 p-4 border border-[var(--color-warning)]/20">
             <AlertTriangle className="h-5 w-5 text-[var(--color-warning)] flex-shrink-0 mt-0.5" />
             <div className="text-sm">
               <p className="font-medium text-[var(--text-primary)]">
-                {tasks.length} {tasks.length === 1 ? 'polozka' : tasks.length < 5 ? 'polozky' : 'poloziek'} v kosi
+                {filteredTasks.length} {filteredTasks.length === 1 ? 'polozka' : filteredTasks.length < 5 ? 'polozky' : 'poloziek'} v kosi
               </p>
               <p className="text-[var(--text-secondary)] mt-1">
                 Vymazane ulohy mozete obnovit alebo budu automaticky odstranene po 30 dnoch.
@@ -91,7 +123,7 @@ export default function TrashPage() {
         )}
 
         {/* Task list */}
-        {tasks.length === 0 ? (
+        {filteredTasks.length === 0 && tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Trash2 className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
             <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
@@ -101,9 +133,20 @@ export default function TrashPage() {
               Vymazane ulohy sa tu objavia
             </p>
           </div>
+        ) : filteredTasks.length === 0 && hasActiveFilters ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Filter className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
+            <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Žiadne úlohy nezodpovedajú filtrom</p>
+            <button
+              onClick={clearFilters}
+              className="text-[var(--color-primary)] hover:underline"
+            >
+              Zrušiť filtre
+            </button>
+          </div>
         ) : (
           <div className="space-y-2">
-            {tasks.map((task) => (
+            {filteredTasks.map((task) => (
               <TrashTaskItem
                 key={task.id}
                 task={task}

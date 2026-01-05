@@ -1,14 +1,16 @@
 'use client'
 
-import { useState } from 'react'
-import { Star, AlertCircle } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Star, AlertCircle, Filter } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
+import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
 import { useTodayTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useViewPreference } from '@/lib/hooks/use-view-preference'
+import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { TaskWithRelations, TaskStatus } from '@/types'
 import { isToday, isPast, parseISO } from 'date-fns'
 
@@ -17,18 +19,25 @@ export default function TodayPage() {
   const { createTask, updateTask, completeTask, softDelete, reorderTasks } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
   const { viewMode, setViewMode, isLoaded } = useViewPreference('today')
+  const [showFilters, setShowFilters] = useState(false)
+  const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
+
+  // Apply filters to tasks
+  const filteredTasks = useMemo(() => {
+    return filterTasks(tasks, filters)
+  }, [tasks, filters])
 
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
 
-  // Separate overdue tasks from today's tasks
-  const overdueTasks = tasks.filter(task => {
+  // Separate overdue tasks from today's tasks (from filtered)
+  const overdueTasks = filteredTasks.filter(task => {
     if (!task.due_date) return false
     const dueDate = parseISO(task.due_date)
     return isPast(dueDate) && !isToday(dueDate)
   })
 
-  const todayTasks = tasks.filter(task => {
+  const todayTasks = filteredTasks.filter(task => {
     if (task.when_type === 'today') return true
     if (task.when_type === 'scheduled' && task.when_date) {
       return isToday(parseISO(task.when_date))
@@ -145,12 +154,36 @@ export default function TodayPage() {
         showViewToggle
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-      />
+      >
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`p-2 rounded-lg transition-colors ${
+            hasActiveFilters
+              ? 'bg-[var(--color-primary)] text-white'
+              : 'hover:bg-[var(--bg-hover)]'
+          }`}
+          title="Filtre"
+        >
+          <Filter className="h-4 w-4" />
+        </button>
+      </Header>
+
+      {/* Filter Bar */}
+      {showFilters && (
+        <div className="px-6 py-3 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
+          <TaskFiltersBar
+            filters={filters}
+            onFilterChange={setFilter}
+            onClearFilters={clearFilters}
+            hasActiveFilters={hasActiveFilters}
+          />
+        </div>
+      )}
 
       {viewMode === 'kanban' ? (
         <div className="flex-1 overflow-hidden">
           <KanbanBoard
-            tasks={tasks}
+            tasks={filteredTasks}
             onTaskMove={handleKanbanTaskMove}
             onTaskClick={setSelectedTask}
             onQuickAdd={handleKanbanQuickAdd}
@@ -164,7 +197,7 @@ export default function TodayPage() {
               <div className="flex items-center gap-2 mb-2">
                 <AlertCircle className="h-4 w-4 text-[var(--color-error)]" />
                 <h3 className="text-xs font-semibold text-[var(--color-error)] uppercase tracking-wide">
-                  Po termine ({overdueTasks.length})
+                  Po termíne ({overdueTasks.length})
                 </h3>
               </div>
               <TaskList
@@ -182,15 +215,26 @@ export default function TodayPage() {
           )}
 
           {/* Today's tasks */}
-          {tasks.length === 0 ? (
+          {filteredTasks.length === 0 && tasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Star className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
               <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
-                Ziadne ulohy na dnes
+                Žiadne úlohy na dnes
               </p>
               <p className="mb-6 text-[var(--text-secondary)]">
-                Pridajte ulohy alebo ich presun'te na dnes
+                Pridajte úlohy alebo ich presuňte na dnes
               </p>
+            </div>
+          ) : filteredTasks.length === 0 && hasActiveFilters ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Filter className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
+              <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Žiadne úlohy nezodpovedajú filtrom</p>
+              <button
+                onClick={clearFilters}
+                className="text-[var(--color-primary)] hover:underline"
+              >
+                Zrušiť filtre
+              </button>
             </div>
           ) : null}
 

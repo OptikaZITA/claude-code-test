@@ -3,13 +3,17 @@
 import { useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Layers, FolderKanban, Star } from 'lucide-react'
+import { Layers, FolderKanban, Star, Filter } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
+import { KanbanBoard } from '@/components/tasks/kanban-board'
+import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
 import { useArea, useAreaProjects, useAllAreaTasks } from '@/lib/hooks/use-areas'
 import { useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
-import { TaskWithRelations, Project } from '@/types'
+import { useViewPreference } from '@/lib/hooks/use-view-preference'
+import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
+import { TaskWithRelations, Project, TaskStatus } from '@/types'
 import { cn } from '@/lib/utils/cn'
 import { sortTasksTodayFirst } from '@/lib/utils/task-sorting'
 
@@ -80,6 +84,14 @@ export default function AreaDetailPage() {
   const { projects, loading: projectsLoading } = useAreaProjects(areaId)
   const { tasks, loading: tasksLoading, refetch: refetchTasks } = useAllAreaTasks(areaId)
   const { createTask, updateTask, completeTask, softDelete } = useTasks()
+  const { viewMode, setViewMode, isLoaded } = useViewPreference('area')
+  const [showFilters, setShowFilters] = useState(false)
+  const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
+
+  // Apply filters to tasks
+  const filteredTasks = useMemo(() => {
+    return filterTasks(tasks, filters)
+  }, [tasks, filters])
 
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetchTasks)
@@ -89,7 +101,7 @@ export default function AreaDetailPage() {
     const projectTasksMap = new Map<string, TaskWithRelations[]>()
     const loose: TaskWithRelations[] = []
 
-    tasks.forEach(task => {
+    filteredTasks.forEach(task => {
       if (task.project_id) {
         const existing = projectTasksMap.get(task.project_id) || []
         projectTasksMap.set(task.project_id, [...existing, task])
@@ -102,7 +114,7 @@ export default function AreaDetailPage() {
       projectTasks: projectTasksMap,
       looseTasks: sortTasksTodayFirst(loose)
     }
-  }, [tasks])
+  }, [filteredTasks])
 
   const handleQuickAdd = async (title: string, projectId?: string) => {
     try {
@@ -145,7 +157,39 @@ export default function AreaDetailPage() {
     }
   }
 
-  if (areaLoading || projectsLoading || tasksLoading) {
+  // Kanban handlers
+  const handleKanbanTaskMove = async (taskId: string, newStatus: TaskStatus) => {
+    try {
+      const updates: Partial<TaskWithRelations> = { status: newStatus }
+      if (newStatus === 'done') {
+        updates.completed_at = new Date().toISOString()
+        updates.when_type = null
+      } else {
+        updates.completed_at = null
+      }
+      await updateTask(taskId, updates)
+      refetchTasks()
+    } catch (error) {
+      console.error('Error moving task:', error)
+    }
+  }
+
+  const handleKanbanQuickAdd = async (title: string, status: TaskStatus) => {
+    try {
+      await createTask({
+        title,
+        area_id: areaId,
+        status,
+        when_type: 'anytime',
+        is_inbox: false,
+      })
+      refetchTasks()
+    } catch (error) {
+      console.error('Error creating task:', error)
+    }
+  }
+
+  if (areaLoading || projectsLoading || tasksLoading || !isLoaded) {
     return (
       <div className="h-full">
         <Header title="Načítavam..." />
@@ -171,79 +215,133 @@ export default function AreaDetailPage() {
   const activeProjects = projects.filter(p => p.status === 'active')
 
   return (
-    <div className="h-full">
-      <Header title={area.name} />
+    <div className="h-full flex flex-col">
+      <Header
+        title={area.name}
+        showViewToggle
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      >
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`p-2 rounded-lg transition-colors ${
+            hasActiveFilters
+              ? 'bg-[var(--color-primary)] text-white'
+              : 'hover:bg-[var(--bg-hover)]'
+          }`}
+          title="Filtre"
+        >
+          <Filter className="h-4 w-4" />
+        </button>
+      </Header>
 
-      <div className="p-6">
-        {/* Projects with their tasks */}
-        {activeProjects.map(project => {
-          const projectTaskList = projectTasks.get(project.id) || []
-          return (
-            <ProjectSection
-              key={project.id}
-              project={project}
-              tasks={projectTaskList}
-              areaColor={area.color}
-              onTaskComplete={handleTaskComplete}
-              onTaskUpdate={handleTaskUpdate}
-              onTaskDelete={handleTaskDelete}
-              onQuickAdd={handleQuickAdd}
-            />
-          )
-        })}
+      {/* Filter Bar */}
+      {showFilters && (
+        <div className="px-6 py-3 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
+          <TaskFiltersBar
+            filters={filters}
+            onFilterChange={setFilter}
+            onClearFilters={clearFilters}
+            hasActiveFilters={hasActiveFilters}
+          />
+        </div>
+      )}
 
-        {/* Loose tasks (directly in area, no project) */}
-        {looseTasks.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Star className="h-4 w-4 text-[var(--text-secondary)]" />
-              <h3 className="font-bold text-[var(--text-secondary)]">
-                Voľné úlohy
-              </h3>
-              <span className="text-xs text-[var(--text-secondary)]">
-                ({looseTasks.length})
-              </span>
+      {viewMode === 'kanban' ? (
+        <div className="flex-1 overflow-hidden">
+          <KanbanBoard
+            tasks={filteredTasks}
+            onTaskMove={handleKanbanTaskMove}
+            onTaskClick={() => {}}
+            onQuickAdd={handleKanbanQuickAdd}
+          />
+        </div>
+      ) : (
+        <div className="flex-1 overflow-auto p-6">
+          {/* Projects with their tasks */}
+          {activeProjects.map(project => {
+            const projectTaskList = projectTasks.get(project.id) || []
+            return (
+              <ProjectSection
+                key={project.id}
+                project={project}
+                tasks={projectTaskList}
+                areaColor={area.color}
+                onTaskComplete={handleTaskComplete}
+                onTaskUpdate={handleTaskUpdate}
+                onTaskDelete={handleTaskDelete}
+                onQuickAdd={handleQuickAdd}
+              />
+            )
+          })}
+
+          {/* Loose tasks (directly in area, no project) */}
+          {looseTasks.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Star className="h-4 w-4 text-[var(--text-secondary)]" />
+                <h3 className="font-bold text-[var(--text-secondary)]">
+                  Voľné úlohy
+                </h3>
+                <span className="text-xs text-[var(--text-secondary)]">
+                  ({looseTasks.length})
+                </span>
+              </div>
+              <TaskList
+                tasks={looseTasks}
+                onTaskComplete={handleTaskComplete}
+                onTaskUpdate={handleTaskUpdate}
+                onTaskDelete={handleTaskDelete}
+                onQuickAdd={(title) => handleQuickAdd(title)}
+                emptyMessage=""
+                showQuickAdd={true}
+              />
             </div>
-            <TaskList
-              tasks={looseTasks}
-              onTaskComplete={handleTaskComplete}
-              onTaskUpdate={handleTaskUpdate}
-              onTaskDelete={handleTaskDelete}
-              onQuickAdd={(title) => handleQuickAdd(title)}
-              emptyMessage=""
-              showQuickAdd={true}
-            />
-          </div>
-        )}
+          )}
 
-        {/* Empty state */}
-        {projects.length === 0 && tasks.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <FolderKanban className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
-            <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
-              Toto oddelenie je prázdne
-            </p>
-            <p className="mb-6 text-[var(--text-secondary)]">
-              Pridajte projekty alebo úlohy do tohto oddelenia
-            </p>
-          </div>
-        )}
+          {/* Empty state */}
+          {projects.length === 0 && tasks.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <FolderKanban className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
+              <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
+                Toto oddelenie je prázdne
+              </p>
+              <p className="mb-6 text-[var(--text-secondary)]">
+                Pridajte projekty alebo úlohy do tohto oddelenia
+              </p>
+            </div>
+          )}
 
-        {/* Quick add for area when no loose tasks */}
-        {looseTasks.length === 0 && (projects.length > 0 || tasks.length > 0) && (
-          <div className="mt-6 pt-4 border-t border-[var(--border-primary)]">
-            <TaskList
-              tasks={[]}
-              onTaskComplete={() => {}}
-              onTaskUpdate={() => {}}
-              onTaskDelete={() => {}}
-              onQuickAdd={(title) => handleQuickAdd(title)}
-              emptyMessage=""
-              showQuickAdd={true}
-            />
-          </div>
-        )}
-      </div>
+          {/* Filter empty state */}
+          {filteredTasks.length === 0 && tasks.length > 0 && hasActiveFilters && (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Filter className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
+              <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Žiadne úlohy nezodpovedajú filtrom</p>
+              <button
+                onClick={clearFilters}
+                className="text-[var(--color-primary)] hover:underline"
+              >
+                Zrušiť filtre
+              </button>
+            </div>
+          )}
+
+          {/* Quick add for area when no loose tasks */}
+          {looseTasks.length === 0 && (projects.length > 0 || tasks.length > 0) && !hasActiveFilters && (
+            <div className="mt-6 pt-4 border-t border-[var(--border-primary)]">
+              <TaskList
+                tasks={[]}
+                onTaskComplete={() => {}}
+                onTaskUpdate={() => {}}
+                onTaskDelete={() => {}}
+                onQuickAdd={(title) => handleQuickAdd(title)}
+                emptyMessage=""
+                showQuickAdd={true}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
