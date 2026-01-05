@@ -5,8 +5,8 @@
 ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zobrazením, sledovaním času a Toggl-style time trackingom. Určená pre ~20 členný tím s podporou osobnej aj tímovej produktivity.
 
 **Dátum vytvorenia**: 2. januára 2026
-**Posledná aktualizácia**: 4. januára 2026
-**Verzia špecifikácie**: 2.5 (Inline Components + Drag & Drop Sorting + Calendar Drop)
+**Posledná aktualizácia**: 5. januára 2026
+**Verzia špecifikácie**: 2.7 (Status-based Kanban + View Toggle)
 
 ---
 
@@ -113,8 +113,8 @@ when_date (date, nullable)  -- Pre scheduled úlohy
 deadline (date, nullable)   -- Tvrdý deadline (iné ako due_date)
 is_inbox (boolean DEFAULT true)
 
--- Kanban - ROZŠÍRENÉ
-kanban_column (text: 'backlog' | 'todo' | 'in_progress' | 'review' | 'done', nullable)
+-- Workflow fázy (Kanban stĺpce) - konsolidované do status v2.7
+-- status teraz obsahuje: 'backlog' | 'todo' | 'in_progress' | 'review' | 'done' | 'canceled'
 
 -- Tímové funkcie (existujúce)
 inbox_type (text: 'personal' | 'team' DEFAULT 'personal')
@@ -277,10 +277,9 @@ GET /api/tasks?
   heading_id=uuid&
   tag_id=uuid&
   when_type=today|anytime|someday|scheduled|inbox&
-  status=open|completed|canceled&
+  status=backlog|todo|in_progress|review|done|canceled&
   assignee_id=uuid&
-  inbox_type=personal|team&
-  kanban_column=backlog|todo|in_progress|review|done
+  inbox_type=personal|team
 ```
 
 ### Time Tracking Endpoints
@@ -313,8 +312,8 @@ GET /api/time/entries?todo_id=&project_id=&from=&to=
 
 ```
 PUT /api/tasks/:id/kanban
-  Body: { column: "in_progress", sort_order?: number }
-  → Updates kanban_column a sort_order
+  Body: { status: "in_progress", sort_order?: number }
+  → Updates status a sort_order (v2.7+ používa status namiesto kanban_column)
 ```
 
 ---
@@ -381,7 +380,8 @@ V headeri projektov: `[📋 List ↔ 🗂️ Kanban]` button
 - 👤 Assignee avatar
 
 **Funkcie:**
-- Drag & drop medzi stĺpcami → updates `kanban_column`
+- Drag & drop medzi stĺpcami → updates `status` (v2.7+)
+- Auto-logbook: Done stĺpec nastaví `completed_at` a `when_type = null`
 - Realtime sync cez Supabase subscriptions
 - Klik na kartu → otvára Task Detail panel
 
@@ -819,13 +819,14 @@ ALTER TABLE tasks
   ADD COLUMN IF NOT EXISTS when_date date,
   ADD COLUMN IF NOT EXISTS is_inbox boolean DEFAULT true;
 
--- Update kanban_column s novými hodnotami
-ALTER TABLE tasks 
-  DROP CONSTRAINT IF EXISTS tasks_kanban_column_check;
+-- NOTE: Od v2.7 sa kanban_column nepoužíva - workflow fázy sú v status poli
+-- Status constraint (obsahuje všetky Kanban stĺpce + canceled)
+ALTER TABLE tasks
+  DROP CONSTRAINT IF EXISTS tasks_status_check;
 
 ALTER TABLE tasks
-  ADD CONSTRAINT tasks_kanban_column_check 
-  CHECK (kanban_column IN ('backlog', 'todo', 'in_progress', 'review', 'done'));
+  ADD CONSTRAINT tasks_status_check
+  CHECK (status IN ('backlog', 'todo', 'in_progress', 'review', 'done', 'canceled'));
 
 -- 3. Rozšíriť PROJECTS tabuľku
 ALTER TABLE projects
@@ -1067,30 +1068,66 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 
 ## Changelog
 
+### v2.7 (5. januára 2026)
+**Status-based Kanban Board:**
+
+**Zmena koncepcie:**
+Kanban board teraz používa `status` pole namiesto `when_type`. Toto oddeľuje workflow fázy (Backlog → To Do → In Progress → Review → Done) od časového zaradenia úloh (Today/Anytime/Someday).
+
+**Kanban stĺpce (Status-based):**
+| Stĺpec | Status | Farba |
+|--------|--------|-------|
+| Backlog | `backlog` | #8E8E93 |
+| To Do | `todo` | #007AFF |
+| In Progress | `in_progress` | #FF9500 |
+| Review | `review` | #AF52DE |
+| Done | `done` | #34C759 |
+
+**Auto-logbook logika:**
+Keď úloha prejde do stĺpca "Done":
+```typescript
+if (newStatus === 'done') {
+  updates.completed_at = new Date().toISOString()
+  updates.when_type = null  // Presun do logbooku
+}
+```
+
+**Funkcie:**
+- ✅ Drag & drop medzi stĺpcami mení `status` úlohy
+- ✅ Auto-logbook pri dokončení (when_type = null, completed_at = now)
+- ✅ View Toggle (List/Kanban) na Today, Inbox, Anytime stránkach
+- ✅ Konzistentný KanbanBoard komponent naprieč aplikáciou
+
+**Odstránené súbory (When-based Kanban):**
+- `components/tasks/when-kanban-board.tsx` ❌
+- `components/tasks/when-kanban-column.tsx` ❌
+- `components/tasks/when-kanban-card.tsx` ❌
+
+**Upravené stránky:**
+- `app/(dashboard)/inbox/page.tsx` - KanbanBoard namiesto WhenKanbanBoard
+- `app/(dashboard)/today/page.tsx` - KanbanBoard namiesto WhenKanbanBoard
+- `app/(dashboard)/anytime/page.tsx` - KanbanBoard namiesto WhenKanbanBoard
+- `app/(dashboard)/areas/[areaId]/page.tsx` - Odstránený duplicitný header
+
+**Existujúce status-based komponenty (použité):**
+- `components/tasks/kanban-board.tsx` - Hlavný Kanban board
+- `components/tasks/kanban-column.tsx` - Stĺpec s drag & drop
+- `components/tasks/kanban-card.tsx` - Karta úlohy
+
+---
+
 ### v2.6 (4. januára 2026)
 **View Toggle - Prepínač Zoznam/Kanban:**
 
 **Nové komponenty:**
 - `components/ui/view-toggle.tsx` - Toggle button pre prepínanie List/Kanban zobrazenia
-- `components/tasks/when-kanban-board.tsx` - Kanban board s 5 stĺpcami podľa `when_type`
-- `components/tasks/when-kanban-column.tsx` - Stĺpec pre When-based kanban
-- `components/tasks/when-kanban-card.tsx` - Karta úlohy pre When-based kanban
+- ~~`components/tasks/when-kanban-board.tsx`~~ - (Odstránené v2.7)
+- ~~`components/tasks/when-kanban-column.tsx`~~ - (Odstránené v2.7)
+- ~~`components/tasks/when-kanban-card.tsx`~~ - (Odstránené v2.7)
 - `lib/hooks/use-view-preference.ts` - Hook pre ukladanie view preference do localStorage
-
-**Kanban stĺpce (When-based):**
-| Stĺpec | Filter |
-|--------|--------|
-| Inbox | `when_type = 'inbox'` |
-| Dnes | `when_type = 'today'` |
-| Naplánované | `when_type = 'scheduled'` |
-| Kedykoľvek | `when_type = 'anytime'` |
-| Niekedy | `when_type = 'someday'` |
 
 **Funkcie:**
 - ✅ Toggle button v headeri (vedľa vyhľadávania)
-- ✅ Drag & drop medzi stĺpcami mení `when_type` úlohy
-- ✅ Počítadlo úloh v každom stĺpci
-- ✅ Quick add v každom stĺpci
 - ✅ Perzistencia preferencie do localStorage (per-page)
 - ✅ Responzívne horizontálne scrollovanie na mobile
 
@@ -1298,5 +1335,5 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 
 ---
 
-**Verzia:** 2.6 (View Toggle - List/Kanban)
-**Posledná aktualizácia:** 4. januára 2026
+**Verzia:** 2.7 (Status-based Kanban Board)
+**Posledná aktualizácia:** 5. januára 2026
