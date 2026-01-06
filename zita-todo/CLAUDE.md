@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 6. januára 2026
-**Verzia špecifikácie**: 2.11 (Calendar View Toggle)
+**Verzia špecifikácie**: 2.12 (Time Tracking Dashboard)
 
 ---
 
@@ -1164,6 +1164,48 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.12 (6. januára 2026)
+**Time Tracking Dashboard:**
+
+Implementácia Toggl-style Time Tracking Dashboard s reportami, grafmi a CSV exportom.
+
+**Nová stránka:**
+- ✅ `app/(dashboard)/time/page.tsx` - Time Dashboard na `/time`
+
+**Nové API endpointy:**
+- ✅ `/api/time/report` - Report s filtrami, agregáciami a groupBy
+- ✅ `/api/time/report/export` - CSV export filtrovaných dát
+
+**Nové komponenty:**
+- ✅ `components/time-tracking/time-dashboard-filters.tsx` - Filter bar s obdobím, multi-selectmi
+- ✅ `components/time-tracking/time-dashboard-summary.tsx` - Súhrnné karty (celkový čas, záznamy, priemer/deň)
+- ✅ `components/time-tracking/time-dashboard-charts.tsx` - Grafy: čas podľa dní + čas podľa user/area/project
+- ✅ `components/time-tracking/time-dashboard-table.tsx` - Summary mód + Detailed mód tabuľky
+
+**Nové hooks:**
+- ✅ `lib/hooks/use-time-report.ts` - Fetch reportu s filtrami a exportCSV funkciou
+- ✅ `lib/hooks/use-time-filters.ts` - URL-based filter management s period detection
+
+**Sidebar:**
+- ✅ Pridaná položka "Časovač" s ikonou `Timer` pred sekciu "Oddelenia"
+
+**Funkcie:**
+- Filtrovanie podľa obdobia: Dnes, Tento týždeň, Tento mesiac, Tento rok, Vlastné
+- Multi-select filtre: Oddelenie, Projekt, Kolega, Tag
+- Toggle "Len môj čas" pre zobrazenie len vlastných záznamov
+- GroupBy prepínač: Používateľ, Oddelenie, Projekt
+- Graf podľa dní s víkendovým zvýraznením
+- Horizontálny bar chart s percentami
+- Summary tabuľka s progress barmi
+- Detailed tabuľka so všetkými záznamami
+- CSV export s UTF-8 kódovaním
+- URL query parametre pre zdieľanie filtrov
+
+**RLS:**
+- Overené že `time_entries` RLS podporuje organizáciu cez `get_my_organization_id()`
+
+---
 
 ### v2.11 (6. januára 2026)
 **Calendar View Toggle:**
