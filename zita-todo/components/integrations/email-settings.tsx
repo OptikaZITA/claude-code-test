@@ -77,8 +77,8 @@ export function EmailSettings({ integration, onUpdate, onTest }: EmailSettingsPr
               <p className="font-medium text-[var(--text-primary)]">Email</p>
               <p className="text-sm text-[var(--text-secondary)]">
                 {integration.enabled
-                  ? 'Integracia je aktivna'
-                  : 'Prijimajte notifikacie na email'}
+                  ? 'Integrácia je aktívna'
+                  : 'Prijímajte notifikácie na email'}
               </p>
             </div>
           </div>
@@ -88,7 +88,7 @@ export function EmailSettings({ integration, onUpdate, onTest }: EmailSettingsPr
             size="sm"
             onClick={handleToggle}
           >
-            {integration.enabled ? 'Vypnut' : 'Zapnut'}
+            {integration.enabled ? 'Vypnúť' : 'Zapnúť'}
           </Button>
         </div>
       </div>
@@ -99,7 +99,7 @@ export function EmailSettings({ integration, onUpdate, onTest }: EmailSettingsPr
           {/* Email Address */}
           <div className="rounded-lg border border-[var(--border-primary)] p-4">
             <label className="mb-3 block text-sm font-medium text-[var(--text-primary)]">
-              Emailova adresa
+              Emailová adresa
             </label>
             <div className="space-y-3">
               <Input
@@ -174,34 +174,34 @@ export function EmailSettings({ integration, onUpdate, onTest }: EmailSettingsPr
 
           {/* Notification Types */}
           <div className="space-y-3">
-            <p className="text-sm font-medium text-[var(--text-primary)]">Typy notifikacii</p>
+            <p className="text-sm font-medium text-[var(--text-primary)]">Typy notifikácií</p>
             <NotificationOption
-              title="Denny prehlad"
-              description="Sumar uloh na dany den kazde rano"
+              title="Denný prehľad"
+              description="Súhrn úloh na daný deň každé ráno"
               checked={integration.notifications.dailyDigest}
               onChange={() => handleNotificationToggle('dailyDigest')}
             />
             <NotificationOption
-              title="Priradene ulohy"
-              description="Ked vam niekto priradi ulohu"
+              title="Priradené úlohy"
+              description="Keď vám niekto priradí úlohu"
               checked={integration.notifications.taskAssigned}
               onChange={() => handleNotificationToggle('taskAssigned')}
             />
             <NotificationOption
-              title="Bliziaci sa termin"
-              description="Pripomienka den pred terminom"
+              title="Blížiaci sa termín"
+              description="Pripomienka deň pred termínom"
               checked={integration.notifications.taskDueSoon}
               onChange={() => handleNotificationToggle('taskDueSoon')}
             />
             <NotificationOption
-              title="Tyzdenny report"
-              description="Sumar aktivit za tyzden"
+              title="Týždenný report"
+              description="Súhrn aktivít za týždeň"
               checked={integration.notifications.weeklyReport}
               onChange={() => handleNotificationToggle('weeklyReport')}
             />
             <NotificationOption
-              title="Zmienky v komentaroch"
-              description="Ked vas niekto oznaci v komentari"
+              title="Zmienky v komentároch"
+              description="Keď vás niekto označí v komentári"
               checked={integration.notifications.commentMentions}
               onChange={() => handleNotificationToggle('commentMentions')}
             />

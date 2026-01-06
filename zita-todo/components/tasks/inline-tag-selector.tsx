@@ -185,7 +185,7 @@ export function InlineTagSelector({
             <div className="border-t border-[var(--border-primary)] p-3 space-y-3">
               <div>
                 <label className="text-xs font-medium text-[var(--text-secondary)]">
-                  Nazov tagu
+                  Názov tagu
                 </label>
                 <input
                   type="text"
@@ -223,14 +223,14 @@ export function InlineTagSelector({
                   }}
                   className="flex-1 px-3 py-2 text-sm rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors"
                 >
-                  Zrusit
+                  Zrušiť
                 </button>
                 <button
                   onClick={handleCreateTag}
                   disabled={!newTagName.trim()}
                   className="flex-1 px-3 py-2 text-sm rounded-lg bg-[var(--color-primary)] text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Vytvorit
+                  Vytvoriť
                 </button>
               </div>
             </div>

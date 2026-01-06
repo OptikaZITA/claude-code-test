@@ -92,7 +92,7 @@ export function InlineProjectSelector({
             ? 'text-[var(--color-primary)] bg-[var(--color-primary)]/10'
             : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
         )}
-        title={hasValue ? `Projekt: ${value.name}` : 'Priradit k projektu'}
+        title={hasValue ? `Projekt: ${value.name}` : 'Priradiť k projektu'}
       >
         <FolderOpen className="w-4 h-4" />
       </button>

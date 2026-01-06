@@ -99,7 +99,7 @@ export function AssigneeSelector({
           <UserIcon className="h-4 w-4" />
         )}
         <span className="flex-1 text-left truncate">
-          {value ? (value.full_name || value.email) : 'Nepriradene'}
+          {value ? (value.full_name || value.email) : 'Nepriradené'}
         </span>
         <ChevronDown className="h-4 w-4 text-[var(--text-secondary)]" />
       </button>
@@ -113,7 +113,7 @@ export function AssigneeSelector({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Hladaj pouzivatela..."
+              placeholder="Hľadaj používateľa..."
               className={cn(
                 'w-full px-3 py-2 text-sm rounded-lg',
                 'bg-[var(--bg-secondary)] text-[var(--text-primary)]',
@@ -137,7 +137,7 @@ export function AssigneeSelector({
               <div className="flex items-center gap-2">
                 <X className="h-4 w-4 text-[var(--text-secondary)]" />
                 <span className="text-sm text-[var(--text-secondary)]">
-                  Nepriradene
+                  Nepriradené
                 </span>
               </div>
               {!value && (
