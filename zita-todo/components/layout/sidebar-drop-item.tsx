@@ -105,17 +105,17 @@ export function SidebarDropItem({
       className={cn(
         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all',
         isActive
-          ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
-          : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]',
+          ? 'bg-accent text-primary font-medium'
+          : 'text-foreground hover:bg-accent/50',
         isDragging && 'cursor-copy',
-        isDropTarget && 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/10 scale-105',
+        isDropTarget && 'ring-2 ring-primary bg-primary/10 scale-105',
         className
       )}
     >
       {icon}
       <span className="flex-1">{label}</span>
       {isDropTarget ? (
-        <span className="text-xs text-[var(--color-primary)] font-medium">
+        <span className="text-xs text-primary font-medium">
           Pustiť sem
         </span>
       ) : count !== undefined && count > 0 ? (
@@ -123,8 +123,8 @@ export function SidebarDropItem({
           className={cn(
             'min-w-[20px] h-5 flex items-center justify-center rounded-full px-1.5 text-xs font-medium',
             isDeadline
-              ? 'bg-red-500 text-white'
-              : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+              ? 'bg-error text-white'
+              : 'bg-muted text-muted-foreground'
           )}
         >
           {count > 99 ? '99+' : count}
@@ -237,15 +237,15 @@ export function SidebarDropArea({
         className={cn(
           'group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all',
           isActive
-            ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
-            : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]',
+            ? 'bg-accent text-primary font-medium'
+            : 'text-foreground hover:bg-accent/50',
           isDragging && 'cursor-copy',
-          isDropTarget && 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/10 scale-[1.02]'
+          isDropTarget && 'ring-2 ring-primary bg-primary/10 scale-[1.02]'
         )}
       >
         <button
           onClick={onToggle}
-          className="p-0.5"
+          className="p-0.5 hover:bg-accent rounded transition-colors"
         >
           {isExpanded ? (
             <ChevronDown className="h-3 w-3" />
@@ -259,17 +259,17 @@ export function SidebarDropArea({
         >
           <span
             className="h-2 w-2 rounded-full shrink-0"
-            style={{ backgroundColor: areaColor || 'var(--color-primary)' }}
+            style={{ backgroundColor: areaColor || 'var(--primary)' }}
           />
           <span className="flex-1 text-left truncate">{areaName}</span>
         </Link>
         {isDropTarget ? (
-          <span className="text-xs text-[var(--color-primary)] font-medium">
+          <span className="text-xs text-primary font-medium">
             +
           </span>
         ) : (
           <span
-            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded hover:bg-[var(--bg-tertiary)] shrink-0"
+            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded hover:bg-muted shrink-0 cursor-pointer transition-all"
             onClick={(e) => {
               e.stopPropagation()
               onCreateProject()
@@ -384,16 +384,16 @@ export function SidebarDropProject({
       className={cn(
         'flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all',
         isActive
-          ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
-          : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]',
+          ? 'bg-accent text-primary font-medium'
+          : 'text-foreground hover:bg-accent/50',
         isDragging && 'cursor-copy',
-        isDropTarget && 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/10 scale-105'
+        isDropTarget && 'ring-2 ring-primary bg-primary/10 scale-105'
       )}
     >
       {icon}
       <span>{label}</span>
       {isDropTarget && (
-        <span className="ml-auto text-xs text-[var(--color-primary)] font-medium">
+        <span className="ml-auto text-xs text-primary font-medium">
           +
         </span>
       )}

@@ -95,23 +95,26 @@ export function Sidebar({
 
   return (
     <aside className={cn(
-      'flex h-screen w-64 flex-col border-r border-[var(--border-primary)] bg-[var(--bg-primary)] transition-all',
-      isDragging && 'bg-[var(--bg-secondary)]'
+      'flex h-screen w-64 flex-col border-r bg-background transition-all',
+      'border-[var(--border)]',
+      isDragging && 'bg-muted'
     )}>
       {/* Logo */}
       <div className="flex h-14 items-center px-4">
-        <h1 className="text-xl font-bold text-[var(--color-primary)]">ZITA TODO</h1>
+        <h1 className="font-heading text-xl font-semibold text-primary">
+          ZITA TODO
+        </h1>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-2">
-        {/* Inbox Section - Not droppable (regular links) */}
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        {/* Inbox Section */}
         <div className="mb-2">
           <SidebarDropItem
             href="/inbox"
             isActive={isActive('/inbox')}
             dropTarget={{ type: 'when', value: 'inbox' }}
-            icon={<Inbox className="h-4 w-4" />}
+            icon={<Inbox className="h-[18px] w-[18px]" />}
             label="Inbox"
             count={counts.inbox}
           />
@@ -120,21 +123,21 @@ export function Sidebar({
             className={cn(
               'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
               isActive('/inbox/team')
-                ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
-                : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+                ? 'bg-accent text-primary font-medium'
+                : 'text-foreground hover:bg-accent/50'
             )}
           >
-            <Users className="h-4 w-4" />
+            <Users className="h-[18px] w-[18px]" />
             <span className="flex-1">Tímový Inbox</span>
             {counts.teamInbox > 0 && (
-              <span className="min-w-[20px] h-5 flex items-center justify-center rounded-full px-1.5 text-xs font-medium bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+              <span className="min-w-[20px] h-5 flex items-center justify-center rounded-full px-1.5 text-xs font-medium bg-muted text-muted-foreground">
                 {counts.teamInbox > 99 ? '99+' : counts.teamInbox}
               </span>
             )}
           </Link>
         </div>
 
-        <div className="my-2 h-px bg-[var(--border-primary)]" />
+        <div className="my-3 h-px bg-[var(--border)]" />
 
         {/* Things 3 Views - Droppable */}
         <div className="mb-2">
@@ -142,7 +145,7 @@ export function Sidebar({
             href="/today"
             isActive={isActive('/today')}
             dropTarget={{ type: 'when', value: 'today' }}
-            icon={<Star className="h-4 w-4 text-[var(--color-warning)]" />}
+            icon={<Star className="h-[18px] w-[18px] text-secondary fill-secondary" />}
             label="Dnes"
             count={counts.todayDeadline > 0 ? counts.todayDeadline : counts.today}
             isDeadline={counts.todayDeadline > 0}
@@ -151,7 +154,7 @@ export function Sidebar({
             href="/upcoming"
             isActive={isActive('/upcoming')}
             dropTarget={{ type: 'when', value: 'scheduled' }}
-            icon={<CalendarDays className="h-4 w-4 text-[var(--color-success)]" />}
+            icon={<CalendarDays className="h-[18px] w-[18px] text-success" />}
             label="Nadchádzajúce"
             count={counts.upcoming}
           />
@@ -159,7 +162,7 @@ export function Sidebar({
             href="/anytime"
             isActive={isActive('/anytime')}
             dropTarget={{ type: 'when', value: 'anytime' }}
-            icon={<Clock className="h-4 w-4 text-[var(--color-primary)]" />}
+            icon={<Clock className="h-[18px] w-[18px] text-primary" />}
             label="Kedykoľvek"
             count={counts.anytime}
           />
@@ -168,23 +171,23 @@ export function Sidebar({
             className={cn(
               'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
               isActive('/logbook')
-                ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
-                : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+                ? 'bg-accent text-primary font-medium'
+                : 'text-foreground hover:bg-accent/50'
             )}
           >
-            <BookOpen className="h-4 w-4 text-[var(--color-success)]" />
+            <BookOpen className="h-[18px] w-[18px] text-success" />
             <span>Logbook</span>
           </Link>
           <SidebarDropItem
             href="/trash"
             isActive={isActive('/trash')}
             dropTarget={{ type: 'trash' }}
-            icon={<Trash2 className="h-4 w-4 text-[var(--text-secondary)]" />}
+            icon={<Trash2 className="h-[18px] w-[18px] text-muted-foreground" />}
             label="Kôš"
           />
         </div>
 
-        <div className="my-2 h-px bg-[var(--border-primary)]" />
+        <div className="my-3 h-px bg-[var(--border)]" />
 
         {/* Time Tracking Dashboard */}
         <div className="mb-2">
@@ -193,20 +196,20 @@ export function Sidebar({
             className={cn(
               'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
               isActive('/time')
-                ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
-                : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+                ? 'bg-accent text-primary font-medium'
+                : 'text-foreground hover:bg-accent/50'
             )}
           >
-            <Timer className="h-4 w-4 text-[var(--color-primary)]" />
+            <Timer className="h-[18px] w-[18px] text-primary" />
             <span>Časovač</span>
           </Link>
         </div>
 
-        <div className="my-2 h-px bg-[var(--border-primary)]" />
+        <div className="my-3 h-px bg-[var(--border)]" />
 
         {/* My Departments Section */}
         <div className="mb-2 px-3 py-1">
-          <span className="text-xs font-medium uppercase text-[var(--text-secondary)]">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {canSeeAll ? 'Oddelenia' : 'Moje oddelenia'}
           </span>
         </div>
@@ -235,7 +238,7 @@ export function Sidebar({
             ))}
             <button
               onClick={() => onCreateProject(area.id)}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent/50 transition-colors"
             >
               <Plus className="h-4 w-4" />
               <span>Pridať projekt</span>
@@ -248,7 +251,7 @@ export function Sidebar({
           <>
             <button
               onClick={() => setShowOtherDepartments(!showOtherDepartments)}
-              className="flex w-full items-center gap-2 px-3 py-2 mt-2 text-xs font-medium uppercase text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors rounded-lg"
+              className="flex w-full items-center gap-2 px-3 py-2 mt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:bg-accent/50 transition-colors rounded-lg"
             >
               <Eye className="h-3 w-3" />
               <span className="flex-1 text-left">Ostatné oddelenia</span>
@@ -288,21 +291,21 @@ export function Sidebar({
 
       {/* Drag indicator */}
       {isDragging && (
-        <div className="mx-2 mb-2 rounded-lg bg-[var(--color-primary)]/10 p-3 text-center text-xs text-[var(--color-primary)]">
+        <div className="mx-3 mb-3 rounded-lg bg-primary/10 p-3 text-center text-xs text-primary font-medium">
           Potiahni úlohu na sekciu pre jej presun
         </div>
       )}
 
       {/* User Section */}
-      <div className="border-t border-[var(--border-primary)] p-2">
-        <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+      <div className="border-t border-[var(--border)] p-3">
+        <div className="flex items-center gap-3 rounded-lg px-2 py-2">
           <Avatar src={user?.avatar_url} name={displayName} size="sm" />
           <div className="flex-1 min-w-0">
-            <p className="truncate text-sm font-medium text-[var(--text-primary)]">
+            <p className="truncate text-sm font-medium text-foreground">
               {displayName}
             </p>
             {user?.role && user.role !== 'member' && (
-              <p className="truncate text-xs text-[var(--text-secondary)]">
+              <p className="truncate text-xs text-muted-foreground">
                 {user.role === 'admin' ? 'Admin' : user.role === 'strategicka_rada' ? 'Strategická rada' : 'HR'}
               </p>
             )}
@@ -310,20 +313,20 @@ export function Sidebar({
           <div className="flex gap-1">
             {userCanManageUsers && (
               <Link href="/settings/users">
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Správa používateľov">
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-accent/50" title="Správa používateľov">
                   <Users className="h-4 w-4" />
                 </Button>
               </Link>
             )}
             <Link href="/settings">
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Nastavenia">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-accent/50" title="Nastavenia">
                 <Settings className="h-4 w-4" />
               </Button>
             </Link>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 hover:bg-accent/50"
               onClick={onLogout}
               title="Odhlásiť sa"
             >
