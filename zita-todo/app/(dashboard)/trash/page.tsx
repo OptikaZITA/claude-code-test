@@ -61,7 +61,7 @@ export default function TrashPage() {
       <div className="h-full">
         <Header title="Kôš" />
         <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       </div>
     )
@@ -72,10 +72,10 @@ export default function TrashPage() {
       <Header title="Kôš">
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`p-2 rounded-lg transition-colors ${
+          className={`p-2 rounded-[var(--radius-sm)] transition-colors ${
             hasActiveFilters
-              ? 'bg-[var(--color-primary)] text-white'
-              : 'hover:bg-[var(--bg-hover)]'
+              ? 'bg-primary text-white'
+              : 'hover:bg-accent/50'
           }`}
           title="Filtre"
         >
@@ -86,7 +86,7 @@ export default function TrashPage() {
             variant="ghost"
             size="sm"
             onClick={() => setConfirmEmptyTrash(true)}
-            className="text-[var(--color-error)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
+            className="text-error hover:text-error hover:bg-error/10"
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Vyprázdniť kôš
@@ -96,7 +96,7 @@ export default function TrashPage() {
 
       {/* Filter Bar */}
       {showFilters && (
-        <div className="px-6 py-3 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
+        <div className="px-6 py-3 border-b border-[var(--border)] bg-muted">
           <TaskFiltersBar
             filters={filters}
             onFilterChange={setFilter}
@@ -109,13 +109,13 @@ export default function TrashPage() {
       <div className="flex-1 overflow-auto p-6">
         {/* Info banner */}
         {filteredTasks.length > 0 && (
-          <div className="mb-6 flex items-start gap-3 rounded-lg bg-[var(--color-warning)]/10 p-4 border border-[var(--color-warning)]/20">
-            <AlertTriangle className="h-5 w-5 text-[var(--color-warning)] flex-shrink-0 mt-0.5" />
+          <div className="mb-6 flex items-start gap-3 rounded-[var(--radius-md)] bg-warning/10 p-4 border border-warning/20">
+            <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
             <div className="text-sm">
-              <p className="font-medium text-[var(--text-primary)]">
+              <p className="font-medium text-foreground">
                 {filteredTasks.length} {filteredTasks.length === 1 ? 'položka' : filteredTasks.length < 5 ? 'položky' : 'položiek'} v koši
               </p>
-              <p className="text-[var(--text-secondary)] mt-1">
+              <p className="text-muted-foreground mt-1">
                 Vymazané úlohy môžete obnoviť alebo budú automaticky odstránené po 30 dňoch.
               </p>
             </div>
@@ -125,21 +125,21 @@ export default function TrashPage() {
         {/* Task list */}
         {filteredTasks.length === 0 && tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Trash2 className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
-            <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
+            <Trash2 className="mb-4 h-12 w-12 text-muted-foreground" />
+            <p className="mb-2 text-lg font-medium text-foreground">
               Kôš je prázdny
             </p>
-            <p className="text-[var(--text-secondary)]">
+            <p className="text-muted-foreground">
               Vymazané úlohy sa tu objavia
             </p>
           </div>
         ) : filteredTasks.length === 0 && hasActiveFilters ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Filter className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
-            <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Žiadne úlohy nezodpovedajú filtrom</p>
+            <Filter className="mb-4 h-12 w-12 text-muted-foreground" />
+            <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
             <button
               onClick={clearFilters}
-              className="text-[var(--color-primary)] hover:underline"
+              className="text-primary hover:underline"
             >
               Zrušiť filtre
             </button>
@@ -167,12 +167,12 @@ export default function TrashPage() {
       >
         <div className="p-4">
           <div className="flex items-start gap-3 mb-4">
-            <AlertTriangle className="h-6 w-6 text-[var(--color-error)] flex-shrink-0" />
+            <AlertTriangle className="h-6 w-6 text-error flex-shrink-0" />
             <div>
-              <p className="text-[var(--text-primary)] font-medium">
+              <p className="text-foreground font-medium">
                 Naozaj chcete vyprázdniť kôš?
               </p>
-              <p className="text-sm text-[var(--text-secondary)] mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Táto akcia je nevrátna. Všetky úlohy v koši budú trvalo vymazané.
               </p>
             </div>
@@ -187,7 +187,7 @@ export default function TrashPage() {
             <Button
               variant="primary"
               onClick={handleEmptyTrash}
-              className="bg-[var(--color-error)] hover:bg-[var(--color-error)]/90"
+              className="bg-error hover:bg-error/90"
             >
               Vyprázdniť kôš
             </Button>
@@ -212,8 +212,8 @@ function TrashTaskItem({ task, onRestore, isRestoring, daysRemaining }: TrashTas
 
   return (
     <div className={cn(
-      'group flex items-center gap-3 rounded-xl bg-[var(--bg-primary)] p-4',
-      'border border-[var(--border-primary)] hover:border-[var(--border-hover)]',
+      'group flex items-center gap-3 rounded-[var(--radius-lg)] bg-card p-4',
+      'border border-[var(--border)] hover:border-primary/30',
       'transition-all duration-200'
     )}>
       {/* Checkbox (showing completed state, non-interactive) */}
@@ -227,17 +227,17 @@ function TrashTaskItem({ task, onRestore, isRestoring, daysRemaining }: TrashTas
       {/* Task content */}
       <div className="flex-1 min-w-0">
         <p className={cn(
-          'text-[var(--text-primary)] truncate',
+          'text-foreground truncate',
           task.status === 'done' && 'line-through opacity-60'
         )}>
           {task.title}
         </p>
         <div className="flex items-center gap-2 mt-1">
-          <span className="text-xs text-[var(--text-secondary)]">
+          <span className="text-xs text-muted-foreground">
             Vymazané {deletedTimeAgo}
           </span>
           {daysRemaining <= 7 && (
-            <span className="text-xs text-[var(--color-error)]">
+            <span className="text-xs text-error">
               {daysRemaining === 0 ? 'Bude vymazané dnes' : `Ešte ${daysRemaining} dní`}
             </span>
           )}
@@ -247,11 +247,11 @@ function TrashTaskItem({ task, onRestore, isRestoring, daysRemaining }: TrashTas
       {/* Project badge */}
       {task.project && (
         <span
-          className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs bg-[var(--bg-secondary)]"
+          className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs bg-muted"
         >
           <span
             className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: task.project.color || 'var(--color-primary)' }}
+            style={{ backgroundColor: task.project.color || 'var(--primary)' }}
           />
           {task.project.name}
         </span>
@@ -263,10 +263,10 @@ function TrashTaskItem({ task, onRestore, isRestoring, daysRemaining }: TrashTas
         size="sm"
         onClick={onRestore}
         disabled={isRestoring}
-        className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-primary)]"
+        className="opacity-0 group-hover:opacity-100 transition-opacity text-primary"
       >
         {isRestoring ? (
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--color-primary)] border-t-transparent" />
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         ) : (
           <>
             <RotateCcw className="h-4 w-4 mr-1.5" />

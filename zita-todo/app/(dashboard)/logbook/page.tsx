@@ -93,7 +93,7 @@ export default function LogbookPage() {
       <div className="h-full">
         <Header title="Logbook" />
         <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       </div>
     )
@@ -104,7 +104,7 @@ export default function LogbookPage() {
 
     return (
       <div className="mb-6">
-        <h3 className="mb-3 text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
+        <h3 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
           {title}
         </h3>
         <div className="space-y-2">
@@ -126,10 +126,10 @@ export default function LogbookPage() {
       <Header title="Logbook">
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`p-2 rounded-lg transition-colors ${
+          className={`p-2 rounded-[var(--radius-sm)] transition-colors ${
             hasActiveFilters
-              ? 'bg-[var(--color-primary)] text-white'
-              : 'hover:bg-[var(--bg-hover)]'
+              ? 'bg-primary text-white'
+              : 'hover:bg-accent/50'
           }`}
           title="Filtre"
         >
@@ -139,7 +139,7 @@ export default function LogbookPage() {
 
       {/* Filter Bar */}
       {showFilters && (
-        <div className="px-6 py-3 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
+        <div className="px-6 py-3 border-b border-[var(--border)] bg-muted">
           <TaskFiltersBar
             filters={filters}
             onFilterChange={setFilter}
@@ -153,21 +153,21 @@ export default function LogbookPage() {
         {/* Tasks grouped by time period */}
         {filteredTasks.length === 0 && tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <CheckCircle2 className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
-            <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
+            <CheckCircle2 className="mb-4 h-12 w-12 text-muted-foreground" />
+            <p className="mb-2 text-lg font-medium text-foreground">
               Žiadne dokončené úlohy
             </p>
-            <p className="text-[var(--text-secondary)]">
+            <p className="text-muted-foreground">
               Dokončené úlohy sa zobrazia tu
             </p>
           </div>
         ) : filteredTasks.length === 0 && hasActiveFilters ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Filter className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
-            <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Žiadne úlohy nezodpovedajú filtrom</p>
+            <Filter className="mb-4 h-12 w-12 text-muted-foreground" />
+            <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
             <button
               onClick={clearFilters}
-              className="text-[var(--color-primary)] hover:underline"
+              className="text-primary hover:underline"
             >
               Zrušiť filtre
             </button>

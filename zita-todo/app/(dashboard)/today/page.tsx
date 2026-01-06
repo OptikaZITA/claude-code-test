@@ -170,7 +170,7 @@ export default function TodayPage() {
       <div className="h-full">
         <Header title="Dnes" />
         <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       </div>
     )
@@ -186,10 +186,10 @@ export default function TodayPage() {
       >
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`p-2 rounded-lg transition-colors ${
+          className={`p-2 rounded-[var(--radius-sm)] transition-colors ${
             hasActiveFilters
-              ? 'bg-[var(--color-primary)] text-white'
-              : 'hover:bg-[var(--bg-hover)]'
+              ? 'bg-primary text-white'
+              : 'hover:bg-accent/50'
           }`}
           title="Filtre"
         >
@@ -199,7 +199,7 @@ export default function TodayPage() {
 
       {/* Filter Bar */}
       {showFilters && (
-        <div className="px-6 py-3 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
+        <div className="px-6 py-3 border-b border-[var(--border)] bg-muted">
           <TaskFiltersBar
             filters={filters}
             onFilterChange={setFilter}
@@ -243,8 +243,8 @@ export default function TodayPage() {
           {overdueTasks.length > 0 && (
             <div className="mb-4">
               <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="h-4 w-4 text-[var(--color-error)]" />
-                <h3 className="text-xs font-semibold text-[var(--color-error)] uppercase tracking-wide">
+                <AlertCircle className="h-4 w-4 text-error" />
+                <h3 className="text-xs font-semibold text-error uppercase tracking-wide">
                   Po termíne ({overdueTasks.length})
                 </h3>
               </div>
@@ -265,21 +265,21 @@ export default function TodayPage() {
           {/* Today's tasks */}
           {filteredTasks.length === 0 && tasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Star className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
-              <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
+              <Star className="mb-4 h-12 w-12 text-muted-foreground" />
+              <p className="mb-2 text-lg font-medium text-foreground">
                 Žiadne úlohy na dnes
               </p>
-              <p className="mb-6 text-[var(--text-secondary)]">
+              <p className="mb-6 text-muted-foreground">
                 Pridajte úlohy alebo ich presuňte na dnes
               </p>
             </div>
           ) : filteredTasks.length === 0 && hasActiveFilters ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Filter className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
-              <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Žiadne úlohy nezodpovedajú filtrom</p>
+              <Filter className="mb-4 h-12 w-12 text-muted-foreground" />
+              <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
               <button
                 onClick={clearFilters}
-                className="text-[var(--color-primary)] hover:underline"
+                className="text-primary hover:underline"
               >
                 Zrušiť filtre
               </button>

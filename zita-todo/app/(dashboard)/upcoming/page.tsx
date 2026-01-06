@@ -62,9 +62,9 @@ export default function UpcomingPage() {
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' })
       // Add highlight effect
-      element.classList.add('ring-2', 'ring-[var(--color-primary)]', 'rounded-xl')
+      element.classList.add('ring-2', 'ring-primary', 'rounded-xl')
       setTimeout(() => {
-        element.classList.remove('ring-2', 'ring-[var(--color-primary)]', 'rounded-xl')
+        element.classList.remove('ring-2', 'ring-primary', 'rounded-xl')
       }, 2000)
     }
   }
@@ -157,7 +157,7 @@ export default function UpcomingPage() {
       <div className="h-full">
         <Header title="Nadchadzajuce" />
         <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       </div>
     )
@@ -168,10 +168,10 @@ export default function UpcomingPage() {
       <Header title="Nadchadzajuce">
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`p-2 rounded-lg transition-colors ${
+          className={`p-2 rounded-[var(--radius-sm)] transition-colors ${
             hasActiveFilters
-              ? 'bg-[var(--color-primary)] text-white'
-              : 'hover:bg-[var(--bg-hover)]'
+              ? 'bg-primary text-white'
+              : 'hover:bg-accent/50'
           }`}
           title="Filtre"
         >
@@ -181,7 +181,7 @@ export default function UpcomingPage() {
 
       {/* Filter Bar */}
       {showFilters && (
-        <div className="px-6 py-3 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
+        <div className="px-6 py-3 border-b border-[var(--border)] bg-muted">
           <TaskFiltersBar
             filters={filters}
             onFilterChange={setFilter}
@@ -203,18 +203,18 @@ export default function UpcomingPage() {
               />
 
               {/* Quick stats */}
-              <div className="mt-4 rounded-xl bg-[var(--bg-primary)] p-4 shadow-sm border border-[var(--border-primary)]">
-                <h4 className="text-sm font-medium text-[var(--text-primary)] mb-3">
+              <div className="mt-4 rounded-[var(--radius-lg)] bg-card p-4 shadow-sm border border-[var(--border)]">
+                <h4 className="text-sm font-medium text-foreground mb-3">
                   Prehlad
                 </h4>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-[var(--text-secondary)]">Celkom úloh</span>
-                    <span className="font-medium text-[var(--text-primary)]">{filteredTasks.length}</span>
+                    <span className="text-muted-foreground">Celkom úloh</span>
+                    <span className="font-medium text-foreground">{filteredTasks.length}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-[var(--text-secondary)]">Dni s úlohami</span>
-                    <span className="font-medium text-[var(--text-primary)]">{groupedTasks.length}</span>
+                    <span className="text-muted-foreground">Dni s úlohami</span>
+                    <span className="font-medium text-foreground">{groupedTasks.length}</span>
                   </div>
                 </div>
               </div>
@@ -225,14 +225,14 @@ export default function UpcomingPage() {
           <div className="flex-1 min-w-0">
             {/* Selected date indicator */}
             {selectedDate && (
-              <div className="mb-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20">
-                <CalendarDays className="h-4 w-4 text-[var(--color-primary)]" />
-                <span className="text-sm text-[var(--color-primary)] capitalize">
+              <div className="mb-4 flex items-center gap-2 px-3 py-2 rounded-[var(--radius-md)] bg-primary/10 border border-primary/20">
+                <CalendarDays className="h-4 w-4 text-primary" />
+                <span className="text-sm text-primary capitalize">
                   {format(selectedDate, "EEEE, d. MMMM yyyy", { locale: sk })}
                 </span>
                 <button
                   onClick={() => setSelectedDate(null)}
-                  className="ml-auto text-xs text-[var(--color-primary)] hover:underline"
+                  className="ml-auto text-xs text-primary hover:underline"
                 >
                   Zrušiť výber
                 </button>
@@ -242,21 +242,21 @@ export default function UpcomingPage() {
             {/* Tasks grouped by date */}
             {groupedTasks.length === 0 && tasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <CalendarDays className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
-                <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
+                <CalendarDays className="mb-4 h-12 w-12 text-muted-foreground" />
+                <p className="mb-2 text-lg font-medium text-foreground">
                   Žiadne naplánované úlohy
                 </p>
-                <p className="text-[var(--text-secondary)]">
+                <p className="text-muted-foreground">
                   Naplánujte úlohy na konkrétny dátum
                 </p>
               </div>
             ) : groupedTasks.length === 0 && hasActiveFilters ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Filter className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
-                <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Žiadne úlohy nezodpovedajú filtrom</p>
+                <Filter className="mb-4 h-12 w-12 text-muted-foreground" />
+                <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
                 <button
                   onClick={clearFilters}
-                  className="text-[var(--color-primary)] hover:underline"
+                  className="text-primary hover:underline"
                 >
                   Zrušiť filtre
                 </button>
@@ -274,10 +274,10 @@ export default function UpcomingPage() {
                       }}
                       className={cn(
                         'transition-all duration-300',
-                        isSelectedDateGroup && 'bg-[var(--color-primary)]/5 -mx-4 px-4 py-2 rounded-xl'
+                        isSelectedDateGroup && 'bg-primary/5 -mx-4 px-4 py-2 rounded-[var(--radius-lg)]'
                       )}
                     >
-                      <h3 className="mb-3 text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wide capitalize">
+                      <h3 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wide capitalize">
                         {formatDateHeader(dateKey)}
                       </h3>
                       <TaskList
