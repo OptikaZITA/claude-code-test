@@ -102,7 +102,8 @@ export function TaskItemExpanded({
   return (
     <div
       className={cn(
-        'rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] p-4 shadow-lg transition-all',
+        'rounded-[var(--radius-lg)] border border-[var(--border)] p-4 shadow-md transition-all',
+        'bg-accent/50',
         isCompleted && 'opacity-60'
       )}
       onClick={(e) => e.stopPropagation()}
@@ -125,8 +126,9 @@ export function TaskItemExpanded({
           onKeyDown={handleTitleKeyDown}
           placeholder="Názov úlohy"
           className={cn(
-            'flex-1 bg-transparent text-base font-medium text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]',
-            isCompleted && 'line-through text-[var(--text-secondary)]'
+            'flex-1 bg-transparent text-base font-medium outline-none',
+            'text-foreground placeholder:text-muted-foreground',
+            isCompleted && 'line-through text-muted-foreground'
           )}
         />
       </div>
@@ -141,7 +143,7 @@ export function TaskItemExpanded({
           onKeyDown={handleNotesKeyDown}
           placeholder="Poznámky..."
           rows={1}
-          className="w-full resize-none bg-transparent text-sm text-[var(--text-secondary)] outline-none placeholder:text-[var(--text-secondary)]/50"
+          className="w-full resize-none bg-transparent text-sm text-muted-foreground outline-none placeholder:text-muted-foreground/50"
         />
       </div>
 
@@ -162,7 +164,7 @@ export function TaskItemExpanded({
           <InlineTimeTracker taskId={task.id} />
 
           {/* Divider */}
-          <div className="w-px h-5 bg-[var(--border-primary)] mx-1" />
+          <div className="w-px h-5 bg-[var(--border)] mx-1" />
 
           {/* Tags */}
           <InlineTagSelector
@@ -183,7 +185,7 @@ export function TaskItemExpanded({
           />
 
           {/* Divider */}
-          <div className="w-px h-5 bg-[var(--border-primary)] mx-1" />
+          <div className="w-px h-5 bg-[var(--border)] mx-1" />
 
           {/* Delete */}
           {onDelete && (
@@ -192,8 +194,8 @@ export function TaskItemExpanded({
                 e.stopPropagation()
                 onDelete()
               }}
-              className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors"
-              title="Vymazat"
+              className="p-2 rounded-lg text-muted-foreground hover:text-error hover:bg-error/10 transition-colors"
+              title="Vymazať"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -202,7 +204,7 @@ export function TaskItemExpanded({
       </div>
 
       {/* Row 4: Metadata (right aligned) */}
-      <div className="mt-3 pl-8 flex items-center justify-end gap-3 text-xs text-[var(--text-secondary)]">
+      <div className="mt-3 pl-8 flex items-center justify-end gap-3 text-xs text-muted-foreground">
         {task.project ? (
           <span className="flex items-center gap-1">
             <FolderOpen className="h-3 w-3" />

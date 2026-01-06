@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Trash2, Star } from 'lucide-react'
+import { Trash2, Star, ChevronRight, ChevronDown } from 'lucide-react'
 import { TaskWithRelations, TaskPriority } from '@/types'
 import { isToday, parseISO } from 'date-fns'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -28,11 +28,12 @@ interface TaskItemProps {
   enableInlineEdit?: boolean
 }
 
+// Priority colors using new design system
 const priorityColors: Record<TaskPriority, string> = {
-  urgent: 'border-l-[var(--color-error)]',
-  high: 'border-l-[var(--color-warning)]',
-  medium: 'border-l-[var(--color-primary)]',
-  low: 'border-l-[var(--text-secondary)]',
+  urgent: 'text-error fill-error',
+  high: 'text-warning fill-warning',
+  medium: 'text-[var(--priority-medium)] fill-[var(--priority-medium)]',
+  low: 'text-info',
 }
 
 // Helper to check if task is "today"
@@ -75,6 +76,7 @@ export function TaskItem({
 }: TaskItemProps) {
   const isCompleted = task.status === 'done'
   const isMobile = useIsMobile()
+  const isTodayTask = isTaskToday(task)
 
   // Swipe state
   const [swipeOffset, setSwipeOffset] = useState(0)
@@ -82,6 +84,15 @@ export function TaskItem({
   const touchStartX = useRef(0)
   const touchStartY = useRef(0)
   const isHorizontalSwipe = useRef<boolean | null>(null)
+
+  const handleChevronClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (isExpanded) {
+      onCollapse?.()
+    } else {
+      onExpand?.()
+    }
+  }, [isExpanded, onExpand, onCollapse])
 
   const handleClick = useCallback(() => {
     // Don't trigger click if we just finished swiping
@@ -197,7 +208,7 @@ export function TaskItem({
 
   // Collapsed view with swipe-to-delete
   return (
-    <div className="relative overflow-hidden rounded-lg">
+    <div className="relative overflow-hidden rounded-[var(--radius-lg)]">
       {/* Delete button (revealed on swipe) */}
       {isMobile && onDelete && (
         <button
@@ -206,7 +217,7 @@ export function TaskItem({
             handleDeleteClick()
           }}
           className={cn(
-            'absolute right-0 top-0 bottom-0 flex items-center justify-center bg-[var(--color-error)] text-white transition-opacity',
+            'absolute right-0 top-0 bottom-0 flex items-center justify-center bg-error text-white transition-opacity',
             swipeOffset > 0 ? 'opacity-100' : 'opacity-0'
           )}
           style={{ width: DELETE_BUTTON_WIDTH }}
@@ -221,11 +232,11 @@ export function TaskItem({
       {/* Task content (swipeable) */}
       <div
         className={cn(
-          'group flex items-start gap-3 rounded-lg border-l-4 bg-[var(--bg-primary)] p-3 cursor-pointer relative',
-          priorityColors[task.priority],
+          'group flex items-start gap-2 rounded-[var(--radius-lg)] bg-card p-3 cursor-pointer relative',
+          'transition-all duration-200',
           isCompleted && 'opacity-60',
-          !isSwiping && 'transition-transform duration-200 ease-out',
-          !isMobile && 'hover:bg-[var(--bg-hover)] transition-colors'
+          !isSwiping && 'transition-transform',
+          !isMobile && 'hover:bg-accent/50'
         )}
         style={{
           transform: isMobile ? `translateX(-${swipeOffset}px)` : undefined,
@@ -236,25 +247,46 @@ export function TaskItem({
         onTouchMove={isMobile && onDelete ? handleTouchMove : undefined}
         onTouchEnd={isMobile && onDelete ? handleTouchEnd : undefined}
       >
-        {/* Star indicator for today tasks */}
-        {isTaskToday(task) && (
-          <Star
-            className="h-4 w-4 text-[var(--color-warning)] fill-[var(--color-warning)] shrink-0"
-          />
+        {/* Expand chevron */}
+        {enableInlineEdit && (
+          <button
+            onClick={handleChevronClick}
+            className="p-1 -ml-1 rounded hover:bg-accent/50 transition-colors shrink-0"
+          >
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            )}
+          </button>
         )}
 
-        <div onClick={(e) => e.stopPropagation()}>
+        {/* Checkbox */}
+        <div onClick={(e) => e.stopPropagation()} className="shrink-0 pt-0.5">
           <Checkbox
             checked={isCompleted}
             onChange={(checked) => onComplete(checked)}
           />
         </div>
 
+        {/* Star indicator for today tasks or priority */}
+        {(isTodayTask || task.priority !== 'low') && (
+          <Star
+            className={cn(
+              'h-4 w-4 shrink-0 mt-0.5',
+              isTodayTask
+                ? 'text-secondary fill-secondary'
+                : priorityColors[task.priority]
+            )}
+          />
+        )}
+
+        {/* Task content */}
         <div className="flex-1 min-w-0">
           <p
             className={cn(
-              'text-sm font-medium text-[var(--text-primary)]',
-              isCompleted && 'line-through text-[var(--text-secondary)]'
+              'text-sm font-medium text-foreground',
+              isCompleted && 'line-through text-muted-foreground'
             )}
           >
             {task.title}
@@ -262,7 +294,7 @@ export function TaskItem({
 
           <div className="mt-1 flex flex-wrap items-center gap-2">
             {task.project && (
-              <span className="text-xs text-[var(--text-secondary)]">
+              <span className="text-xs text-muted-foreground">
                 {task.project.name}
               </span>
             )}

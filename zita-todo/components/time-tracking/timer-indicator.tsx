@@ -41,13 +41,11 @@ export function TimerIndicator() {
         onClick={() => setIsExpanded(!isExpanded)}
         className={cn(
           "flex items-center gap-2 px-3 py-1.5 rounded-full transition-all",
-          "bg-[var(--color-success)] text-white",
-          "hover:bg-[var(--color-success)]/90",
-          "animate-pulse"
+          "timer-badge-active" // Uses our custom CSS class with pulse animation
         )}
       >
-        <Clock className="w-4 h-4" />
-        <span className="font-mono text-sm font-medium">
+        <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
+        <span className="font-mono text-sm font-medium text-success">
           {formatDurationShort(elapsedSeconds)}
         </span>
       </button>
@@ -62,38 +60,38 @@ export function TimerIndicator() {
           />
 
           {/* Panel */}
-          <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-lg">
+          <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-[var(--radius-lg)] border border-[var(--border)] bg-card shadow-lg animate-scale-in">
             <div className="p-4">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-[var(--color-success)] animate-pulse" />
-                  <span className="text-xs font-medium text-[var(--color-success)]">
-                    Timer bezi
+                  <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
+                  <span className="text-xs font-medium text-success">
+                    Timer beží
                   </span>
                 </div>
                 <button
                   onClick={() => setIsExpanded(false)}
-                  className="p-1 rounded hover:bg-[var(--bg-secondary)] transition-colors"
+                  className="p-1 rounded hover:bg-accent/50 transition-colors"
                 >
-                  <X className="w-4 h-4 text-[var(--text-secondary)]" />
+                  <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
 
               {/* Task info */}
               {currentTask && (
-                <p className="text-sm font-medium text-[var(--text-primary)] line-clamp-2 mb-3">
+                <p className="text-sm font-medium text-foreground line-clamp-2 mb-3">
                   {currentTask.title}
                 </p>
               )}
 
               {/* Timer display */}
-              <div className="text-center py-4 bg-[var(--bg-secondary)] rounded-lg mb-3">
-                <p className="text-3xl font-mono font-bold text-[var(--text-primary)]">
+              <div className="text-center py-4 bg-muted rounded-[var(--radius-md)] mb-3">
+                <p className="text-3xl font-mono font-bold text-foreground">
                   {formatDurationShort(elapsedSeconds)}
                 </p>
                 {startedAt && (
-                  <p className="text-xs text-[var(--text-secondary)] mt-1">
-                    Zacate {startedAt.toLocaleTimeString('sk-SK', {
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Začaté {startedAt.toLocaleTimeString('sk-SK', {
                       hour: '2-digit',
                       minute: '2-digit'
                     })}
@@ -106,13 +104,13 @@ export function TimerIndicator() {
                 onClick={handleStop}
                 disabled={isStopping}
                 className={cn(
-                  "flex items-center justify-center gap-2 w-full py-2 rounded-lg font-medium transition-colors",
-                  "bg-[var(--color-error)] text-white hover:bg-[var(--color-error)]/90",
+                  "flex items-center justify-center gap-2 w-full py-2 rounded-[var(--radius-sm)] font-medium transition-colors",
+                  "bg-error text-white hover:opacity-90",
                   "disabled:opacity-50 disabled:cursor-not-allowed"
                 )}
               >
                 <Square className="w-4 h-4" />
-                {isStopping ? 'Zastavujem...' : 'Zastavit'}
+                {isStopping ? 'Zastavujem...' : 'Zastaviť'}
               </button>
             </div>
           </div>
@@ -146,13 +144,12 @@ export function TimerIndicatorCompact() {
       disabled={isStopping}
       className={cn(
         "flex items-center gap-1.5 px-2 py-1 rounded-full text-xs",
-        "bg-[var(--color-success)] text-white",
-        "hover:bg-[var(--color-success)]/90",
+        "timer-badge-active",
         "disabled:opacity-50"
       )}
     >
-      <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-      <span className="font-mono">{formatDurationShort(elapsedSeconds)}</span>
+      <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+      <span className="font-mono text-success">{formatDurationShort(elapsedSeconds)}</span>
     </button>
   )
 }
