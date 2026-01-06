@@ -1,12 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { DM_Sans, DM_Serif_Display, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/contexts/theme-context";
 import { OfflineIndicator } from "@/components/layout/offline-indicator";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const dmSerif = DM_Serif_Display({
+  variable: "--font-dm-serif",
+  subsets: ["latin"],
+  weight: ["400"],
 });
 
 const geistMono = Geist_Mono({
@@ -30,8 +37,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#007AFF" },
-    { media: "(prefers-color-scheme: dark)", color: "#0A84FF" },
+    { media: "(prefers-color-scheme: light)", color: "#0039cc" },
+    { media: "(prefers-color-scheme: dark)", color: "#ffbf9b" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -53,7 +60,10 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${dmSans.variable} ${dmSerif.variable} ${geistMono.variable} antialiased`}
+        style={{
+          fontFamily: 'var(--font-dm-sans), system-ui, sans-serif',
+        }}
       >
         <ThemeProvider>
           <OfflineIndicator />

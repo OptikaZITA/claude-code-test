@@ -1,84 +1,280 @@
 @import "tailwindcss";
 
-:root {
-  /* Background colors */
-  --bg-primary: #ffffff;
-  --bg-secondary: #F5F5F7;
-  --bg-tertiary: #E5E7EB;
-  --bg-hover: #F5F5F7;
+/* ============================================
+   ZITA TODO - Lovable Design System
+   ============================================ */
 
-  /* Text colors */
-  --text-primary: #1D1D1F;
-  --text-secondary: #86868B;
+:root {
+  /* ========== BACKGROUND COLORS ========== */
+  --background: #fffcf7;          /* Krémová - hlavné pozadie */
+  --card: #ffffff;                /* Biela - karty, panely */
+  --muted: #f5f5f5;               /* Sivá - neaktívne prvky */
+
+  /* Legacy mappings */
+  --bg-primary: var(--card);
+  --bg-secondary: var(--background);
+  --bg-tertiary: var(--muted);
+  --bg-hover: var(--accent);
+
+  /* ========== TEXT COLORS ========== */
+  --foreground: #0f0f0f;          /* Čierna - primárny text */
+  --muted-foreground: #666666;    /* Sivá - sekundárny text */
+
+  /* Legacy mappings */
+  --text-primary: var(--foreground);
+  --text-secondary: var(--muted-foreground);
   --text-tertiary: #6B7280;
 
-  /* Border colors */
-  --border-primary: #E5E5E5;
-  --border-secondary: #D1D5DB;
+  /* ========== BORDER COLORS ========== */
+  --border: #e5e5e5;
+  --border-primary: var(--border);
+  --border-secondary: #d1d5db;
 
-  /* Brand colors */
-  --color-primary: #007AFF;
-  --color-primary-hover: rgba(0, 122, 255, 0.9);
-  --color-primary-light: rgba(0, 122, 255, 0.1);
+  /* ========== BRAND COLORS ========== */
+  --primary: #0039cc;             /* ZITA Modrá - hlavné CTA */
+  --primary-foreground: #ffffff;
+  --secondary: #ffbf9b;           /* Peach - sekundárne akcenty */
+  --secondary-foreground: #0f0f0f;
+  --accent: #ffddcb;              /* Svetlá broskyňová - hover */
+  --accent-foreground: #0f0f0f;
 
-  /* Status colors */
-  --color-success: #34C759;
-  --color-warning: #FF9500;
-  --color-error: #FF3B30;
-  --color-info: #5AC8FA;
+  /* Legacy mappings */
+  --color-primary: var(--primary);
+  --color-primary-hover: #002d99;
+  --color-primary-light: rgba(0, 57, 204, 0.1);
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  /* ========== FUNCTIONAL COLORS ========== */
+  --success: #4aba6a;             /* Zelená - done, timer */
+  --warning: #ff9966;             /* Oranžová - high priority */
+  --error: #cc4444;               /* Červená - urgent, chyby */
+  --info: #b8cdd6;                /* Ľadovo modrá - info */
+
+  /* Legacy mappings */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+
+  /* ========== KANBAN COLORS ========== */
+  --kanban-backlog: #999999;      /* Sivá */
+  --kanban-todo: #0039cc;         /* ZITA Modrá */
+  --kanban-in-progress: #ffbf9b;  /* Peach */
+  --kanban-review: #9966cc;       /* Fialová */
+  --kanban-done: #4aba6a;         /* Zelená */
+
+  /* ========== PRIORITY COLORS ========== */
+  --priority-low: #b8cdd6;        /* Ľadovo modrá */
+  --priority-medium: #e7daa1;     /* Zlatá */
+  --priority-high: #ff9966;       /* Oranžová */
+  --priority-urgent: #cc4444;     /* Červená */
+
+  /* ========== DEPARTMENT COLORS ========== */
+  --dept-blue: #0039cc;           /* Prevádzka, Rámy, Inovácie */
+  --dept-green: #4aba6a;          /* Financie, Facility */
+  --dept-orange: #ff9966;         /* Marketing */
+  --dept-pink: #cc6699;           /* Newbiz, HR */
+
+  /* ========== TIMER ========== */
+  --timer-active: #4aba6a;
+  --timer-active-bg: rgba(74, 186, 106, 0.1);
+
+  /* ========== TYPOGRAPHY ========== */
+  --font-heading: var(--font-dm-serif), "DM Serif Display", Georgia, serif;
+  --font-body: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
+
+  /* ========== RADIUS ========== */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* ========== SHADOWS ========== */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
 }
 
+/* ============================================
+   DARK MODE
+   ============================================ */
 .dark {
-  /* Background colors */
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #1a1a1a;
-  --bg-tertiary: #2a2a2a;
-  --bg-hover: #1a1a1a;
+  /* ========== BACKGROUND COLORS ========== */
+  --background: #141414;
+  --card: #1f1f1f;
+  --muted: #2a2a2a;
 
-  /* Text colors */
-  --text-primary: #ededed;
-  --text-secondary: #a1a1a6;
+  /* Legacy mappings */
+  --bg-primary: var(--card);
+  --bg-secondary: var(--background);
+  --bg-tertiary: var(--muted);
+  --bg-hover: var(--accent);
+
+  /* ========== TEXT COLORS ========== */
+  --foreground: #fffcf7;          /* Krémová text */
+  --muted-foreground: #a1a1a6;
+
+  /* Legacy mappings */
+  --text-primary: var(--foreground);
+  --text-secondary: var(--muted-foreground);
   --text-tertiary: #9ca3af;
 
-  /* Border colors */
-  --border-primary: #2a2a2a;
+  /* ========== BORDER COLORS ========== */
+  --border: #2a2a2a;
+  --border-primary: var(--border);
   --border-secondary: #3a3a3a;
 
-  /* Brand colors - slightly brighter for dark mode */
-  --color-primary: #0A84FF;
-  --color-primary-hover: rgba(10, 132, 255, 0.9);
-  --color-primary-light: rgba(10, 132, 255, 0.15);
+  /* ========== BRAND COLORS - INVERTED ========== */
+  --primary: #ffbf9b;             /* Peach - invertované */
+  --primary-foreground: #0f0f0f;
+  --secondary: #2563eb;           /* Modrá */
+  --secondary-foreground: #ffffff;
+  --accent: #1e3a5f;
+  --accent-foreground: #fffcf7;
 
-  /* Status colors - adjusted for dark mode */
-  --color-success: #30D158;
-  --color-warning: #FF9F0A;
-  --color-error: #FF453A;
-  --color-info: #64D2FF;
+  /* Legacy mappings */
+  --color-primary: var(--primary);
+  --color-primary-hover: #ffd4b8;
+  --color-primary-light: rgba(255, 191, 155, 0.15);
 
-  /* Shadows */
+  /* ========== FUNCTIONAL COLORS ========== */
+  --success: #4aba6a;
+  --warning: #ff9966;
+  --error: #ff6b6b;
+  --info: #b8cdd6;
+
+  /* Legacy mappings */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+
+  /* ========== TIMER ========== */
+  --timer-active: #4aba6a;
+  --timer-active-bg: rgba(74, 186, 106, 0.15);
+
+  /* ========== SHADOWS ========== */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
 }
 
+/* ============================================
+   TAILWIND THEME INLINE
+   ============================================ */
 @theme inline {
-  --color-background: var(--bg-primary);
-  --color-foreground: var(--text-primary);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+  --color-border: var(--border);
+
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-heading);
+  --font-mono: "Geist Mono", monospace;
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
 }
 
+/* ============================================
+   BASE STYLES
+   ============================================ */
 body {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
   transition: background-color 0.2s ease, color 0.2s ease;
 }
+
+h1, h2, .font-heading {
+  font-family: var(--font-heading);
+}
+
+h3, h4, h5, h6, p, span, div {
+  font-family: var(--font-body);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes accordion-down {
+  from { height: 0; }
+  to { height: var(--radix-accordion-content-height); }
+}
+
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height); }
+  to { height: 0; }
+}
+
+/* Animation utilities */
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.3s ease-out;
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
 
 /* Safe area pre iPhone */
 .safe-area-pb {
@@ -102,4 +298,76 @@ body {
 
 .snap-center {
   scroll-snap-align: center;
+}
+
+/* Timer badge active state */
+.timer-badge-active {
+  background: var(--timer-active-bg);
+  border: 1px solid var(--timer-active);
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-soft,
+  .animate-fade-in,
+  .animate-scale-in,
+  .animate-slide-in-right,
+  .animate-slide-in-left,
+  .timer-badge-active {
+    animation: none;
+  }
+
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   COMPONENT SPECIFIC STYLES
+   ============================================ */
+
+/* Checkbox as circle */
+.checkbox-circle {
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--primary);
+}
+
+/* Priority stars */
+.priority-star-low { color: var(--priority-low); }
+.priority-star-medium { color: var(--priority-medium); }
+.priority-star-high { color: var(--priority-high); }
+.priority-star-urgent { color: var(--priority-urgent); }
+
+/* Kanban column headers */
+.kanban-header-backlog { color: var(--kanban-backlog); }
+.kanban-header-todo { color: var(--kanban-todo); }
+.kanban-header-in-progress { color: var(--kanban-in-progress); }
+.kanban-header-review { color: var(--kanban-review); }
+.kanban-header-done { color: var(--kanban-done); }
+
+/* Task item states */
+.task-item-hover:hover {
+  background-color: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.task-item-expanded {
+  background-color: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+/* Completed task */
+.task-completed {
+  opacity: 0.6;
+}
+
+.task-completed .task-title {
+  text-decoration: line-through;
+}
+
+/* Trash item */
+.trash-item {
+  text-decoration: line-through;
+  background-color: color-mix(in srgb, var(--error) 10%, transparent);
 }
