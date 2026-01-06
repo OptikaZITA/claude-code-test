@@ -18,10 +18,10 @@ interface KanbanCardProps {
 }
 
 const priorityDots: Record<TaskPriority, string> = {
-  urgent: 'bg-[var(--color-error)]',
-  high: 'bg-[var(--color-warning)]',
-  medium: 'bg-[var(--color-primary)]',
-  low: 'bg-[var(--text-secondary)]',
+  urgent: 'bg-error',
+  high: 'bg-warning',
+  medium: 'bg-[var(--priority-medium)]',
+  low: 'bg-[var(--priority-low)]',
 }
 
 export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
@@ -49,19 +49,19 @@ export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
       {...listeners}
       onClick={onClick}
       className={cn(
-        'cursor-pointer rounded-lg bg-[var(--bg-primary)] p-3 shadow-sm transition-all hover:shadow-md border border-[var(--border-primary)]',
-        (isDragging || isSortableDragging) && 'opacity-50 shadow-lg rotate-2',
+        'cursor-pointer rounded-[var(--radius-md)] bg-card p-3 shadow-sm transition-all hover:shadow-md border border-[var(--border)]',
+        (isDragging || isSortableDragging) && 'opacity-50 shadow-lg rotate-2 scale-105',
         isCompleted && 'opacity-60'
       )}
     >
       {/* Priority indicator + tags */}
       <div className="mb-2 flex items-center gap-2">
-        <div className={cn('h-2 w-2 rounded-full', priorityDots[task.priority])} />
+        <div className={cn('h-2.5 w-2.5 rounded-full', priorityDots[task.priority])} />
         {task.tags && task.tags.length > 0 && (
           <TagChipList tags={task.tags.slice(0, 2)} size="sm" />
         )}
         {task.tags && task.tags.length > 2 && (
-          <span className="text-xs text-[var(--text-secondary)]">
+          <span className="text-xs text-muted-foreground">
             +{task.tags.length - 2}
           </span>
         )}
@@ -70,8 +70,8 @@ export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
       {/* Title */}
       <p
         className={cn(
-          'mb-2 text-sm font-medium text-[var(--text-primary)]',
-          isCompleted && 'line-through text-[var(--text-secondary)]'
+          'mb-2 text-sm font-medium text-foreground',
+          isCompleted && 'line-through text-muted-foreground'
         )}
       >
         {task.title}
@@ -87,7 +87,7 @@ export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
           <DeadlineBadge value={task.deadline} size="xs" />
 
           {task.total_time_seconds && task.total_time_seconds > 0 && (
-            <span className="flex items-center gap-1 text-xs text-[var(--text-secondary)]">
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
               {formatDurationShort(task.total_time_seconds)}
             </span>

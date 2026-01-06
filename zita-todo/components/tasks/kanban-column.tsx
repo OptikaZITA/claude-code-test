@@ -28,19 +28,19 @@ export function KanbanColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        'flex h-full w-72 flex-shrink-0 flex-col rounded-xl bg-[var(--bg-secondary)]/50',
-        isOver && 'bg-[var(--color-primary)]/5'
+        'flex h-full w-72 flex-shrink-0 flex-col rounded-[var(--radius-lg)] bg-muted/50',
+        isOver && 'bg-accent/80 ring-2 ring-primary/30'
       )}
     >
       {/* Column Header */}
       <div className="flex items-center justify-between p-3">
         <div className="flex items-center gap-2">
           <div
-            className="h-2 w-2 rounded-full"
+            className="h-2.5 w-2.5 rounded-full"
             style={{ backgroundColor: column.color }}
           />
-          <h3 className="font-medium text-[var(--text-primary)]">{column.title}</h3>
-          <span className="rounded-full bg-[var(--bg-primary)] px-2 py-0.5 text-xs text-[var(--text-secondary)]">
+          <h3 className="font-heading font-medium text-foreground">{column.title}</h3>
+          <span className="rounded-full bg-card px-2 py-0.5 text-xs text-muted-foreground border border-[var(--border)]">
             {tasks.length}
           </span>
         </div>
@@ -64,7 +64,7 @@ export function KanbanColumn({
         </SortableContext>
 
         {tasks.length === 0 && (
-          <div className="flex h-24 items-center justify-center text-sm text-[var(--text-secondary)]">
+          <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">
             Presuňte úlohy sem
           </div>
         )}
