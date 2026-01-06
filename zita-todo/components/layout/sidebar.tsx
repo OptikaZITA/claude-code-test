@@ -18,6 +18,7 @@ import {
   Clock,
   BookOpen,
   Trash2,
+  Eye,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Avatar } from '@/components/ui/avatar'
@@ -25,6 +26,8 @@ import { Button } from '@/components/ui/button'
 import { SidebarDropItem, SidebarDropProject, SidebarDropArea } from '@/components/layout/sidebar-drop-item'
 import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
 import { useTaskCounts } from '@/lib/hooks/use-task-counts'
+import { useUserDepartments } from '@/lib/hooks/use-user-departments'
+import { UserRole, canSeeAllDepartments, canManageUsers } from '@/types'
 
 interface Area {
   id: string
@@ -40,8 +43,10 @@ interface Area {
 interface SidebarProps {
   user: {
     full_name: string | null
+    nickname?: string | null
     email: string
     avatar_url: string | null
+    role?: UserRole
   } | null
   areas: Area[]
   onLogout: () => void
@@ -56,8 +61,10 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname()
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set())
+  const [showOtherDepartments, setShowOtherDepartments] = useState(false)
   const { isDragging } = useSidebarDrop()
   const { counts } = useTaskCounts()
+  const { myDepartments, otherDepartments, canSeeAll } = useUserDepartments()
 
   const toggleArea = (areaId: string) => {
     const newExpanded = new Set(expandedAreas)
@@ -70,6 +77,21 @@ export function Sidebar({
   }
 
   const isActive = (path: string) => pathname === path
+
+  // Get display name: prefer nickname over full_name
+  const displayName = user?.nickname || user?.full_name || user?.email
+
+  // Check if user can manage users (admin only)
+  const userCanManageUsers = user?.role ? canManageUsers(user.role) : false
+
+  // Filter areas based on department membership
+  const myDeptIds = new Set(myDepartments.map(d => d.id))
+  const otherDeptIds = new Set(otherDepartments.map(d => d.id))
+
+  // Areas that belong to my departments
+  const myAreas = areas.filter(area => myDeptIds.has(area.id))
+  // Areas that belong to other departments (only shown if expanded)
+  const otherAreas = areas.filter(area => otherDeptIds.has(area.id))
 
   return (
     <aside className={cn(
@@ -171,14 +193,15 @@ export function Sidebar({
 
         <div className="my-2 h-px bg-[var(--border-primary)]" />
 
-        {/* Departments Section - Fixed, cannot add new */}
+        {/* My Departments Section */}
         <div className="mb-2 px-3 py-1">
           <span className="text-xs font-medium uppercase text-[var(--text-secondary)]">
-            Oddelenia
+            {canSeeAll ? 'Oddelenia' : 'Moje oddelenia'}
           </span>
         </div>
 
-        {areas.map((area) => (
+        {/* Show all areas if canSeeAll, otherwise show only myAreas */}
+        {(canSeeAll ? areas : myAreas).map((area) => (
           <SidebarDropArea
             key={area.id}
             areaId={area.id}
@@ -208,6 +231,48 @@ export function Sidebar({
             </button>
           </SidebarDropArea>
         ))}
+
+        {/* Other Departments Section - Only for member role */}
+        {!canSeeAll && otherAreas.length > 0 && (
+          <>
+            <button
+              onClick={() => setShowOtherDepartments(!showOtherDepartments)}
+              className="flex w-full items-center gap-2 px-3 py-2 mt-2 text-xs font-medium uppercase text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors rounded-lg"
+            >
+              <Eye className="h-3 w-3" />
+              <span className="flex-1 text-left">Ostatné oddelenia</span>
+              {showOtherDepartments ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+            </button>
+
+            {showOtherDepartments && otherAreas.map((area) => (
+              <SidebarDropArea
+                key={area.id}
+                areaId={area.id}
+                areaName={area.name}
+                areaColor={area.color}
+                isExpanded={expandedAreas.has(area.id)}
+                hasProjects={area.projects.length > 0}
+                onToggle={() => toggleArea(area.id)}
+                onCreateProject={() => onCreateProject(area.id)}
+              >
+                {area.projects.map((project) => (
+                  <SidebarDropProject
+                    key={project.id}
+                    href={`/projects/${project.id}`}
+                    isActive={isActive(`/projects/${project.id}`)}
+                    projectId={project.id}
+                    icon={<FolderKanban className="h-4 w-4" />}
+                    label={project.name}
+                  />
+                ))}
+              </SidebarDropArea>
+            ))}
+          </>
+        )}
       </nav>
 
       {/* Drag indicator */}
@@ -220,15 +285,27 @@ export function Sidebar({
       {/* User Section */}
       <div className="border-t border-[var(--border-primary)] p-2">
         <div className="flex items-center gap-3 rounded-lg px-3 py-2">
-          <Avatar src={user?.avatar_url} name={user?.full_name} size="sm" />
+          <Avatar src={user?.avatar_url} name={displayName} size="sm" />
           <div className="flex-1 min-w-0">
             <p className="truncate text-sm font-medium text-[var(--text-primary)]">
-              {user?.full_name || user?.email}
+              {displayName}
             </p>
+            {user?.role && user.role !== 'member' && (
+              <p className="truncate text-xs text-[var(--text-secondary)]">
+                {user.role === 'admin' ? 'Admin' : user.role === 'strategicka_rada' ? 'Strategická rada' : 'HR'}
+              </p>
+            )}
           </div>
           <div className="flex gap-1">
+            {userCanManageUsers && (
+              <Link href="/settings/users">
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Správa používateľov">
+                  <Users className="h-4 w-4" />
+                </Button>
+              </Link>
+            )}
             <Link href="/settings">
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Nastavenia">
                 <Settings className="h-4 w-4" />
               </Button>
             </Link>
@@ -237,6 +314,7 @@ export function Sidebar({
               size="sm"
               className="h-8 w-8 p-0"
               onClick={onLogout}
+              title="Odhlásiť sa"
             >
               <LogOut className="h-4 w-4" />
             </Button>

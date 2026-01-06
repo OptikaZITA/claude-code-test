@@ -13,8 +13,10 @@ import { CalendarDropPicker } from '@/components/layout/calendar-drop-picker'
 
 interface User {
   full_name: string | null
+  nickname: string | null
   email: string
   avatar_url: string | null
+  role: 'admin' | 'strategicka_rada' | 'hr' | 'member' | null
 }
 
 interface Area {
@@ -70,7 +72,7 @@ export default function DashboardLayout({
 
       const { data: userData } = await supabase
         .from('users')
-        .select('full_name, email, avatar_url')
+        .select('full_name, nickname, email, avatar_url, role')
         .eq('id', authUser.id)
         .single()
 
@@ -80,8 +82,10 @@ export default function DashboardLayout({
         // Fallback to auth user data
         setUser({
           full_name: authUser.user_metadata?.full_name || null,
+          nickname: null,
           email: authUser.email || '',
-          avatar_url: null
+          avatar_url: null,
+          role: null
         })
       }
 

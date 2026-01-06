@@ -1,0 +1,546 @@
+{
+  "name": "TISS Optika - Email Automatizacia",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "notes": "Spúšťa workflow každých 5 minút"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://tiss.sk/api/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "data",
+              "value": "={{ JSON.stringify({ Token: $vars.TISS_TOKEN, Action: 'orderSearch', DateFrom: $now.minus({days: 7}).toFormat('yyyy-MM-dd'), DateTo: $now.toFormat('yyyy-MM-dd') }) }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "tiss-get-orders",
+      "name": "TISS - Získaj objednávky",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0],
+      "notes": "Volá TISS API orderSearch pre objednávky z posledných 7 dní"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-result",
+              "leftValue": "={{ $json.Result }}",
+              "rightValue": "OK",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-api-response",
+      "name": "API Response OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "Orders",
+        "options": {}
+      },
+      "id": "split-orders",
+      "name": "Split Orders",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [660, -100],
+      "notes": "Rozdelí pole Orders na jednotlivé položky"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-paid",
+              "leftValue": "={{ $json.IsPaid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            },
+            {
+              "id": "check-phase",
+              "leftValue": "={{ $json.Phase }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter-paid-phase1",
+      "name": "Zaplatená & Fáza 1?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [880, -100],
+      "notes": "Filtruje iba zaplatené objednávky vo fáze 1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Klasifikácia produktov v objednávke\n// Vráti: { canAutomate: boolean, products: array, orderData: object }\n\nconst order = $input.item.json;\nconst items = order.Items || [];\n\n// Kategórie pre klasifikáciu\nconst INDIVIDUALIZATION_KEYWORDS = ['F360', 'eyecode', 'AVA', 'NVB', 'dominantné oko'];\nconst STOCK_KEYWORD = 'sklad';\nconst PRODUCTION_KEYWORD = 'Výroba';\n\nlet hasIndividualization = false;\nlet hasStock = false;\nlet hasProduction = false;\nlet productionItems = [];\n\nfor (const item of items) {\n  const productName = (item.Name || item.ProductName || '').toLowerCase();\n  const category = (item.Category || item.ProductCategory || '').toLowerCase();\n  \n  // Check for individualization (F360, eyecode, AVA, etc.)\n  const isIndividualization = INDIVIDUALIZATION_KEYWORDS.some(kw => \n    productName.toLowerCase().includes(kw.toLowerCase()) || \n    category.toLowerCase().includes(kw.toLowerCase())\n  );\n  \n  if (isIndividualization) {\n    hasIndividualization = true;\n    continue;\n  }\n  \n  // Check for stock items\n  if (category.includes(STOCK_KEYWORD.toLowerCase())) {\n    hasStock = true;\n    continue;\n  }\n  \n  // Check for production items\n  if (category.includes(PRODUCTION_KEYWORD.toLowerCase())) {\n    hasProduction = true;\n    productionItems.push(item);\n  }\n}\n\n// Logika: Automatizovať IBA ak:\n// 1. Obsahuje production items\n// 2. NEobsahuje individualization (mix = manuálne)\nconst canAutomate = hasProduction && !hasIndividualization;\n\nreturn {\n  json: {\n    canAutomate,\n    hasIndividualization,\n    hasStock,\n    hasProduction,\n    productionItems,\n    orderNumber: order.OrderNumber,\n    clientName: order.ClientName || `Klient ${order.ClientId}`,\n    clientPhone: order.ClientPhone || '',\n    dateCreated: order.DateCreated,\n    note: order.Note || '',\n    // Optické parametre (potrebné overiť presné názvy z API)\n    optics: {\n      rightSph: order.d_r_sd || order.Distance_R_Sph || null,\n      rightCyl: order.d_r_cyl || order.Distance_R_Cyl || null,\n      rightOs: order.d_r_os || order.Distance_R_Os || null,\n      rightAdd: order.d_r_add || order.Distance_R_Add || null,\n      rightPd: order.d_r_pd || order.Distance_R_PD || null,\n      rightHeight: order.d_r_vyska || order.Distance_R_Height || null,\n      leftSph: order.d_l_sd || order.Distance_L_Sph || null,\n      leftCyl: order.d_l_cyl || order.Distance_L_Cyl || null,\n      leftOs: order.d_l_os || order.Distance_L_Os || null,\n      leftAdd: order.d_l_add || order.Distance_L_Add || null,\n      leftPd: order.d_l_pd || order.Distance_L_PD || null,\n      leftHeight: order.d_l_vyska || order.Distance_L_Height || null,\n      diameter: order.priemer || order.Diameter || null\n    },\n    originalOrder: order\n  }\n};"
+      },
+      "id": "classify-products",
+      "name": "Klasifikuj produkty",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, -200],
+      "notes": "Rozhodne či objednávka obsahuje čistú výrobu alebo individualizáciu"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "can-automate",
+              "leftValue": "={{ $json.canAutomate }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter-automatable",
+      "name": "Možné automatizovať?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1320, -200],
+      "notes": "Prepustí iba objednávky bez individualizácie"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Transformácia dát pre email\nconst order = $input.item.json;\n\n// Extrakcia typu akcie z poznámky\nfunction extractAction(note) {\n  if (!note) return '';\n  \n  const actionPatterns = [\n    /Akcia 1\\+1[^\\n]*/i,\n    /Akcia[^\\n]*/i,\n    /AKCIA[^\\n]*/i\n  ];\n  \n  for (const pattern of actionPatterns) {\n    const match = note.match(pattern);\n    if (match) return match[0].trim();\n  }\n  return '';\n}\n\n// Formátovanie číselnej hodnoty\nfunction formatValue(val) {\n  if (val === null || val === undefined || val === '') return '-';\n  const num = parseFloat(val);\n  if (isNaN(num)) return val;\n  // Formát: +0.00 alebo -0.00\n  if (num >= 0) return num.toFixed(2);\n  return num.toFixed(2);\n}\n\n// Formátovanie priemeru\nfunction formatDiameter(pd, height) {\n  if (pd && height) return `${pd}/${height}`;\n  if (pd) return String(pd);\n  return '-';\n}\n\nconst productNames = order.productionItems.map(p => p.Name || p.ProductName).join(', ');\n\nreturn {\n  json: {\n    orderNumber: order.orderNumber,\n    clientName: order.clientName,\n    action: extractAction(order.note),\n    productName: productNames,\n    rightEye: {\n      sph: formatValue(order.optics.rightSph),\n      cyl: formatValue(order.optics.rightCyl),\n      os: order.optics.rightOs || '-'\n    },\n    leftEye: {\n      sph: formatValue(order.optics.leftSph),\n      cyl: formatValue(order.optics.leftCyl),\n      os: order.optics.leftOs || '-'\n    },\n    add: formatValue(order.optics.rightAdd),\n    diameter: formatDiameter(order.optics.rightPd, order.optics.rightHeight),\n    originalOrder: order.originalOrder\n  }\n};"
+      },
+      "id": "transform-for-email",
+      "name": "Transformuj pre email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, -300],
+      "notes": "Pripraví dáta v správnom formáte pre email"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "aggregate-orders",
+      "name": "Zoskup objednávky",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [1760, -300],
+      "notes": "Zoskupí všetky automatizovateľné objednávky do jedného emailu"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Composing emailu\nconst orders = $input.item.json.data || [];\n\nif (orders.length === 0) {\n  return { json: { skip: true, reason: 'Žiadne objednávky na spracovanie' } };\n}\n\nlet emailBody = 'Krásný den,\\n\\npoprosíme Vás objednat:\\n\\n';\n\nconst processedOrderNumbers = [];\n\nfor (const order of orders) {\n  emailBody += `${order.clientName}\\n`;\n  \n  if (order.action) {\n    emailBody += `${order.action} k ${order.orderNumber}\\n`;\n  } else {\n    emailBody += `k ${order.orderNumber}\\n`;\n  }\n  \n  emailBody += `${order.productName}\\n`;\n  emailBody += `P: ${order.rightEye.sph} ${order.rightEye.cyl} ${order.rightEye.os}\\n`;\n  emailBody += `L: ${order.leftEye.sph} ${order.leftEye.cyl} ${order.leftEye.os}\\n`;\n  \n  if (order.add && order.add !== '-') {\n    emailBody += `ADD ${order.add}\\n`;\n  }\n  \n  emailBody += `Priemer: ${order.diameter}\\n`;\n  emailBody += '\\n---\\n\\n';\n  \n  processedOrderNumbers.push(order.orderNumber);\n}\n\nemailBody += 'díky jira a vanhur';\n\n// Dnešný dátum pre predmet\nconst today = new Date();\nconst formattedDate = `${today.getDate().toString().padStart(2, '0')}.${(today.getMonth() + 1).toString().padStart(2, '0')}.${today.getFullYear()}`;\n\nreturn {\n  json: {\n    skip: false,\n    emailSubject: `Objednávka skiel - Optika Zita - ${formattedDate}`,\n    emailBody: emailBody,\n    processedOrderNumbers: processedOrderNumbers,\n    orderCount: orders.length\n  }\n};"
+      },
+      "id": "compose-email",
+      "name": "Vytvor email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1980, -300],
+      "notes": "Skladá finálne telo emailu zo všetkých objednávok"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-orders",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-has-orders",
+      "name": "Sú objednávky?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2200, -300]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $vars.EMAIL_TO || 'dano.grigar@gmail.com' }}",
+        "subject": "={{ $json.emailSubject }}",
+        "emailType": "text",
+        "message": "={{ $json.emailBody }}",
+        "options": {
+          "senderName": "Optika Zita"
+        }
+      },
+      "id": "send-email",
+      "name": "Odošli email (Gmail)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2420, -400],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      },
+      "notes": "Odošle email cez Gmail. Nastav Gmail OAuth2 credentials!"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Vytvorí jednotlivé requesty pre zmenu fázy každej objednávky\nconst processedOrders = $input.item.json.processedOrderNumbers || [];\nconst token = $vars.TISS_TOKEN;\n\nconst results = processedOrders.map(orderNumber => ({\n  json: {\n    orderNumber: orderNumber,\n    apiPayload: JSON.stringify({\n      Token: token,\n      Action: 'orderEdit',\n      OrderNumber: orderNumber,\n      Phase: 2\n    })\n  }\n}));\n\nreturn results;"
+      },
+      "id": "prepare-phase-update",
+      "name": "Priprav zmenu fázy",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2640, -400],
+      "notes": "Pripraví payload pre zmenu fázy každej spracovanej objednávky"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://tiss.sk/api/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "data",
+              "value": "={{ $json.apiPayload }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "tiss-update-phase",
+      "name": "TISS - Zmeň fázu na 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2860, -400],
+      "notes": "Zmení fázu objednávky z 1 na 2 (Objednané sklá)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Logging úspešného spracovania\nconst emailData = $('Vytvor email').item.json;\nconst phaseUpdateResults = $input.all();\n\nconst successfulUpdates = phaseUpdateResults.filter(r => r.json.Result === 'OK').length;\nconst failedUpdates = phaseUpdateResults.filter(r => r.json.Result !== 'OK');\n\nconst logEntry = {\n  timestamp: new Date().toISOString(),\n  status: failedUpdates.length === 0 ? 'SUCCESS' : 'PARTIAL',\n  emailSent: true,\n  orderCount: emailData.orderCount,\n  processedOrders: emailData.processedOrderNumbers,\n  phaseUpdates: {\n    successful: successfulUpdates,\n    failed: failedUpdates.map(f => ({ order: f.json.orderNumber, error: f.json.Result }))\n  }\n};\n\nconsole.log('TISS Automation Log:', JSON.stringify(logEntry, null, 2));\n\nreturn { json: logEntry };"
+      },
+      "id": "log-success",
+      "name": "Zaloguj výsledok",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3080, -400],
+      "notes": "Zaznamená úspešné spracovanie do logu"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log preskočenia - žiadne objednávky na spracovanie\nconsole.log('TISS Automation: Žiadne nové objednávky na automatizáciu', new Date().toISOString());\n\nreturn {\n  json: {\n    timestamp: new Date().toISOString(),\n    status: 'SKIPPED',\n    reason: 'Žiadne nové objednávky spĺňajúce kritériá'\n  }\n};"
+      },
+      "id": "log-skip",
+      "name": "Log - Žiadne objednávky",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2420, -200],
+      "notes": "Zaznamená že neboli nájdené žiadne objednávky"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Error handling pre API chybu\nconst response = $input.item.json;\n\nconsole.error('TISS API Error:', JSON.stringify(response, null, 2));\n\nreturn {\n  json: {\n    timestamp: new Date().toISOString(),\n    status: 'ERROR',\n    error: 'TISS API returned non-OK response',\n    response: response\n  }\n};"
+      },
+      "id": "handle-api-error",
+      "name": "API Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 100],
+      "notes": "Spracuje chybu API volania"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log objednávok s individualizáciou - vyžadujú manuálne spracovanie\nconst order = $input.item.json;\n\nconsole.log('TISS: Objednávka vyžaduje manuálne spracovanie (individualizácia):', {\n  orderNumber: order.orderNumber,\n  clientName: order.clientName,\n  hasIndividualization: order.hasIndividualization,\n  products: order.productionItems?.map(p => p.Name)\n});\n\nreturn {\n  json: {\n    timestamp: new Date().toISOString(),\n    status: 'MANUAL_REQUIRED',\n    orderNumber: order.orderNumber,\n    reason: 'Objednávka obsahuje individualizáciu (F360/eyecode/AVA)',\n    clientName: order.clientName\n  }\n};"
+      },
+      "id": "log-manual-required",
+      "name": "Log - Manuálne spracovanie",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, -100],
+      "notes": "Loguje objednávky ktoré vyžadujú manuálne spracovanie"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "TISS - Získaj objednávky",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TISS - Získaj objednávky": {
+      "main": [
+        [
+          {
+            "node": "API Response OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API Response OK?": {
+      "main": [
+        [
+          {
+            "node": "Split Orders",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "API Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Orders": {
+      "main": [
+        [
+          {
+            "node": "Zaplatená & Fáza 1?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zaplatená & Fáza 1?": {
+      "main": [
+        [
+          {
+            "node": "Klasifikuj produkty",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Klasifikuj produkty": {
+      "main": [
+        [
+          {
+            "node": "Možné automatizovať?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Možné automatizovať?": {
+      "main": [
+        [
+          {
+            "node": "Transformuj pre email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log - Manuálne spracovanie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transformuj pre email": {
+      "main": [
+        [
+          {
+            "node": "Zoskup objednávky",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoskup objednávky": {
+      "main": [
+        [
+          {
+            "node": "Vytvor email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vytvor email": {
+      "main": [
+        [
+          {
+            "node": "Sú objednávky?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sú objednávky?": {
+      "main": [
+        [
+          {
+            "node": "Odošli email (Gmail)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log - Žiadne objednávky",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Odošli email (Gmail)": {
+      "main": [
+        [
+          {
+            "node": "Priprav zmenu fázy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Priprav zmenu fázy": {
+      "main": [
+        [
+          {
+            "node": "TISS - Zmeň fázu na 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TISS - Zmeň fázu na 2": {
+      "main": [
+        [
+          {
+            "node": "Zaloguj výsledok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "versionId": "1",
+  "triggerCount": 1,
+  "tags": [
+    {
+      "name": "TISS",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "name": "Optika",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "name": "Email",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}

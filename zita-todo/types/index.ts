@@ -1,14 +1,48 @@
 // User types
+export type UserRole = 'admin' | 'strategicka_rada' | 'hr' | 'member'
+export type UserStatus = 'active' | 'inactive' | 'invited'
+
+// Roly ktoré vidia všetky oddelenia
+export const FULL_ACCESS_ROLES: UserRole[] = ['admin', 'strategicka_rada', 'hr']
+
+export function canSeeAllDepartments(role: UserRole): boolean {
+  return FULL_ACCESS_ROLES.includes(role)
+}
+
+export function canManageUsers(role: UserRole): boolean {
+  return role === 'admin'
+}
+
 export interface User {
   id: string
   organization_id: string | null
   email: string
   full_name: string | null
+  nickname: string | null
   avatar_url: string | null
-  role: 'admin' | 'member'
-  is_active: boolean
+  position: string | null
+  role: UserRole
+  status: UserStatus
+  is_active: boolean // legacy, use status instead
+  invited_by: string | null
+  invited_at: string | null
+  last_login_at: string | null
+  start_date: string | null
   created_at: string
   updated_at: string
+}
+
+// Department membership
+export interface DepartmentMember {
+  id: string
+  user_id: string
+  department_id: string
+  created_at: string
+  updated_at: string
+}
+
+export interface UserWithDepartments extends User {
+  departments?: Area[]
 }
 
 // Organization
@@ -19,7 +53,7 @@ export interface Organization {
   created_at: string
 }
 
-// Area types
+// Area types (Oddelenia)
 export interface Area {
   id: string
   organization_id: string | null
@@ -27,6 +61,7 @@ export interface Area {
   description: string | null
   color: string | null
   is_private: boolean
+  is_global: boolean // Globálne oddelenia viditeľné pre všetkých
   owner_id: string | null
   sort_order: number
   archived_at: string | null
@@ -167,12 +202,21 @@ export interface Invitation {
   id: string
   organization_id: string | null
   email: string
-  role: 'admin' | 'member'
+  full_name: string | null
+  nickname: string | null
+  position: string | null
+  role: UserRole
+  departments: string[] // Array of department/area IDs
   invited_by: string | null
   token: string
   expires_at: string
   accepted_at: string | null
   created_at: string
+}
+
+export interface InvitationWithDetails extends Invitation {
+  inviter?: User
+  department_list?: Area[]
 }
 
 // Recurrence types
@@ -213,14 +257,28 @@ export const DEFAULT_KANBAN_COLUMNS: KanbanColumnConfig[] = [
 ]
 
 // Filter types
+export type DueDateFilter = 'today' | 'this_week' | 'this_month' | 'overdue' | 'no_date'
+
 export interface TaskFilters {
-  status?: TaskStatus[]
-  priority?: TaskPriority[]
-  assignee_id?: string
-  tags?: string[]
-  due_date_from?: string
-  due_date_to?: string
+  status: TaskStatus | null
+  assigneeIds: string[]
+  dueDate: DueDateFilter | null
+  priority: TaskPriority | null
+  tagIds: string[]
+  projectId: string | null
+  when: WhenType | null
   search?: string
+}
+
+export const DEFAULT_TASK_FILTERS: TaskFilters = {
+  status: null,
+  assigneeIds: [],
+  dueDate: null,
+  priority: null,
+  tagIds: [],
+  projectId: null,
+  when: null,
+  search: '',
 }
 
 // Integration types
