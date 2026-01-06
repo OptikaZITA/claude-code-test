@@ -5,8 +5,8 @@
 ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zobrazením, sledovaním času a Toggl-style time trackingom. Určená pre ~20 členný tím s podporou osobnej aj tímovej produktivity.
 
 **Dátum vytvorenia**: 2. januára 2026
-**Posledná aktualizácia**: 5. januára 2026
-**Verzia špecifikácie**: 2.7 (Status-based Kanban + View Toggle)
+**Posledná aktualizácia**: 6. januára 2026
+**Verzia špecifikácie**: 2.9 (Task Filters + Unified View Toggle)
 
 ---
 
@@ -36,19 +36,26 @@ created_at (timestamptz)
 updated_at (timestamptz)
 ```
 
-#### USERS
+#### USERS (rozšírené v2.8)
 ```sql
 id (uuid PK, FK → auth.users)
 email (text NOT NULL)
 full_name (text)
+nickname (text)                    -- NOVÉ v2.8: Prezývka (primárne zobrazované meno)
 avatar_url (text)
 organization_id (uuid FK → organizations, nullable)
-role (text: 'admin' | 'member')
+role (text: 'admin' | 'strategicka_rada' | 'hr' | 'member')  -- ROZŠÍRENÉ v2.8
+status (text: 'active' | 'inactive' | 'invited' DEFAULT 'active')  -- NOVÉ v2.8
+position (text)                    -- NOVÉ v2.8: Pracovná pozícia
+invited_by (uuid FK → users, nullable)  -- NOVÉ v2.8
+invited_at (timestamptz)           -- NOVÉ v2.8
+last_login_at (timestamptz)        -- NOVÉ v2.8
+start_date (date)                  -- NOVÉ v2.8: Dátum nástupu
 created_at (timestamptz)
 updated_at (timestamptz)
 ```
 
-#### AREAS
+#### AREAS (rozšírené v2.8)
 ```sql
 id (uuid PK)
 user_id (uuid FK → users)
@@ -58,6 +65,7 @@ notes (text)
 icon (text)
 color (text)
 sort_order (integer DEFAULT 0)
+is_global (boolean DEFAULT false)  -- NOVÉ v2.8: Označuje či je area "oddelenie"
 created_at (timestamptz)
 updated_at (timestamptz)
 ```
@@ -177,16 +185,30 @@ item_id (uuid NOT NULL)
 UNIQUE(tag_id, item_type, item_id)
 ```
 
-#### INVITATIONS (existujúce)
+#### INVITATIONS (rozšírené v2.8)
 ```sql
 id (uuid PK)
 organization_id (uuid FK → organizations)
 email (text NOT NULL)
-role (text: 'admin' | 'member')
+full_name (text)                   -- NOVÉ v2.8
+nickname (text)                    -- NOVÉ v2.8
+position (text)                    -- NOVÉ v2.8
+role (text: 'admin' | 'strategicka_rada' | 'hr' | 'member')  -- ROZŠÍRENÉ v2.8
+departments (jsonb)                -- NOVÉ v2.8: Array of department IDs
 invited_by (uuid FK → users)
 accepted_at (timestamptz, nullable)
 expires_at (timestamptz)
 created_at (timestamptz)
+```
+
+#### DEPARTMENT_MEMBERS ⭐ NOVÁ TABUĽKA v2.8
+```sql
+id (uuid PK)
+user_id (uuid FK → users NOT NULL)
+department_id (uuid FK → areas NOT NULL)  -- areas kde is_global = true
+role (text: 'owner' | 'member' DEFAULT 'member')
+created_at (timestamptz DEFAULT now())
+UNIQUE(user_id, department_id)
 ```
 
 #### AREA_MEMBERS (existujúce)
@@ -356,13 +378,17 @@ PUT /api/tasks/:id/kanban
 | **Logbook** | `/logbook` | `status='completed' ORDER BY completed_at DESC` |
 | **Kôš (Trash)** | `/trash` | `deleted_at IS NOT NULL` (NOVÉ v2.4) |
 | **Calendar** | `/calendar` | Všetky úlohy s dátumom (mesačný pohľad) |
-| **Area Detail** | `/areas/[id]` | Projekty + voľné úlohy v danom oddelení |
-| **Project List** | `/projects/[id]` | Úlohy + headings v projekte (list view) |
-| **Project Kanban** | `/projects/[id]/kanban` | Úlohy v projekte (kanban view) |
+| **Area Detail** | `/areas/[id]` | Projekty + voľné úlohy v danom oddelení (list/kanban toggle v2.9) |
+| **Project Detail** | `/projects/[id]` | Úlohy + headings v projekte (list/kanban toggle) |
+| **Project Kanban** | `/projects/[id]/kanban` | ⚠️ Presmeruje na `/projects/[id]` (v2.9) |
 
-### View Toggle
+### View Toggle (v2.9 Unified UI)
 
-V headeri projektov: `[📋 List ↔ 🗂️ Kanban]` button
+Malé ikony v headeri pre prepínanie List/Kanban zobrazenia:
+- **Kde je dostupný:** Projects, Areas
+- **UI:** Malé ikony (List/LayoutGrid) z lucide-react
+- **Perzistencia:** `useViewPreference` hook ukladá preferenciu do localStorage per-page
+- **Implementácia:** Props v Header komponente (`showViewToggle`, `viewMode`, `onViewModeChange`)
 
 ### Kanban Board (per Project/Area)
 
@@ -434,13 +460,23 @@ V headeri projektov: `[📋 List ↔ 🗂️ Kanban]` button
 └─────────────────────────────────────┘
 ```
 
-### Filters (aplikuje sa na List aj Kanban)
+### Filters (v2.9 - na všetkých stránkach)
 
+Filter button v headeri otvára/zatvára filtrovací panel:
 ```
-[Area ▼] [Project ▼] [Tags ▼] [Status ▼] [When ▼] [Assignee ▼] [Priority ▼]
+[Status ▼] [Assignee ▼] [Due Date ▼] [Priority ▼] [Tags ▼] [When ▼] [Project ▼]
 ```
 
-Filtre sa ukladajú do URL query params pre zdieľateľnosť.
+**Komponenty:**
+- `TaskFiltersBar` - Filtrovací panel s dropdown filtrami
+- `useTaskFilters` hook - Správa stavu filtrov
+- `filterTasks` utility - Client-side filtrovanie úloh
+
+**Stránky s filtrami:** Inbox, Team Inbox, Today, Anytime, Upcoming, Logbook, Trash, Areas, Projects
+
+**Filter button vizuál:**
+- Sivý ak žiadne filtre nie sú aktívne
+- Modrý (primary) ak sú nejaké filtre aktívne
 
 ---
 
@@ -591,13 +627,21 @@ zita-todo/
 │   │   │   └── [projectId]/
 │   │   │       ├── page.tsx
 │   │   │       └── kanban/page.tsx
-│   │   └── settings/page.tsx
+│   │   └── settings/
+│   │       ├── page.tsx
+│   │       └── users/page.tsx        # NOVÉ v2.8 - Správa používateľov
+│   ├── (auth)/
+│   │   ├── login/page.tsx
+│   │   ├── signup/page.tsx
+│   │   └── invite/[token]/page.tsx   # NOVÉ v2.8 - Prijatie pozvánky
 │   ├── api/
 │   │   ├── areas/route.ts
 │   │   ├── projects/route.ts
 │   │   ├── headings/route.ts         # NOVÉ
 │   │   ├── tasks/route.ts
 │   │   ├── tags/route.ts
+│   │   ├── invitations/
+│   │   │   └── accept/route.ts       # NOVÉ v2.8 - API pre prijatie pozvánky
 │   │   └── time/
 │   │       ├── start/route.ts
 │   │       ├── stop/route.ts
@@ -671,6 +715,13 @@ zita-todo/
 │   │   ├── index.ts                  # Exporty
 │   │   ├── tag-chip.tsx              # Jednotlivý tag chip
 │   │   └── tag-selector.tsx          # Multi-select tag dropdown
+│   ├── users/                        # NOVÉ v2.8
+│   │   ├── user-row.tsx              # Riadok používateľa v zozname
+│   │   ├── edit-user-modal.tsx       # Modal pre editáciu používateľa
+│   │   └── invite-user-modal.tsx     # Modal pre pozvanie používateľa
+│   ├── filters/                      # NOVÉ v2.8
+│   │   ├── index.ts                  # Exporty
+│   │   └── task-filters-bar.tsx      # Filtrovací panel pre úlohy
 │   ├── time-tracking/
 │   │   ├── timer.tsx
 │   │   ├── timer-indicator.tsx       # NOVÉ - globálny indikátor v headeri
@@ -697,6 +748,9 @@ zita-todo/
 │   ├── hooks/
 │   │   ├── use-tasks.ts              # + useTodayTasks, useUpcomingTasks, useAnytimeTasks, useSomedayTasks, useLogbookTasks, useTrashTasks
 │   │   ├── use-task-counts.ts        # NOVÉ v2.4 - Počítadlá úloh pre sidebar
+│   │   ├── use-task-filters.ts       # NOVÉ v2.8 - Task filters state management
+│   │   ├── use-user-departments.ts   # NOVÉ v2.8 - User departments + useCurrentUser
+│   │   ├── use-users-management.ts   # NOVÉ v2.8 - Admin user management CRUD
 │   │   ├── use-projects.ts
 │   │   ├── use-areas.ts              # useArea, useAreaProjects, useAreaTasks, useAreas
 │   │   ├── use-headings.ts
@@ -704,7 +758,6 @@ zita-todo/
 │   │   ├── use-task-moved.ts         # NOVÉ v2.3 - Event listener pre refresh
 │   │   ├── use-time-tracking.ts      # + useGlobalTimer, useTimeTotals
 │   │   ├── use-organization.ts
-│   │   ├── use-task-filters.ts
 │   │   ├── use-realtime.ts
 │   │   ├── use-realtime-tasks.ts
 │   │   ├── use-toast.ts
@@ -716,6 +769,7 @@ zita-todo/
 │   ├── supabase/
 │   │   ├── client.ts
 │   │   ├── server.ts
+│   │   ├── admin.ts                  # NOVÉ v2.8 - Admin client for API routes
 │   │   └── types.ts
 │   └── utils/
 │       ├── cn.ts
@@ -1038,6 +1092,25 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 - [x] **Area form** - Formulár pre vytvorenie/úpravu oddelenia
 - [x] **Vylepšené task counts** - Realtime počítadlá s archive support
 
+### Funkcie v2.8 - VŠETKY DOKONČENÉ ✅
+- [x] **Používateľské roly** - admin, strategicka_rada, hr, member
+- [x] **Používateľské statusy** - active, inactive, invited
+- [x] **Department Members** - Oddelia (areas s is_global=true) + členstvo používateľov
+- [x] **Sidebar logika** - "Moje oddelenia" vs "Ostatné oddelenia" podľa roly
+- [x] **Nickname ako primárne meno** - Prezývka zobrazovaná v celej aplikácii
+- [x] **Task Filters UI** - Filtrovací panel: Status, Assignee, Due Date, Priority, Tags, When, Project
+- [x] **Správa používateľov** - /settings/users stránka (len pre admin)
+- [x] **Invite User Modal** - Pozvanie nového používateľa s rolou a oddeleniami
+- [x] **Edit User Modal** - Úprava používateľa a jeho oddelení
+- [x] **Invite Accept Page** - Prijatie pozvánky a vytvorenie účtu
+- [x] **API pre pozvánky** - /api/invitations/accept endpoint
+
+### Funkcie v2.9 - VŠETKY DOKONČENÉ ✅
+- [x] **Task Filters na všetkých stránkach** - Filtrovací panel integrovaný do všetkých dashboard stránok
+- [x] **Unified View Toggle** - Konzistentné malé ikony (List/LayoutGrid) v headeri
+- [x] **Areas Kanban View** - Kanban zobrazenie pridané na stránku oddelení
+- [x] **Project Kanban Redirect** - `/projects/[id]/kanban` presmeruje na hlavnú stránku projektu
+
 ---
 
 ## Známe problémy a riešenia
@@ -1067,6 +1140,174 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.9 (6. januára 2026)
+**Task Filters + Unified View Toggle:**
+
+**Task Filters na všetkých stránkach:**
+Filtrovací panel integrovaný do všetkých dashboard stránok pre konzistentné UX:
+
+| Stránka | Súbor |
+|---------|-------|
+| Inbox (osobný) | `app/(dashboard)/inbox/page.tsx` |
+| Team Inbox | `app/(dashboard)/inbox/team/page.tsx` |
+| Today | `app/(dashboard)/today/page.tsx` |
+| Anytime | `app/(dashboard)/anytime/page.tsx` |
+| Upcoming | `app/(dashboard)/upcoming/page.tsx` |
+| Logbook | `app/(dashboard)/logbook/page.tsx` |
+| Trash | `app/(dashboard)/trash/page.tsx` |
+| Area Detail | `app/(dashboard)/areas/[areaId]/page.tsx` |
+| Project Detail | `app/(dashboard)/projects/[projectId]/page.tsx` |
+
+**Pattern pre integráciu filtrov:**
+```typescript
+import { useState, useMemo } from 'react'
+import { Filter } from 'lucide-react'
+import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
+import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
+
+// State
+const [showFilters, setShowFilters] = useState(false)
+const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
+
+// Apply filters
+const filteredTasks = useMemo(() => filterTasks(tasks, filters), [tasks, filters])
+
+// Filter button in Header
+<button
+  onClick={() => setShowFilters(!showFilters)}
+  className={`p-2 rounded-lg transition-colors ${
+    hasActiveFilters ? 'bg-[var(--color-primary)] text-white' : 'hover:bg-[var(--bg-hover)]'
+  }`}
+>
+  <Filter className="h-4 w-4" />
+</button>
+
+// Filter bar (collapsible)
+{showFilters && (
+  <TaskFiltersBar filters={filters} onFilterChange={setFilter} ... />
+)}
+```
+
+**Unified View Toggle:**
+Zjednotené UI pre prepínanie List/Kanban view - malé ikony v headeri namiesto veľkých textových tlačidiel:
+
+- ✅ **Today** - Už mal správny štýl (malé ikony)
+- ✅ **Projects** - Zmenené z veľkých textových tlačidiel na malé ikony v Header
+- ✅ **Areas** - Pridaný ViewToggle (predtým chýbal)
+- ✅ `/projects/[id]/kanban` - Zjednodušené na redirect (toggle je teraz v hlavnej stránke)
+
+**Zmeny v Header komponente:**
+```typescript
+<Header
+  title={project.name}
+  showViewToggle           // Zapne toggle
+  viewMode={viewMode}      // 'list' | 'kanban'
+  onViewModeChange={setViewMode}
+>
+```
+
+**Kanban handlery pre Areas:**
+```typescript
+const handleKanbanTaskMove = async (taskId: string, newStatus: TaskStatus) => {
+  const updates: Partial<TaskWithRelations> = { status: newStatus }
+  if (newStatus === 'done') {
+    updates.completed_at = new Date().toISOString()
+    updates.when_type = null  // Auto-logbook
+  } else {
+    updates.completed_at = null
+  }
+  await updateTask(taskId, updates)
+  refetchTasks()
+}
+```
+
+**Upravené súbory:**
+- `app/(dashboard)/inbox/page.tsx` - Pridané filtre
+- `app/(dashboard)/inbox/team/page.tsx` - Pridané filtre
+- `app/(dashboard)/today/page.tsx` - Pridané filtre
+- `app/(dashboard)/anytime/page.tsx` - Pridané filtre
+- `app/(dashboard)/upcoming/page.tsx` - Pridané filtre
+- `app/(dashboard)/logbook/page.tsx` - Pridané filtre
+- `app/(dashboard)/trash/page.tsx` - Pridané filtre
+- `app/(dashboard)/areas/[areaId]/page.tsx` - Pridané filtre + ViewToggle + Kanban
+- `app/(dashboard)/projects/[projectId]/page.tsx` - Pridané filtre + ViewToggle v Header
+- `app/(dashboard)/projects/[projectId]/kanban/page.tsx` - Zjednodušené na redirect
+
+---
+
+### v2.8 (5. januára 2026)
+**User Management + Departments + Filters:**
+
+**Nový systém rolí:**
+| Rola | Popis | Prístup k oddeleniam |
+|------|-------|---------------------|
+| `admin` | Administrátor | Všetky oddelenia |
+| `strategicka_rada` | Strategická rada | Všetky oddelenia |
+| `hr` | HR oddelenie | Všetky oddelenia |
+| `member` | Bežný člen | Len priradené oddelenia |
+
+**Nové tabuľky a polia:**
+- ✅ `users` - rozšírené o `nickname`, `position`, `status`, `invited_by`, `invited_at`, `last_login_at`, `start_date`
+- ✅ `areas` - pridané `is_global` pre označenie oddelení
+- ✅ `invitations` - rozšírené o `full_name`, `nickname`, `position`, `departments` (JSONB)
+- ✅ `department_members` - nová tabuľka pre priradenie používateľov k oddeleniam
+
+**Nové stránky:**
+- ✅ `/settings/users` - Správa používateľov (len admin)
+- ✅ `/invite/[token]` - Prijatie pozvánky a vytvorenie účtu
+
+**Nové API:**
+- ✅ `/api/invitations/accept` - Endpoint pre prijatie pozvánky
+
+**Nové komponenty:**
+- ✅ `components/users/user-row.tsx` - Riadok používateľa
+- ✅ `components/users/edit-user-modal.tsx` - Modal pre editáciu
+- ✅ `components/users/invite-user-modal.tsx` - Modal pre pozvanie
+- ✅ `components/filters/task-filters-bar.tsx` - Filtrovací panel
+
+**Nové hooky:**
+- ✅ `use-user-departments.ts` - Načítanie oddelení podľa roly + `useCurrentUser`
+- ✅ `use-task-filters.ts` - Správa stavu filtrov
+- ✅ `use-users-management.ts` - Admin CRUD pre používateľov a pozvánky
+
+**Sidebar vylepšenia:**
+- ✅ Zobrazovanie nickname namiesto full_name
+- ✅ "Moje oddelenia" sekcia pre bežných členov
+- ✅ "Ostatné oddelenia" collapsible sekcia pre admin/hr/strategická_rada
+- ✅ Role badge pod menom používateľa
+- ✅ Admin odkaz na /settings/users
+
+**TypeScript typy:**
+```typescript
+export type UserRole = 'admin' | 'strategicka_rada' | 'hr' | 'member'
+export type UserStatus = 'active' | 'inactive' | 'invited'
+export const FULL_ACCESS_ROLES: UserRole[] = ['admin', 'strategicka_rada', 'hr']
+
+export function canSeeAllDepartments(role: UserRole): boolean
+export function canManageUsers(role: UserRole): boolean
+```
+
+**Nové súbory:**
+- `app/(dashboard)/settings/users/page.tsx`
+- `app/(auth)/invite/[token]/page.tsx`
+- `app/api/invitations/accept/route.ts`
+- `components/users/user-row.tsx`
+- `components/users/edit-user-modal.tsx`
+- `components/users/invite-user-modal.tsx`
+- `components/filters/task-filters-bar.tsx`
+- `components/filters/index.ts`
+- `lib/hooks/use-user-departments.ts`
+- `lib/hooks/use-task-filters.ts`
+- `lib/hooks/use-users-management.ts`
+- `lib/utils/filter-query.ts`
+- `lib/supabase/admin.ts`
+
+**Upravené súbory:**
+- `types/index.ts` - Nové typy a helper funkcie
+- `components/layout/sidebar.tsx` - Nickname, oddelenia, admin link
+
+---
 
 ### v2.7 (5. januára 2026)
 **Status-based Kanban Board:**
@@ -1335,5 +1576,5 @@ if (newStatus === 'done') {
 
 ---
 
-**Verzia:** 2.7 (Status-based Kanban Board)
-**Posledná aktualizácia:** 5. januára 2026
+**Verzia:** 2.9 (Task Filters + Unified View Toggle)
+**Posledná aktualizácia:** 6. januára 2026
