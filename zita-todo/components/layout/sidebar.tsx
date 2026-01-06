@@ -18,6 +18,7 @@ import {
   BookOpen,
   Trash2,
   Eye,
+  Timer,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Avatar } from '@/components/ui/avatar'
@@ -181,6 +182,24 @@ export function Sidebar({
             icon={<Trash2 className="h-4 w-4 text-[var(--text-secondary)]" />}
             label="Kôš"
           />
+        </div>
+
+        <div className="my-2 h-px bg-[var(--border-primary)]" />
+
+        {/* Time Tracking Dashboard */}
+        <div className="mb-2">
+          <Link
+            href="/time"
+            className={cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+              isActive('/time')
+                ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
+                : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+            )}
+          >
+            <Timer className="h-4 w-4 text-[var(--color-primary)]" />
+            <span>Časovač</span>
+          </Link>
         </div>
 
         <div className="my-2 h-px bg-[var(--border-primary)]" />
