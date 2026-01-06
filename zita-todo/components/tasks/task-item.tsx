@@ -282,12 +282,7 @@ export function TaskItem({
         {/* Right side: Time tracker, Deadline, Avatar */}
         <div className="flex items-center gap-2 shrink-0">
           {/* Inline Time Tracker */}
-          <InlineTimeTracker
-            taskId={task.id}
-            taskAssigneeId={task.assignee_id}
-            taskCreatedBy={task.created_by}
-            totalTimeSeconds={task.total_time_seconds || 0}
-          />
+          <InlineTimeTracker taskId={task.id} />
 
           {/* Deadline badge */}
           <DeadlineBadge value={task.deadline} />

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Tag, FolderOpen, Layers, Flag, User, X, Trash2 } from 'lucide-react'
+import { Tag, FolderOpen, Layers, Flag, User, X, Trash2, Clock } from 'lucide-react'
 import { TaskWithRelations, WhenType } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar } from '@/components/ui/avatar'
@@ -11,6 +11,7 @@ import { InlineWhenPicker } from './inline-when-picker'
 import { InlineDeadlinePicker } from './inline-deadline-picker'
 import { InlineTagSelector } from './inline-tag-selector'
 import { InlineLocationSelector } from './inline-location-selector'
+import { InlineTimeTracker } from './inline-time-tracker'
 
 interface TaskItemExpandedProps {
   task: TaskWithRelations
@@ -157,6 +158,12 @@ export function TaskItemExpanded({
 
         {/* Toolbar icons (right side) */}
         <div className="flex items-center gap-1">
+          {/* Time Tracker */}
+          <InlineTimeTracker taskId={task.id} />
+
+          {/* Divider */}
+          <div className="w-px h-5 bg-[var(--border-primary)] mx-1" />
+
           {/* Tags */}
           <InlineTagSelector
             taskId={task.id}

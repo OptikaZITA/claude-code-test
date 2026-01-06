@@ -14,7 +14,6 @@ import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
-import { Timer } from '@/components/time-tracking/timer'
 import { TimeEntriesList } from '@/components/time-tracking/time-entries-list'
 import { Checklist } from '@/components/tasks/checklist'
 import { TagSelector } from '@/components/tags'
@@ -22,6 +21,9 @@ import { WhenPicker } from '@/components/tasks/when-picker'
 import { DeadlinePicker } from '@/components/tasks/deadline-picker'
 import { ProjectSelector } from '@/components/tasks/project-selector'
 import { AssigneeSelector } from '@/components/tasks/assignee-selector'
+import { InlineTimeTracker } from '@/components/tasks/inline-time-tracker'
+import { useGlobalTimerContext } from '@/lib/contexts/global-timer-context'
+import { useTaskTimeTotal } from '@/lib/hooks/use-task-time-total'
 import { useTimeTracking } from '@/lib/hooks/use-time-tracking'
 import { formatDurationShort } from '@/lib/utils/date'
 import { cn } from '@/lib/utils/cn'
@@ -56,15 +58,12 @@ export function TaskDetail({
   const [showTimeEntries, setShowTimeEntries] = useState(false)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
 
-  const {
-    timeEntries,
-    elapsedSeconds,
-    totalTime,
-    isRunning,
-    startTimer,
-    stopTimer,
-    deleteTimeEntry,
-  } = useTimeTracking(task.id)
+  const { timeEntries, deleteTimeEntry } = useTimeTracking(task.id)
+  const { totalSeconds } = useTaskTimeTotal(task.id)
+  const { isRunning, currentTaskId, elapsedSeconds } = useGlobalTimerContext()
+
+  const isThisTaskRunning = isRunning && currentTaskId === task.id
+  const displayTotalSeconds = isThisTaskRunning ? totalSeconds + elapsedSeconds : totalSeconds
 
   const isCompleted = task.status === 'done'
 
@@ -282,17 +281,10 @@ export function TaskDetail({
                 </p>
                 <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                   <Clock className="h-3 w-3" />
-                  <span>Celkovo: {formatDurationShort(task.total_time_seconds || totalTime)}</span>
+                  <span>Celkovo: {formatDurationShort(displayTotalSeconds)}</span>
                 </div>
               </div>
-              <Timer
-                elapsedSeconds={elapsedSeconds}
-                totalSeconds={totalTime}
-                isRunning={isRunning}
-                onStart={startTimer}
-                onStop={stopTimer}
-                size="lg"
-              />
+              <InlineTimeTracker taskId={task.id} />
             </div>
 
             {/* Time entries toggle */}

@@ -8,6 +8,7 @@ import { MobileNav } from '@/components/layout/mobile-nav'
 import { KeyboardShortcutsModal } from '@/components/ui/keyboard-shortcuts-modal'
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts'
 import { SidebarDropProvider } from '@/lib/contexts/sidebar-drop-context'
+import { GlobalTimerProvider } from '@/lib/contexts/global-timer-context'
 import { ProjectFormModal } from '@/components/projects/project-form-modal'
 import { CalendarDropPicker } from '@/components/layout/calendar-drop-picker'
 
@@ -156,47 +157,49 @@ export default function DashboardLayout({
   }
 
   return (
-    <SidebarDropProvider>
-      <div className="flex h-screen bg-[var(--bg-secondary)]">
-        {/* Desktop Sidebar */}
-        <div className="hidden lg:block">
-          <Sidebar
-            user={user}
-            areas={areas}
-            onLogout={handleLogout}
-            onCreateProject={handleCreateProject}
+    <GlobalTimerProvider>
+      <SidebarDropProvider>
+        <div className="flex h-screen bg-[var(--bg-secondary)]">
+          {/* Desktop Sidebar */}
+          <div className="hidden lg:block">
+            <Sidebar
+              user={user}
+              areas={areas}
+              onLogout={handleLogout}
+              onCreateProject={handleCreateProject}
+            />
+          </div>
+
+          {/* Mobile Navigation */}
+          <MobileNav />
+
+          {/* Main Content */}
+          <main className="flex-1 overflow-auto pt-14 lg:pt-0 pb-16 lg:pb-0">
+            {children}
+          </main>
+
+          {/* Keyboard Shortcuts Modal */}
+          <KeyboardShortcutsModal
+            isOpen={showHelp}
+            onClose={() => setShowHelp(false)}
+            shortcuts={shortcuts}
           />
+
+          {/* Project Form Modal */}
+          <ProjectFormModal
+            isOpen={showProjectForm}
+            onClose={() => {
+              setShowProjectForm(false)
+              setSelectedAreaIdForProject(undefined)
+            }}
+            onSuccess={refetchAreas}
+            preselectedAreaId={selectedAreaIdForProject}
+          />
+
+          {/* Calendar Drop Picker Modal */}
+          <CalendarDropPicker />
         </div>
-
-        {/* Mobile Navigation */}
-        <MobileNav />
-
-        {/* Main Content */}
-        <main className="flex-1 overflow-auto pt-14 lg:pt-0 pb-16 lg:pb-0">
-          {children}
-        </main>
-
-        {/* Keyboard Shortcuts Modal */}
-        <KeyboardShortcutsModal
-          isOpen={showHelp}
-          onClose={() => setShowHelp(false)}
-          shortcuts={shortcuts}
-        />
-
-        {/* Project Form Modal */}
-        <ProjectFormModal
-          isOpen={showProjectForm}
-          onClose={() => {
-            setShowProjectForm(false)
-            setSelectedAreaIdForProject(undefined)
-          }}
-          onSuccess={refetchAreas}
-          preselectedAreaId={selectedAreaIdForProject}
-        />
-
-        {/* Calendar Drop Picker Modal */}
-        <CalendarDropPicker />
-      </div>
-    </SidebarDropProvider>
+      </SidebarDropProvider>
+    </GlobalTimerProvider>
   )
 }

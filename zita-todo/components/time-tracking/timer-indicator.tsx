@@ -1,18 +1,25 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { Clock, Square, X } from 'lucide-react'
-import { useGlobalTimer } from '@/lib/hooks/use-time-tracking'
+import { useGlobalTimerContext } from '@/lib/contexts/global-timer-context'
 import { formatDurationShort } from '@/lib/utils/date'
 import { cn } from '@/lib/utils/cn'
 
 export function TimerIndicator() {
-  const { activeTimer, elapsedSeconds, isRunning, stopTimer } = useGlobalTimer()
+  const {
+    isRunning,
+    elapsedSeconds,
+    currentTask,
+    startedAt,
+    stopTimer,
+    loading,
+  } = useGlobalTimerContext()
+
   const [isExpanded, setIsExpanded] = useState(false)
   const [isStopping, setIsStopping] = useState(false)
 
-  if (!isRunning || !activeTimer) return null
+  if (loading || !isRunning) return null
 
   const handleStop = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -20,6 +27,7 @@ export function TimerIndicator() {
     setIsStopping(true)
     try {
       await stopTimer()
+      setIsExpanded(false)
     } catch (error) {
       console.error('Error stopping timer:', error)
     } finally {
@@ -54,13 +62,13 @@ export function TimerIndicator() {
           />
 
           {/* Panel */}
-          <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-xl border border-[var(--bg-secondary)] bg-[var(--bg-primary)] shadow-lg">
+          <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-lg">
             <div className="p-4">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-[var(--color-success)] animate-pulse" />
                   <span className="text-xs font-medium text-[var(--color-success)]">
-                    Timer beží
+                    Timer bezi
                   </span>
                 </div>
                 <button
@@ -72,16 +80,10 @@ export function TimerIndicator() {
               </div>
 
               {/* Task info */}
-              {activeTimer.task && (
-                <Link
-                  href={`/projects/${activeTimer.task.id}`}
-                  className="block mb-3"
-                  onClick={() => setIsExpanded(false)}
-                >
-                  <p className="text-sm font-medium text-[var(--text-primary)] line-clamp-2 hover:text-[var(--color-primary)]">
-                    {activeTimer.task.title}
-                  </p>
-                </Link>
+              {currentTask && (
+                <p className="text-sm font-medium text-[var(--text-primary)] line-clamp-2 mb-3">
+                  {currentTask.title}
+                </p>
               )}
 
               {/* Timer display */}
@@ -89,12 +91,14 @@ export function TimerIndicator() {
                 <p className="text-3xl font-mono font-bold text-[var(--text-primary)]">
                   {formatDurationShort(elapsedSeconds)}
                 </p>
-                <p className="text-xs text-[var(--text-secondary)] mt-1">
-                  Začaté {new Date(activeTimer.entry.started_at).toLocaleTimeString('sk-SK', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </p>
+                {startedAt && (
+                  <p className="text-xs text-[var(--text-secondary)] mt-1">
+                    Zacate {startedAt.toLocaleTimeString('sk-SK', {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                )}
               </div>
 
               {/* Stop button */}
@@ -108,7 +112,7 @@ export function TimerIndicator() {
                 )}
               >
                 <Square className="w-4 h-4" />
-                {isStopping ? 'Zastavujem...' : 'Zastaviť'}
+                {isStopping ? 'Zastavujem...' : 'Zastavit'}
               </button>
             </div>
           </div>
@@ -120,10 +124,10 @@ export function TimerIndicator() {
 
 // Compact version for mobile
 export function TimerIndicatorCompact() {
-  const { activeTimer, elapsedSeconds, isRunning, stopTimer } = useGlobalTimer()
+  const { isRunning, elapsedSeconds, stopTimer, loading } = useGlobalTimerContext()
   const [isStopping, setIsStopping] = useState(false)
 
-  if (!isRunning || !activeTimer) return null
+  if (loading || !isRunning) return null
 
   const handleStop = async () => {
     setIsStopping(true)
