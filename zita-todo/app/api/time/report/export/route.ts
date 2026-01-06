@@ -54,7 +54,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         user_id,
         area_id,
         project_id,
-        todo_id,
+        task_id,
         users!inner (
           id,
           full_name,
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           id,
           name
         ),
-        tasks!time_entries_todo_id_fkey (
+        tasks (
           id,
           title
         )
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Filter by tags if needed
     let filteredEntries = rawEntries || []
     if (tagIds.length > 0 && filteredEntries.length > 0) {
-      const taskIds = filteredEntries.map(e => e.todo_id).filter(Boolean)
+      const taskIds = filteredEntries.map(e => e.task_id).filter(Boolean)
 
       const { data: taggedTasks } = await supabase
         .from('item_tags')
@@ -115,11 +115,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         .in('item_id', taskIds)
 
       const taggedTaskIds = new Set(taggedTasks?.map(t => t.item_id) || [])
-      filteredEntries = filteredEntries.filter(e => taggedTaskIds.has(e.todo_id))
+      filteredEntries = filteredEntries.filter(e => taggedTaskIds.has(e.task_id))
     }
 
     // Get tags for each task
-    const taskIds = [...new Set(filteredEntries.map(e => e.todo_id).filter(Boolean))]
+    const taskIds = [...new Set(filteredEntries.map(e => e.task_id).filter(Boolean))]
     let taskTagsMap = new Map<string, string[]>()
 
     if (taskIds.length > 0) {
@@ -154,7 +154,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const areaData = e.areas as any
       const projectData = e.projects as any
       const taskData = e.tasks as any
-      const tags = taskTagsMap.get(e.todo_id) || []
+      const tags = taskTagsMap.get(e.task_id) || []
 
       const date = e.started_at.split('T')[0]
       const userName = userData?.nickname || userData?.full_name || ''
