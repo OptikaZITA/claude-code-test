@@ -148,7 +148,7 @@ export function TaskDetail({
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <div className="flex h-full flex-col">
         {/* Header - Title with checkbox */}
-        <div className="flex items-start gap-3 border-b border-[var(--border-primary)] p-4">
+        <div className="flex items-start gap-3 border-b border-[var(--border)] p-4">
           <div className="pt-1">
             <Checkbox
               checked={isCompleted}
@@ -172,8 +172,8 @@ export function TaskDetail({
                 }}
                 className={cn(
                   'w-full text-lg font-semibold bg-transparent outline-none',
-                  'text-[var(--text-primary)]',
-                  'border-b-2 border-[var(--color-primary)]'
+                  'text-foreground',
+                  'border-b-2 border-primary'
                 )}
                 autoFocus
               />
@@ -181,9 +181,9 @@ export function TaskDetail({
               <h2
                 onClick={() => setIsEditingTitle(true)}
                 className={cn(
-                  'text-lg font-semibold cursor-text hover:bg-[var(--bg-secondary)] rounded px-1 -mx-1',
-                  'text-[var(--text-primary)]',
-                  isCompleted && 'line-through text-[var(--text-secondary)]'
+                  'text-lg font-semibold cursor-text hover:bg-muted rounded px-1 -mx-1',
+                  'text-foreground',
+                  isCompleted && 'line-through text-muted-foreground'
                 )}
               >
                 {title}
@@ -193,7 +193,7 @@ export function TaskDetail({
 
           <button
             onClick={onClose}
-            className="rounded p-1 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-secondary)]"
+            className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted"
           >
             <X className="h-5 w-5" />
           </button>
@@ -203,7 +203,7 @@ export function TaskDetail({
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {/* Tags Row */}
           <div className="flex items-start gap-3">
-            <Tag className="h-4 w-4 text-[var(--text-secondary)] mt-2 shrink-0" />
+            <Tag className="h-4 w-4 text-muted-foreground mt-2 shrink-0" />
             <TagSelector
               taskId={task.id}
               selectedTags={task.tags || []}
@@ -214,7 +214,7 @@ export function TaskDetail({
 
           {/* When Row */}
           <div className="flex items-center gap-3">
-            <span className="text-sm text-[var(--text-secondary)] w-20">Kedy:</span>
+            <span className="text-sm text-muted-foreground w-20">Kedy:</span>
             <WhenPicker
               value={whenType}
               whenDate={whenDate}
@@ -224,7 +224,7 @@ export function TaskDetail({
 
           {/* Deadline Row */}
           <div className="flex items-center gap-3">
-            <span className="text-sm text-[var(--text-secondary)] w-20">Deadline:</span>
+            <span className="text-sm text-muted-foreground w-20">Deadline:</span>
             <DeadlinePicker
               value={deadline}
               onChange={handleDeadlineChange}
@@ -233,7 +233,7 @@ export function TaskDetail({
 
           {/* Project Row */}
           <div className="flex items-center gap-3">
-            <span className="text-sm text-[var(--text-secondary)] w-20">Projekt:</span>
+            <span className="text-sm text-muted-foreground w-20">Projekt:</span>
             <ProjectSelector
               value={project}
               onChange={handleProjectChange}
@@ -242,7 +242,7 @@ export function TaskDetail({
 
           {/* Assignee Row */}
           <div className="flex items-center gap-3">
-            <span className="text-sm text-[var(--text-secondary)] w-20">Pridelene:</span>
+            <span className="text-sm text-muted-foreground w-20">Pridelene:</span>
             <AssigneeSelector
               value={assignee}
               onChange={handleAssigneeChange}
@@ -251,7 +251,7 @@ export function TaskDetail({
 
           {/* Notes Section */}
           <div className="pt-2">
-            <label className="mb-2 block text-sm font-medium text-[var(--text-primary)]">
+            <label className="mb-2 block text-sm font-medium text-foreground">
               Poznamky
             </label>
             <Textarea
@@ -265,7 +265,7 @@ export function TaskDetail({
           </div>
 
           {/* Checklist Section */}
-          <div className="rounded-xl bg-[var(--bg-secondary)] p-4">
+          <div className="rounded-[var(--radius-lg)] bg-muted p-4">
             <Checklist
               items={checklistItems}
               onChange={handleChecklistChange}
@@ -273,13 +273,13 @@ export function TaskDetail({
           </div>
 
           {/* Time Tracking Section */}
-          <div className="rounded-xl bg-[var(--bg-secondary)] p-4">
+          <div className="rounded-[var(--radius-lg)] bg-muted p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="mb-1 text-sm font-medium text-[var(--text-primary)]">
+                <p className="mb-1 text-sm font-medium text-foreground">
                   Sledovanie casu
                 </p>
-                <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Clock className="h-3 w-3" />
                   <span>Celkovo: {formatDurationShort(displayTotalSeconds)}</span>
                 </div>
@@ -290,7 +290,7 @@ export function TaskDetail({
             {/* Time entries toggle */}
             <button
               onClick={() => setShowTimeEntries(!showTimeEntries)}
-              className="mt-3 flex w-full items-center justify-between text-sm text-[var(--color-primary)]"
+              className="mt-3 flex w-full items-center justify-between text-sm text-primary"
             >
               <span>Zobrazit zaznamy ({timeEntries.length})</span>
               {showTimeEntries ? (
@@ -312,12 +312,12 @@ export function TaskDetail({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t border-[var(--border-primary)] p-4">
+        <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] p-4">
           {onDelete && (
             <Button
               variant="ghost"
               onClick={onDelete}
-              className="text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
+              className="text-error hover:bg-error/10"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Odstranit

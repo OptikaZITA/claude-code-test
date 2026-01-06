@@ -239,7 +239,7 @@ export function TaskList({
 
       {tasks.length === 0 ? (
         emptyMessage ? (
-          <div className="py-8 text-center text-[var(--text-secondary)]">
+          <div className="py-8 text-center text-muted-foreground">
             {emptyMessage}
           </div>
         ) : null
