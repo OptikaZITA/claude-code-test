@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 6. januára 2026
-**Verzia špecifikácie**: 2.12 (Time Tracking Dashboard)
+**Verzia špecifikácie**: 2.13 (Unified Timer UX)
 
 ---
 
@@ -744,7 +744,8 @@ zita-todo/
 │   ├── contexts/
 │   │   ├── toast-context.tsx
 │   │   ├── theme-context.tsx
-│   │   └── sidebar-drop-context.tsx      # NOVÉ v2.3 - Drag & drop stav
+│   │   ├── sidebar-drop-context.tsx      # NOVÉ v2.3 - Drag & drop stav
+│   │   └── global-timer-context.tsx      # NOVÉ v2.13 - Unified timer state
 │   ├── hooks/
 │   │   ├── use-tasks.ts              # + useTodayTasks, useUpcomingTasks, useAnytimeTasks, useSomedayTasks, useLogbookTasks, useTrashTasks
 │   │   ├── use-task-counts.ts        # NOVÉ v2.4 - Počítadlá úloh pre sidebar
@@ -757,6 +758,7 @@ zita-todo/
 │   │   ├── use-tags.ts               # NOVÉ v2.3 - Tags CRUD hook
 │   │   ├── use-task-moved.ts         # NOVÉ v2.3 - Event listener pre refresh
 │   │   ├── use-time-tracking.ts      # + useGlobalTimer, useTimeTotals
+│   │   ├── use-task-time-total.ts    # NOVÉ v2.13 - Total time per task
 │   │   ├── use-organization.ts
 │   │   ├── use-realtime.ts
 │   │   ├── use-realtime-tasks.ts
@@ -1164,6 +1166,55 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.13 (6. januára 2026)
+**Unified Timer UX - Jeden zdroj pravdy:**
+
+Kompletný refaktor time trackingu s jedným globálnym zdrojom pravdy pre konzistentné zobrazenie času naprieč celou aplikáciou.
+
+**Nový context:**
+- ✅ `lib/contexts/global-timer-context.tsx` - GlobalTimerProvider ako jediný zdroj pravdy
+  - `isRunning`, `currentTaskId`, `elapsedSeconds`, `currentTask`
+  - `startTimer(taskId)`, `stopTimer()`
+  - Automatické zastavenie existujúceho timera pri spustení nového
+  - Custom events `timer:started` a `timer:stopped` pre cross-component komunikáciu
+
+**Nový hook:**
+- ✅ `lib/hooks/use-task-time-total.ts` - Hook pre celkový čas tasku z DB
+  - Počúva na `timer:stopped` event pre optimistickú aktualizáciu
+  - Automatický refetch pri zmene taskId
+
+**Refaktorované komponenty:**
+- ✅ `components/tasks/inline-time-tracker.tsx` - Kompletný prepis
+  - Používa GlobalTimerContext namiesto lokálneho stavu
+  - Zobrazuje `totalSeconds + elapsedSeconds` keď timer beží na danom tasku
+  - Jeden komponent pre všetky views (task-item, task-item-expanded, task-detail)
+- ✅ `components/time-tracking/timer-indicator.tsx` - Refaktor na context
+  - Zobrazuje názov tasku v rozbalenom paneli
+- ✅ `components/tasks/task-item.tsx` - Zjednodušené props pre InlineTimeTracker
+- ✅ `components/tasks/task-item-expanded.tsx` - Pridaný InlineTimeTracker do toolbaru
+- ✅ `components/tasks/task-detail.tsx` - Aktualizovaný na nový context
+
+**Layout:**
+- ✅ `app/(dashboard)/layout.tsx` - GlobalTimerProvider obaluje celú dashboard sekciu
+
+**Pravidlá UX:**
+1. **Header badge** = globálny indikátor (vždy viditeľný keď timer beží)
+2. **V zozname taskov** = celkový čas + live elapsed ak beží na tomto tasku
+3. **V rozbalenom tasku** = rovnaký InlineTimeTracker (nie duplikát)
+4. **Jeden timer globálne** = spustenie nového automaticky zastaví predchádzajúci
+
+**Výsledné správanie:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ ZITA TODO                              [🟢 00:12]               │  ← Header
+├─────────────────────────────────────────────────────────────────┤
+│ ☆ úloha A      [⏸ 5:12]  ← total (5:00) + live (0:12)          │
+│ ☆ úloha B      [▶ 2:30]  ← statický total                      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
 
 ### v2.12 (6. januára 2026)
 **Time Tracking Dashboard:**
