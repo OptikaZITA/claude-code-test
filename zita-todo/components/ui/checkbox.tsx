@@ -8,9 +8,16 @@ interface CheckboxProps {
   checked?: boolean
   onChange?: (checked: boolean) => void
   className?: string
+  /** Use circular style (Things 3 style) */
+  circular?: boolean
 }
 
-export function Checkbox({ checked = false, onChange, className }: CheckboxProps) {
+export function Checkbox({
+  checked = false,
+  onChange,
+  className,
+  circular = true, // Default to circular per design spec
+}: CheckboxProps) {
   return (
     <button
       type="button"
@@ -18,14 +25,19 @@ export function Checkbox({ checked = false, onChange, className }: CheckboxProps
       aria-checked={checked}
       onClick={() => onChange?.(!checked)}
       className={cn(
-        'flex h-5 w-5 items-center justify-center rounded border-2 transition-colors',
+        'flex items-center justify-center border-2 transition-all',
+        // Size
+        'h-5 w-5',
+        // Shape - circular by default (Things 3 style)
+        circular ? 'rounded-full' : 'rounded-[var(--radius-sm)]',
+        // States
         checked
-          ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
-          : 'border-[var(--border-primary)] hover:border-[var(--color-primary)]',
+          ? 'border-success bg-success text-white'
+          : 'border-primary bg-transparent hover:border-primary/70 hover:bg-primary/5',
         className
       )}
     >
-      {checked && <Check className="h-3 w-3" />}
+      {checked && <Check className="h-3 w-3" strokeWidth={3} />}
     </button>
   )
 }

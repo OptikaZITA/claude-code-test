@@ -42,22 +42,27 @@ export function Modal({ isOpen, onClose, title, children, className, size = 'md'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 dark:bg-black/70"
+        className="fixed inset-0 bg-black/50 dark:bg-black/70 animate-fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
+      {/* Modal content */}
       <div
         className={cn(
-          'relative z-50 w-full rounded-xl bg-[var(--bg-primary)] p-6 shadow-lg animate-in fade-in zoom-in-95 duration-200 border border-[var(--border-primary)]',
+          'relative z-50 w-full p-6',
+          'rounded-[var(--radius-lg)] border border-[var(--border)]',
+          'bg-card text-foreground',
+          'shadow-lg animate-scale-in',
           sizeClasses[size],
           className
         )}
       >
         {title && (
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h2>
-            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
+            <h2 className="font-heading text-lg font-semibold text-foreground">{title}</h2>
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0 hover:bg-accent/50">
               <X className="h-4 w-4" />
             </Button>
           </div>
