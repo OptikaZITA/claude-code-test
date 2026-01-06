@@ -115,7 +115,7 @@ export function EmailSettings({ integration, onUpdate, onTest }: EmailSettingsPr
                   onClick={handleSaveEmail}
                   disabled={!email || !isValidEmail(email) || email === integration.email}
                 >
-                  Ulozit
+                  Uložiť
                 </Button>
                 <Button
                   variant="ghost"
@@ -123,12 +123,12 @@ export function EmailSettings({ integration, onUpdate, onTest }: EmailSettingsPr
                   onClick={handleTest}
                   disabled={!email || !isValidEmail(email) || isTesting}
                 >
-                  {isTesting ? 'Posielam...' : 'Poslat testovaci email'}
+                  {isTesting ? 'Posielam...' : 'Poslať testovací email'}
                 </Button>
                 {testResult === 'success' && (
                   <span className="flex items-center gap-1 text-sm text-[var(--color-success)]">
                     <Check className="h-4 w-4" />
-                    Odoslane
+                    Odoslané
                   </span>
                 )}
                 {testResult === 'error' && (
@@ -147,7 +147,7 @@ export function EmailSettings({ integration, onUpdate, onTest }: EmailSettingsPr
               <div className="flex items-center gap-2 mb-3">
                 <Clock className="h-4 w-4 text-[var(--text-secondary)]" />
                 <label className="text-sm font-medium text-[var(--text-primary)]">
-                  Cas denneho prehľadu
+                  Čas denného prehľadu
                 </label>
               </div>
               <div className="flex items-center gap-3">
@@ -163,7 +163,7 @@ export function EmailSettings({ integration, onUpdate, onTest }: EmailSettingsPr
                   onClick={() => onUpdate({ digestTime })}
                   disabled={digestTime === integration.digestTime}
                 >
-                  Ulozit
+                  Uložiť
                 </Button>
                 <span className="text-sm text-[var(--text-secondary)]">
                   Denne o {digestTime}

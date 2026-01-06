@@ -130,7 +130,7 @@ export function SlackSettings({ integration, onUpdate, onTest }: SlackSettingsPr
                   onClick={handleSaveWebhook}
                   disabled={!webhookUrl || webhookUrl === integration.webhookUrl}
                 >
-                  Ulozit
+                  Uložiť
                 </Button>
                 <Button
                   variant="ghost"
@@ -138,12 +138,12 @@ export function SlackSettings({ integration, onUpdate, onTest }: SlackSettingsPr
                   onClick={handleTest}
                   disabled={!webhookUrl || isTesting}
                 >
-                  {isTesting ? 'Testujem...' : 'Testovat spojenie'}
+                  {isTesting ? 'Testujem...' : 'Testovať spojenie'}
                 </Button>
                 {testResult === 'success' && (
                   <span className="flex items-center gap-1 text-sm text-[var(--color-success)]">
                     <Check className="h-4 w-4" />
-                    Uspesne
+                    Úspešne
                   </span>
                 )}
                 {testResult === 'error' && (
@@ -160,44 +160,44 @@ export function SlackSettings({ integration, onUpdate, onTest }: SlackSettingsPr
           <div className="flex items-start gap-3 rounded-lg bg-[var(--color-warning)]/10 p-4">
             <AlertTriangle className="h-5 w-5 flex-shrink-0 text-[var(--color-warning)]" />
             <div className="text-sm">
-              <p className="font-medium text-[var(--text-primary)]">Poznamka k CORS</p>
+              <p className="font-medium text-[var(--text-primary)]">Poznámka k CORS</p>
               <p className="text-[var(--text-secondary)]">
-                Priame volanie Slack webhookov z prehliadaca moze byt blokovane kvoli CORS.
-                Pre plnu funkcnost je potrebna serverova implementacia.
+                Priame volanie Slack webhookov z prehliadača môže byť blokované kvôli CORS.
+                Pre plnú funkčnosť je potrebná serverová implementácia.
               </p>
             </div>
           </div>
 
           {/* Notification Types */}
           <div className="space-y-3">
-            <p className="text-sm font-medium text-[var(--text-primary)]">Typy notifikacii</p>
+            <p className="text-sm font-medium text-[var(--text-primary)]">Typy notifikácií</p>
             <NotificationOption
-              title="Vytvorene ulohy"
-              description="Ked sa vytvori nova uloha"
+              title="Vytvorené úlohy"
+              description="Keď sa vytvorí nová úloha"
               checked={integration.notifications.taskCreated}
               onChange={() => handleNotificationToggle('taskCreated')}
             />
             <NotificationOption
-              title="Dokoncene ulohy"
-              description="Ked sa uloha oznaci ako dokoncena"
+              title="Dokončené úlohy"
+              description="Keď sa úloha označí ako dokončená"
               checked={integration.notifications.taskCompleted}
               onChange={() => handleNotificationToggle('taskCompleted')}
             />
             <NotificationOption
-              title="Priradene ulohy"
-              description="Ked sa niekomu priradi uloha"
+              title="Priradené úlohy"
+              description="Keď sa niekomu priradí úloha"
               checked={integration.notifications.taskAssigned}
               onChange={() => handleNotificationToggle('taskAssigned')}
             />
             <NotificationOption
-              title="Bliziaci sa termin"
-              description="Pripomienka pred terminom splnenia"
+              title="Blížiaci sa termín"
+              description="Pripomienka pred termínom splnenia"
               checked={integration.notifications.taskDueSoon}
               onChange={() => handleNotificationToggle('taskDueSoon')}
             />
             <NotificationOption
-              title="Komentare"
-              description="Nove komentare k uloham"
+              title="Komentáre"
+              description="Nové komentáre k úlohám"
               checked={integration.notifications.commentAdded}
               onChange={() => handleNotificationToggle('commentAdded')}
             />

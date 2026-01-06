@@ -47,7 +47,7 @@ export function TaskList({
   onTaskDelete,
   onQuickAdd,
   onReorder,
-  emptyMessage = 'Ziadne ulohy',
+  emptyMessage = 'Žiadne úlohy',
   showQuickAdd = true,
   enableDrag = true,
   enableReorder = true,

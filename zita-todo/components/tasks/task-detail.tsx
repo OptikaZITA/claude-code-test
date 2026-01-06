@@ -259,7 +259,7 @@ export function TaskDetail({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               onBlur={handleNotesBlur}
-              placeholder="Pridat poznamky..."
+              placeholder="Pridať poznámky..."
               rows={3}
               className="resize-none"
             />

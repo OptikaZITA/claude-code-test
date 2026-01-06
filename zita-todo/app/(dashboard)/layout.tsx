@@ -16,7 +16,7 @@ interface User {
   nickname: string | null
   email: string
   avatar_url: string | null
-  role: 'admin' | 'strategicka_rada' | 'hr' | 'member' | null
+  role?: 'admin' | 'strategicka_rada' | 'hr' | 'member'
 }
 
 interface Area {
@@ -85,7 +85,7 @@ export default function DashboardLayout({
           nickname: null,
           email: authUser.email || '',
           avatar_url: null,
-          role: null
+          role: undefined
         })
       }
 

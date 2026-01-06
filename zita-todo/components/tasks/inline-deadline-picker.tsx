@@ -173,7 +173,7 @@ export function InlineDeadlinePicker({
                 className="flex items-center justify-center gap-2 w-full py-2 text-sm text-[var(--color-error)] hover:bg-[var(--color-error)]/10 rounded-lg transition-colors"
               >
                 <X className="w-4 h-4" />
-                <span>Zrusit deadline</span>
+                <span>Zrušiť deadline</span>
               </button>
             </div>
           )}

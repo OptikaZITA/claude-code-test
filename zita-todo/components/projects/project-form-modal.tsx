@@ -73,7 +73,7 @@ export function ProjectFormModal({
     e.preventDefault()
 
     if (!name.trim()) {
-      setError('Nazov je povinny')
+      setError('Názov je povinný')
       return
     }
 
@@ -87,7 +87,7 @@ export function ProjectFormModal({
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Nie ste prihlaseny')
+      if (!user) throw new Error('Nie ste prihlásení')
 
       const { error: insertError } = await supabase
         .from('projects')
@@ -107,7 +107,7 @@ export function ProjectFormModal({
       onClose()
     } catch (err: any) {
       console.error('Error creating project:', err)
-      setError(err?.message || 'Chyba pri vytvarani projektu')
+      setError(err?.message || 'Chyba pri vytváraní projektu')
     } finally {
       setLoading(false)
     }
@@ -122,16 +122,16 @@ export function ProjectFormModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Novy projekt" size="sm">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Nový projekt" size="sm">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-            Nazov
+            Názov
           </label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="napr. Webova stranka, Marketing..."
+            placeholder="napr. Webová stránka, Marketing..."
             autoFocus
           />
         </div>
@@ -186,10 +186,10 @@ export function ProjectFormModal({
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={handleClose}>
-            Zrusit
+            Zrušiť
           </Button>
           <Button type="submit" disabled={loading || areas.length === 0}>
-            {loading ? 'Vytvaram...' : 'Vytvorit'}
+            {loading ? 'Vytváram...' : 'Vytvoriť'}
           </Button>
         </div>
       </form>

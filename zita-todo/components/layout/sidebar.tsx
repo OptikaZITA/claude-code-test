@@ -125,7 +125,7 @@ export function Sidebar({
             )}
           >
             <Users className="h-4 w-4" />
-            <span className="flex-1">Timovy Inbox</span>
+            <span className="flex-1">Tímový Inbox</span>
             {counts.teamInbox > 0 && (
               <span className="min-w-[20px] h-5 flex items-center justify-center rounded-full px-1.5 text-xs font-medium bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                 {counts.teamInbox > 99 ? '99+' : counts.teamInbox}
@@ -152,7 +152,7 @@ export function Sidebar({
             isActive={isActive('/upcoming')}
             dropTarget={{ type: 'when', value: 'scheduled' }}
             icon={<CalendarDays className="h-4 w-4 text-[var(--color-success)]" />}
-            label="Nadchadzajuce"
+            label="Nadchádzajúce"
             count={counts.upcoming}
           />
           <SidebarDropItem
@@ -160,7 +160,7 @@ export function Sidebar({
             isActive={isActive('/anytime')}
             dropTarget={{ type: 'when', value: 'anytime' }}
             icon={<Clock className="h-4 w-4 text-[var(--color-primary)]" />}
-            label="Kedykolvek"
+            label="Kedykoľvek"
             count={counts.anytime}
           />
           <Link
@@ -278,7 +278,7 @@ export function Sidebar({
       {/* Drag indicator */}
       {isDragging && (
         <div className="mx-2 mb-2 rounded-lg bg-[var(--color-primary)]/10 p-3 text-center text-xs text-[var(--color-primary)]">
-          Potiahni ulohu na sekciu pre jej presun
+          Potiahni úlohu na sekciu pre jej presun
         </div>
       )}
 

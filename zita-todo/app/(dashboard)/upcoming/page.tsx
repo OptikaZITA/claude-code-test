@@ -209,11 +209,11 @@ export default function UpcomingPage() {
                 </h4>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-[var(--text-secondary)]">Celkom uloh</span>
+                    <span className="text-[var(--text-secondary)]">Celkom úloh</span>
                     <span className="font-medium text-[var(--text-primary)]">{filteredTasks.length}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-[var(--text-secondary)]">Dni s ulohami</span>
+                    <span className="text-[var(--text-secondary)]">Dni s úlohami</span>
                     <span className="font-medium text-[var(--text-primary)]">{groupedTasks.length}</span>
                   </div>
                 </div>
@@ -234,7 +234,7 @@ export default function UpcomingPage() {
                   onClick={() => setSelectedDate(null)}
                   className="ml-auto text-xs text-[var(--color-primary)] hover:underline"
                 >
-                  Zrusit vyber
+                  Zrušiť výber
                 </button>
               </div>
             )}
@@ -244,10 +244,10 @@ export default function UpcomingPage() {
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <CalendarDays className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
                 <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
-                  Ziadne naplanovane ulohy
+                  Žiadne naplánované úlohy
                 </p>
                 <p className="text-[var(--text-secondary)]">
-                  Naplanujte ulohy na konkretny datum
+                  Naplánujte úlohy na konkrétny dátum
                 </p>
               </div>
             ) : groupedTasks.length === 0 && hasActiveFilters ? (

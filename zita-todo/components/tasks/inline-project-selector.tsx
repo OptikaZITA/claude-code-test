@@ -107,7 +107,7 @@ export function InlineProjectSelector({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Hladat projekt..."
+              placeholder="Hľadať projekt..."
               className="w-full px-3 py-2 text-sm rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
             />
           </div>
@@ -136,11 +136,11 @@ export function InlineProjectSelector({
 
             {loading ? (
               <div className="py-4 text-center text-sm text-[var(--text-secondary)]">
-                Nacitavam...
+                Načítavam...
               </div>
             ) : filteredProjects.length === 0 ? (
               <div className="py-4 text-center text-sm text-[var(--text-secondary)]">
-                Ziadne projekty
+                Žiadne projekty
               </div>
             ) : (
               filteredProjects.map((project) => (

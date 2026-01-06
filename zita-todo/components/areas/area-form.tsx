@@ -29,7 +29,7 @@ export function AreaForm({
   onClose,
   onSubmit,
   initialData,
-  title = 'Nove oddelenie',
+  title = 'Nové oddelenie',
 }: AreaFormProps) {
   const [name, setName] = useState(initialData?.name || '')
   const [color, setColor] = useState(initialData?.color || PRESET_COLORS[0])
@@ -40,7 +40,7 @@ export function AreaForm({
     e.preventDefault()
 
     if (!name.trim()) {
-      setError('Nazov je povinny')
+      setError('Názov je povinný')
       return
     }
 
@@ -54,7 +54,7 @@ export function AreaForm({
       onClose()
     } catch (err: any) {
       console.error('Error creating area:', err)
-      setError(err?.message || 'Chyba pri vytvarani oddelenia')
+      setError(err?.message || 'Chyba pri vytváraní oddelenia')
     } finally {
       setLoading(false)
     }
@@ -72,12 +72,12 @@ export function AreaForm({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-            Nazov
+            Názov
           </label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="napr. Marketing, Vyvoj, Financie..."
+            placeholder="napr. Marketing, Vývoj, Financie..."
             autoFocus
           />
         </div>
@@ -109,10 +109,10 @@ export function AreaForm({
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={handleClose}>
-            Zrusit
+            Zrušiť
           </Button>
           <Button type="submit" disabled={loading}>
-            {loading ? 'Vytvaram...' : 'Vytvorit'}
+            {loading ? 'Vytváram...' : 'Vytvoriť'}
           </Button>
         </div>
       </form>

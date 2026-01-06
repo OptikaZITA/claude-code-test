@@ -122,7 +122,7 @@ export function TaskItemExpanded({
           onChange={(e) => setTitle(e.target.value)}
           onBlur={handleTitleBlur}
           onKeyDown={handleTitleKeyDown}
-          placeholder="Nazov ulohy"
+          placeholder="Názov úlohy"
           className={cn(
             'flex-1 bg-transparent text-base font-medium text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]',
             isCompleted && 'line-through text-[var(--text-secondary)]'
@@ -138,7 +138,7 @@ export function TaskItemExpanded({
           onChange={(e) => setNotes(e.target.value)}
           onBlur={handleNotesBlur}
           onKeyDown={handleNotesKeyDown}
-          placeholder="Poznamky..."
+          placeholder="Poznámky..."
           rows={1}
           className="w-full resize-none bg-transparent text-sm text-[var(--text-secondary)] outline-none placeholder:text-[var(--text-secondary)]/50"
         />

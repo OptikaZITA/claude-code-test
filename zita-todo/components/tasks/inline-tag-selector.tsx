@@ -125,7 +125,7 @@ export function InlineTagSelector({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Hladat alebo vytvorit..."
+              placeholder="Hľadať alebo vytvoriť..."
               className="w-full px-3 py-2 text-sm rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
             />
           </div>
@@ -134,11 +134,11 @@ export function InlineTagSelector({
           <div className="max-h-48 overflow-y-auto p-2">
             {loading ? (
               <div className="py-4 text-center text-sm text-[var(--text-secondary)]">
-                Nacitavam...
+                Načítavam...
               </div>
             ) : filteredTags.length === 0 && !search ? (
               <div className="py-4 text-center text-sm text-[var(--text-secondary)]">
-                Ziadne tagy
+                Žiadne tagy
               </div>
             ) : (
               <>

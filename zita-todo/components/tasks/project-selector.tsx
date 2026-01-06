@@ -138,11 +138,11 @@ export function ProjectSelector({
 
             {loading ? (
               <div className="py-4 text-center text-sm text-[var(--text-secondary)]">
-                Nacitavam...
+                Načítavam...
               </div>
             ) : filteredProjects.length === 0 ? (
               <div className="py-4 text-center text-sm text-[var(--text-secondary)]">
-                Ziadne projekty
+                Žiadne projekty
               </div>
             ) : (
               filteredProjects.map((project) => (

@@ -144,7 +144,7 @@ export function DeadlinePicker({
                 className="flex items-center gap-2 w-full px-3 py-2 text-left text-[var(--color-error)] hover:bg-[var(--bg-secondary)] transition-colors"
               >
                 <X className="h-4 w-4" />
-                <span className="text-sm">Zrusit deadline</span>
+                <span className="text-sm">Zrušiť deadline</span>
               </button>
             </div>
           )}

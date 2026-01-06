@@ -213,7 +213,7 @@ export function TaskItem({
         >
           <div className="flex flex-col items-center gap-1">
             <Trash2 className="h-5 w-5" />
-            <span className="text-xs font-medium">Vymazat</span>
+            <span className="text-xs font-medium">Vymazať</span>
           </div>
         </button>
       )}

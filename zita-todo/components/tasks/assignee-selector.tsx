@@ -147,11 +147,11 @@ export function AssigneeSelector({
 
             {loading ? (
               <div className="py-4 text-center text-sm text-[var(--text-secondary)]">
-                Nacitavam...
+                Načítavam...
               </div>
             ) : filteredUsers.length === 0 ? (
               <div className="py-4 text-center text-sm text-[var(--text-secondary)]">
-                Ziadni pouzivatelia
+                Žiadni používatelia
               </div>
             ) : (
               filteredUsers.map((user) => (

@@ -28,13 +28,13 @@ const whenOptions: { value: WhenType; label: string; icon: React.ReactNode; colo
   },
   {
     value: 'anytime',
-    label: 'Kedykolvek',
+    label: 'Kedykoľvek',
     icon: <Clock className="w-3.5 h-3.5" />,
     color: 'bg-[var(--color-primary)]/10 text-[var(--color-primary)] border-[var(--color-primary)]/30'
   },
   {
     value: 'scheduled',
-    label: 'Naplanovane',
+    label: 'Naplánované',
     icon: <Calendar className="w-3.5 h-3.5" />,
     color: 'bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/30'
   },
