@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 6. januára 2026
-**Verzia špecifikácie**: 2.10 (Slovak Diacritics + Nickname Display)
+**Verzia špecifikácie**: 2.11 (Calendar View Toggle)
 
 ---
 
@@ -1124,6 +1124,17 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
   - [x] Sidebar (Tímový inbox, Nadchádzajúce, Kedykoľvek)
   - [x] Formuláre (Nový projekt, Nové oddelenie, Zrušiť, Vytvoriť)
 
+### Funkcie v2.11 - VŠETKY DOKONČENÉ ✅
+- [x] **Calendar View Toggle** - Presun kalendára zo sidebaru do headera ako tretí view
+- [x] **ViewMode rozšírený** - `'list' | 'kanban' | 'calendar'`
+- [x] **CalendarView integrovaný** - Na všetkých stránkach s view toggle:
+  - [x] `today/page.tsx` - Kalendár pre dnešné úlohy
+  - [x] `inbox/page.tsx` - Kalendár pre inbox úlohy
+  - [x] `anytime/page.tsx` - Kalendár pre kedykoľvek úlohy
+  - [x] `projects/[projectId]/page.tsx` - Kalendár pre projektové úlohy
+  - [x] `areas/[areaId]/page.tsx` - Kalendár pre úlohy oddelenia
+- [x] **Sidebar zjednodušený** - Odstránená položka "Kalendár" z navigácie
+
 ---
 
 ## Známe problémy a riešenia
@@ -1153,6 +1164,80 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.11 (6. januára 2026)
+**Calendar View Toggle:**
+
+**Presun Kalendára zo sidebaru do headera:**
+Kalendár bol presunutý z navigácie v sidebari do headera ako tretí view toggle (List | Kanban | Calendar).
+
+**Zmeny v `components/ui/view-toggle.tsx`:**
+```typescript
+// PRED:
+export type ViewMode = 'list' | 'kanban'
+
+// PO:
+export type ViewMode = 'list' | 'kanban' | 'calendar'
+
+// Pridané tretie tlačidlo s Calendar ikonou
+<button onClick={() => onChange('calendar')} title="Kalendár">
+  <Calendar className="h-4 w-4" />
+</button>
+```
+
+**Zmeny v `components/layout/sidebar.tsx`:**
+- Odstránená navigačná položka "Kalendár"
+- Odstránený nepoužívaný `Calendar` import
+
+**CalendarView integrovaný do všetkých stránok s view toggle:**
+
+| Stránka | Súbor | Zmeny |
+|---------|-------|-------|
+| Dnes | `today/page.tsx` | Import CalendarView, calendar handlers, podmienené renderovanie |
+| Inbox | `inbox/page.tsx` | Import CalendarView, calendar handlers, podmienené renderovanie |
+| Kedykoľvek | `anytime/page.tsx` | Import CalendarView, calendar handlers, podmienené renderovanie |
+| Projekt | `projects/[projectId]/page.tsx` | Import CalendarView, calendar handlers, podmienené renderovanie |
+| Oddelenie | `areas/[areaId]/page.tsx` | Import CalendarView, calendar handlers, podmienené renderovanie |
+
+**Calendar handlers pattern:**
+```typescript
+// Calendar handlers
+const handleCalendarTaskMove = async (taskId: string, newDate: Date) => {
+  await updateTask(taskId, {
+    due_date: newDate.toISOString().split('T')[0],
+  })
+  refetch()
+}
+
+const handleCalendarDateClick = (date: Date) => {
+  console.log('Date clicked:', date)
+}
+
+// Podmienené renderovanie
+{viewMode === 'calendar' ? (
+  <CalendarView
+    tasks={filteredTasks}
+    onTaskClick={setSelectedTask}
+    onDateClick={handleCalendarDateClick}
+    onTaskMove={handleCalendarTaskMove}
+  />
+) : viewMode === 'kanban' ? (
+  <KanbanBoard ... />
+) : (
+  <TaskList ... />
+)}
+```
+
+**Upravené súbory:**
+- `components/ui/view-toggle.tsx` - Rozšírený ViewMode typ, pridaná Calendar ikona
+- `components/layout/sidebar.tsx` - Odstránený Kalendár z navigácie
+- `app/(dashboard)/today/page.tsx` - CalendarView integrácia
+- `app/(dashboard)/inbox/page.tsx` - CalendarView integrácia
+- `app/(dashboard)/anytime/page.tsx` - CalendarView integrácia
+- `app/(dashboard)/projects/[projectId]/page.tsx` - CalendarView integrácia
+- `app/(dashboard)/areas/[areaId]/page.tsx` - CalendarView integrácia
+
+---
 
 ### v2.10 (6. januára 2026)
 **Slovak Diacritics + Nickname Display:**
