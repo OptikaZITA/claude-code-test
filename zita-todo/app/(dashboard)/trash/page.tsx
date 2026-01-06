@@ -59,7 +59,7 @@ export default function TrashPage() {
   if (loading) {
     return (
       <div className="h-full">
-        <Header title="Kos" />
+        <Header title="Kôš" />
         <div className="flex items-center justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent" />
         </div>
@@ -69,7 +69,7 @@ export default function TrashPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <Header title="Kos">
+      <Header title="Kôš">
         <button
           onClick={() => setShowFilters(!showFilters)}
           className={`p-2 rounded-lg transition-colors ${
@@ -89,7 +89,7 @@ export default function TrashPage() {
             className="text-[var(--color-error)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Vyprazdnit kos
+            Vyprázdniť kôš
           </Button>
         )}
       </Header>
@@ -113,10 +113,10 @@ export default function TrashPage() {
             <AlertTriangle className="h-5 w-5 text-[var(--color-warning)] flex-shrink-0 mt-0.5" />
             <div className="text-sm">
               <p className="font-medium text-[var(--text-primary)]">
-                {filteredTasks.length} {filteredTasks.length === 1 ? 'polozka' : filteredTasks.length < 5 ? 'polozky' : 'poloziek'} v kosi
+                {filteredTasks.length} {filteredTasks.length === 1 ? 'položka' : filteredTasks.length < 5 ? 'položky' : 'položiek'} v koši
               </p>
               <p className="text-[var(--text-secondary)] mt-1">
-                Vymazane ulohy mozete obnovit alebo budu automaticky odstranene po 30 dnoch.
+                Vymazané úlohy môžete obnoviť alebo budú automaticky odstránené po 30 dňoch.
               </p>
             </div>
           </div>
@@ -127,10 +127,10 @@ export default function TrashPage() {
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Trash2 className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
             <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
-              Kos je prazdny
+              Kôš je prázdny
             </p>
             <p className="text-[var(--text-secondary)]">
-              Vymazane ulohy sa tu objavia
+              Vymazané úlohy sa tu objavia
             </p>
           </div>
         ) : filteredTasks.length === 0 && hasActiveFilters ? (
@@ -163,17 +163,17 @@ export default function TrashPage() {
       <Modal
         isOpen={confirmEmptyTrash}
         onClose={() => setConfirmEmptyTrash(false)}
-        title="Vyprazdnit kos"
+        title="Vyprázdniť kôš"
       >
         <div className="p-4">
           <div className="flex items-start gap-3 mb-4">
             <AlertTriangle className="h-6 w-6 text-[var(--color-error)] flex-shrink-0" />
             <div>
               <p className="text-[var(--text-primary)] font-medium">
-                Naozaj chcete vyprazdnit kos?
+                Naozaj chcete vyprázdniť kôš?
               </p>
               <p className="text-sm text-[var(--text-secondary)] mt-1">
-                Tato akcia je nevratna. Vsetky ulohy v kosi budu trvalo vymazane.
+                Táto akcia je nevrátna. Všetky úlohy v koši budú trvalo vymazané.
               </p>
             </div>
           </div>
@@ -182,14 +182,14 @@ export default function TrashPage() {
               variant="ghost"
               onClick={() => setConfirmEmptyTrash(false)}
             >
-              Zrusit
+              Zrušiť
             </Button>
             <Button
               variant="primary"
               onClick={handleEmptyTrash}
               className="bg-[var(--color-error)] hover:bg-[var(--color-error)]/90"
             >
-              Vyprazdnit kos
+              Vyprázdniť kôš
             </Button>
           </div>
         </div>
@@ -234,11 +234,11 @@ function TrashTaskItem({ task, onRestore, isRestoring, daysRemaining }: TrashTas
         </p>
         <div className="flex items-center gap-2 mt-1">
           <span className="text-xs text-[var(--text-secondary)]">
-            Vymazane {deletedTimeAgo}
+            Vymazané {deletedTimeAgo}
           </span>
           {daysRemaining <= 7 && (
             <span className="text-xs text-[var(--color-error)]">
-              {daysRemaining === 0 ? 'Bude vymazane dnes' : `Este ${daysRemaining} dni`}
+              {daysRemaining === 0 ? 'Bude vymazané dnes' : `Ešte ${daysRemaining} dní`}
             </span>
           )}
         </div>
@@ -270,7 +270,7 @@ function TrashTaskItem({ task, onRestore, isRestoring, daysRemaining }: TrashTas
         ) : (
           <>
             <RotateCcw className="h-4 w-4 mr-1.5" />
-            Obnovit
+            Obnoviť
           </>
         )}
       </Button>

@@ -176,11 +176,11 @@ export function MiniCalendar({
         <div className="flex items-center justify-center gap-4 text-[10px] text-[var(--text-secondary)]">
           <div className="flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-primary)]" />
-            <span>1-2 ulohy</span>
+            <span>1-2 úlohy</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-warning)]" />
-            <span>3+ ulohy</span>
+            <span>3+ úlohy</span>
           </div>
         </div>
       </div>

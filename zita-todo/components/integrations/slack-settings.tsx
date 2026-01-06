@@ -75,8 +75,8 @@ export function SlackSettings({ integration, onUpdate, onTest }: SlackSettingsPr
               <p className="font-medium text-[var(--text-primary)]">Slack</p>
               <p className="text-sm text-[var(--text-secondary)]">
                 {integration.enabled
-                  ? 'Integracia je aktivna'
-                  : 'Prijimajte notifikacie do Slack kanalu'}
+                  ? 'Integrácia je aktívna'
+                  : 'Prijímajte notifikácie do Slack kanálu'}
               </p>
             </div>
           </div>
@@ -86,7 +86,7 @@ export function SlackSettings({ integration, onUpdate, onTest }: SlackSettingsPr
             size="sm"
             onClick={handleToggle}
           >
-            {integration.enabled ? 'Vypnut' : 'Zapnut'}
+            {integration.enabled ? 'Vypnúť' : 'Zapnúť'}
           </Button>
         </div>
       </div>
@@ -106,7 +106,7 @@ export function SlackSettings({ integration, onUpdate, onTest }: SlackSettingsPr
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 text-xs text-[var(--color-primary)] hover:underline"
               >
-                Ako vytvorit webhook
+                Ako vytvoriť webhook
                 <ExternalLink className="h-3 w-3" />
               </a>
             </div>
@@ -119,7 +119,7 @@ export function SlackSettings({ integration, onUpdate, onTest }: SlackSettingsPr
               />
               <Input
                 type="text"
-                placeholder="Nazov kanalu (volitelne)"
+                placeholder="Názov kanálu (voliteľne)"
                 value={channel}
                 onChange={(e) => setChannel(e.target.value)}
               />
