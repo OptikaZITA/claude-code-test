@@ -287,6 +287,7 @@ export function TaskDetail({
               </div>
               <Timer
                 elapsedSeconds={elapsedSeconds}
+                totalSeconds={totalTime}
                 isRunning={isRunning}
                 onStart={startTimer}
                 onStop={stopTimer}

@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils/cn'
 
 interface TimerProps {
   elapsedSeconds: number
+  totalSeconds?: number // Existing tracked time to add to elapsed
   isRunning: boolean
   onStart: () => void
   onStop: () => void
@@ -26,6 +27,7 @@ function formatTime(seconds: number): string {
 
 export function Timer({
   elapsedSeconds,
+  totalSeconds = 0,
   isRunning,
   onStart,
   onStop,
@@ -49,6 +51,9 @@ export function Timer({
     md: 'h-4 w-4',
     lg: 'h-5 w-5',
   }
+
+  // When running: show total + elapsed; when stopped: show total
+  const displayTime = isRunning ? totalSeconds + elapsedSeconds : totalSeconds
 
   return (
     <div className={cn('flex items-center gap-2', className)}>
@@ -76,7 +81,7 @@ export function Timer({
           isRunning ? 'text-[#FF3B30]' : 'text-[#86868B]'
         )}
       >
-        {formatTime(elapsedSeconds)}
+        {formatTime(displayTime)}
       </div>
     </div>
   )

@@ -47,9 +47,16 @@ export function InlineTimeTracker({
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [loading, setLoading] = useState(false)
+  // Local total for immediate UI updates after STOP
+  const [localTotal, setLocalTotal] = useState(totalTimeSeconds)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const startTimeRef = useRef<Date | null>(null)
   const supabase = createClient()
+
+  // Sync localTotal when prop changes (e.g., from parent refetch)
+  useEffect(() => {
+    setLocalTotal(totalTimeSeconds)
+  }, [totalTimeSeconds])
 
   // Get current user
   useEffect(() => {
@@ -203,13 +210,17 @@ export function InlineTimeTracker({
 
       if (error) throw error
 
+      // Calculate new total using localTotal for accuracy
+      const newTotal = localTotal + durationSeconds
+
       // Update task total time
-      const newTotal = totalTimeSeconds + durationSeconds
       await supabase
         .from('tasks')
         .update({ total_time_seconds: newTotal })
         .eq('id', taskId)
 
+      // Update local state immediately for responsive UI
+      setLocalTotal(newTotal)
       setIsRunning(false)
       setActiveEntryId(null)
       setElapsedSeconds(0)
@@ -227,7 +238,9 @@ export function InlineTimeTracker({
     taskAssigneeId === currentUserId ||
     (!taskAssigneeId && taskCreatedBy === currentUserId)
   )
-  const displayTime = isRunning ? elapsedSeconds : totalTimeSeconds
+  // When running: show total (existing) + elapsed (current session)
+  // When stopped: show localTotal (which updates immediately after stop)
+  const displayTime = isRunning ? (localTotal + elapsedSeconds) : localTotal
   const hasTime = displayTime > 0 || isRunning
 
   // Don't show anything if no time and user can't track
@@ -273,7 +286,7 @@ export function InlineTimeTracker({
               : 'text-[var(--text-secondary)]'
           )}
         >
-          {isRunning ? formatRunningTime(elapsedSeconds) : formatTime(totalTimeSeconds)}
+          {isRunning ? formatRunningTime(displayTime) : formatTime(displayTime)}
         </span>
       )}
 

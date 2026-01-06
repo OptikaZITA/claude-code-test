@@ -8,6 +8,7 @@ import { TaskDetail } from '@/components/tasks/task-detail'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
 import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
+import { TimeSummaryCard } from '@/components/time-tracking/time-summary-card'
 import { useTodayTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useViewPreference } from '@/lib/hooks/use-view-preference'
@@ -45,6 +46,17 @@ export default function TodayPage() {
     }
     return false
   })
+
+  // Calculate time summary from all today's tasks (including overdue)
+  const timeSummary = useMemo(() => {
+    const allTasks = [...overdueTasks, ...todayTasks]
+    const tasksWithTime = allTasks.filter(t => (t.total_time_seconds || 0) > 0)
+    const totalSeconds = allTasks.reduce((sum, t) => sum + (t.total_time_seconds || 0), 0)
+    return {
+      totalSeconds,
+      taskCount: tasksWithTime.length,
+    }
+  }, [overdueTasks, todayTasks])
 
   const handleQuickAdd = async (title: string) => {
     try {
@@ -217,6 +229,16 @@ export default function TodayPage() {
         </div>
       ) : (
         <div className="flex-1 overflow-auto p-6">
+          {/* Time Summary */}
+          {(timeSummary.totalSeconds > 0 || timeSummary.taskCount > 0) && (
+            <TimeSummaryCard
+              totalSeconds={timeSummary.totalSeconds}
+              taskCount={timeSummary.taskCount}
+              label="Dnes"
+              className="mb-4"
+            />
+          )}
+
           {/* Overdue section */}
           {overdueTasks.length > 0 && (
             <div className="mb-4">
