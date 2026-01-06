@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 6. januára 2026
-**Verzia špecifikácie**: 2.9 (Task Filters + Unified View Toggle)
+**Verzia špecifikácie**: 2.10 (Slovak Diacritics + Nickname Display)
 
 ---
 
@@ -1111,6 +1111,19 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 - [x] **Areas Kanban View** - Kanban zobrazenie pridané na stránku oddelení
 - [x] **Project Kanban Redirect** - `/projects/[id]/kanban` presmeruje na hlavnú stránku projektu
 
+### Funkcie v2.10 - VŠETKY DOKONČENÉ ✅
+- [x] **Nickname display** - Zobrazenie prezývky namiesto celého mena v sidebar
+- [x] **Role loading** - Správne načítanie roly používateľa v dashboard layoute
+- [x] **Slovenská diakritika** - Kompletná oprava diakritiky v celej aplikácii (20+ súborov)
+  - [x] Settings stránka (Integrácie, Organizácia, Vzhľad, Farebný režim)
+  - [x] Email integrácia (všetky notifikačné typy a popisy)
+  - [x] Slack integrácia (Prijímajte notifikácie do Slack kanálu)
+  - [x] Kôš (Vyprázdniť kôš, Obnoviť, Táto akcia je nevrátna)
+  - [x] Kalendár (1-2 úlohy, 3+ úlohy)
+  - [x] Task komponenty (Nepriradené, Názov tagu, Priradiť k projektu)
+  - [x] Sidebar (Tímový inbox, Nadchádzajúce, Kedykoľvek)
+  - [x] Formuláre (Nový projekt, Nové oddelenie, Zrušiť, Vytvoriť)
+
 ---
 
 ## Známe problémy a riešenia
@@ -1140,6 +1153,66 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.10 (6. januára 2026)
+**Slovak Diacritics + Nickname Display:**
+
+**Oprava zobrazenia nickname v sidebar:**
+Dashboard layout teraz správne načítava `nickname` a `role` z databázy a zobrazuje prezývku namiesto celého mena.
+
+**Zmeny v `app/(dashboard)/layout.tsx`:**
+```typescript
+interface User {
+  full_name: string | null
+  nickname: string | null  // PRIDANÉ
+  email: string
+  avatar_url: string | null
+  role?: 'admin' | 'strategicka_rada' | 'hr' | 'member'  // PRIDANÉ
+}
+
+// Query rozšírené o nickname a role:
+.select('full_name, nickname, email, avatar_url, role')
+```
+
+**Kompletná oprava slovenskej diakritiky:**
+Opravená diakritika (háčky, dĺžne, mäkčene) vo všetkých používateľských textoch:
+
+| Súbor | Opravené texty |
+|-------|----------------|
+| `settings/page.tsx` | Push notifikácie, Integrácie, Organizácia, Vzhľad, Farebný režim, Svetlý/Tmavý/Systém |
+| `email-settings.tsx` | Integrácia je aktívna, Prijímajte notifikácie, Emailová adresa, Typy notifikácií, Denný prehľad, Priradené úlohy, Blížiaci sa termín, Týždenný report, Zmienky v komentároch |
+| `slack-settings.tsx` | Integrácia je aktívna, Prijímajte notifikácie do Slack kanálu, Ako vytvoriť webhook, Názov kanálu (voliteľne) |
+| `trash/page.tsx` | Kôš, Vyprázdniť kôš, položka/položky/položiek, Vymazané úlohy môžete obnoviť, Kôš je prázdny, Obnoviť, Táto akcia je nevrátna, Ešte X dní |
+| `mini-calendar.tsx` | 1-2 úlohy, 3+ úlohy |
+| `assignee-selector.tsx` | Nepriradené, Hľadaj používateľa |
+| `inline-tag-selector.tsx` | Názov tagu, Zrušiť, Vytvoriť |
+| `inline-project-selector.tsx` | Priradiť k projektu |
+| `sidebar.tsx` | Tímový inbox, Nadchádzajúce, Kedykoľvek, Nová úloha |
+| `task-item.tsx` | Vymazať úlohu |
+| `inline-when-picker.tsx` | Kedykoľvek, Naplánované |
+| `task-item-expanded.tsx` | Názov úlohy, Poznámky |
+| `project-form-modal.tsx` | Nový projekt, Názov projektu, Webová stránka, Zrušiť, Vytvoriť |
+| `area-form.tsx` | Nové oddelenie, Názov oddelenia, Zrušiť, Vytvoriť |
+
+**Upravené súbory (celkovo 20+):**
+- `app/(dashboard)/layout.tsx` - nickname/role loading
+- `app/(dashboard)/settings/page.tsx`
+- `app/(dashboard)/trash/page.tsx`
+- `components/integrations/email-settings.tsx`
+- `components/integrations/slack-settings.tsx`
+- `components/calendar/mini-calendar.tsx`
+- `components/tasks/assignee-selector.tsx`
+- `components/tasks/inline-tag-selector.tsx`
+- `components/tasks/inline-project-selector.tsx`
+- `components/layout/sidebar.tsx`
+- `components/tasks/task-item.tsx`
+- `components/tasks/inline-when-picker.tsx`
+- `components/tasks/task-item-expanded.tsx`
+- `components/projects/project-form-modal.tsx`
+- `components/areas/area-form.tsx`
+- A ďalšie...
+
+---
 
 ### v2.9 (6. januára 2026)
 **Task Filters + Unified View Toggle:**
@@ -1576,5 +1649,5 @@ if (newStatus === 'done') {
 
 ---
 
-**Verzia:** 2.9 (Task Filters + Unified View Toggle)
+**Verzia:** 2.10 (Slovak Diacritics + Nickname Display)
 **Posledná aktualizácia:** 6. januára 2026
