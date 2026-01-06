@@ -12,7 +12,6 @@ import {
   Plus,
   Settings,
   LogOut,
-  Calendar,
   Star,
   CalendarDays,
   Clock,
@@ -181,13 +180,6 @@ export function Sidebar({
             dropTarget={{ type: 'trash' }}
             icon={<Trash2 className="h-4 w-4 text-[var(--text-secondary)]" />}
             label="Kôš"
-          />
-          <SidebarDropItem
-            href="/calendar"
-            isActive={isActive('/calendar')}
-            dropTarget={{ type: 'calendar' }}
-            icon={<Calendar className="h-4 w-4" />}
-            label="Kalendár"
           />
         </div>
 

@@ -6,6 +6,7 @@ import { FolderKanban, Filter } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { ProjectTaskList } from '@/components/tasks/project-task-list'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
+import { CalendarView } from '@/components/calendar/calendar-view'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
 import { useProject, useProjectTasks } from '@/lib/hooks/use-projects'
@@ -119,6 +120,23 @@ export default function ProjectPage() {
     }
   }
 
+  // Calendar handlers
+  const handleCalendarTaskMove = async (taskId: string, newDate: Date) => {
+    try {
+      await updateTask(taskId, {
+        due_date: newDate.toISOString().split('T')[0],
+      })
+      refetchTasks()
+    } catch (error) {
+      console.error('Error moving task:', error)
+    }
+  }
+
+  const handleCalendarDateClick = (date: Date) => {
+    // Could open quick add for that date
+    console.log('Date clicked:', date)
+  }
+
   if (projectLoading || tasksLoading || headingsLoading || !isLoaded) {
     return (
       <div className="h-full">
@@ -175,7 +193,16 @@ export default function ProjectPage() {
         </div>
       )}
 
-      {viewMode === 'kanban' ? (
+      {viewMode === 'calendar' ? (
+        <div className="flex-1 overflow-hidden">
+          <CalendarView
+            tasks={filteredTasks}
+            onTaskClick={setSelectedTask}
+            onDateClick={handleCalendarDateClick}
+            onTaskMove={handleCalendarTaskMove}
+          />
+        </div>
+      ) : viewMode === 'kanban' ? (
         <div className="flex-1 overflow-hidden">
           <KanbanBoard
             tasks={filteredTasks}

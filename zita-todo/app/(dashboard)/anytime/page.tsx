@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
+import { CalendarView } from '@/components/calendar/calendar-view'
 import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
 import { useAnytimeTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
@@ -120,6 +121,22 @@ export default function AnytimePage() {
     }
   }
 
+  // Calendar handlers
+  const handleCalendarTaskMove = async (taskId: string, newDate: Date) => {
+    try {
+      await updateTask(taskId, {
+        due_date: newDate.toISOString().split('T')[0],
+      })
+      refetch()
+    } catch (error) {
+      console.error('Error moving task:', error)
+    }
+  }
+
+  const handleCalendarDateClick = (date: Date) => {
+    console.log('Date clicked:', date)
+  }
+
   if (loading || !isLoaded) {
     return (
       <div className="h-full">
@@ -164,7 +181,16 @@ export default function AnytimePage() {
         </div>
       )}
 
-      {viewMode === 'kanban' ? (
+      {viewMode === 'calendar' ? (
+        <div className="flex-1 overflow-hidden">
+          <CalendarView
+            tasks={filteredTasks}
+            onTaskClick={setSelectedTask}
+            onDateClick={handleCalendarDateClick}
+            onTaskMove={handleCalendarTaskMove}
+          />
+        </div>
+      ) : viewMode === 'kanban' ? (
         <div className="flex-1 overflow-hidden">
           <KanbanBoard
             tasks={filteredTasks}

@@ -1,9 +1,9 @@
 'use client'
 
-import { List, LayoutGrid } from 'lucide-react'
+import { List, LayoutGrid, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
-export type ViewMode = 'list' | 'kanban'
+export type ViewMode = 'list' | 'kanban' | 'calendar'
 
 interface ViewToggleProps {
   value: ViewMode
@@ -41,6 +41,20 @@ export function ViewToggle({ value, onChange, className }: ViewToggleProps) {
         aria-label="Zobraziť ako kanban"
       >
         <LayoutGrid className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange('calendar')}
+        className={cn(
+          'flex items-center justify-center rounded-md p-1.5 transition-colors',
+          value === 'calendar'
+            ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm'
+            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+        )}
+        title="Kalendár"
+        aria-label="Zobraziť ako kalendár"
+      >
+        <Calendar className="h-4 w-4" />
       </button>
     </div>
   )
