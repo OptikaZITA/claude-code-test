@@ -5,8 +5,8 @@
 ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zobrazením, sledovaním času a Toggl-style time trackingom. Určená pre ~20 členný tím s podporou osobnej aj tímovej produktivity.
 
 **Dátum vytvorenia**: 2. januára 2026
-**Posledná aktualizácia**: 6. januára 2026
-**Verzia špecifikácie**: 2.13 (Unified Timer UX)
+**Posledná aktualizácia**: 7. januára 2026
+**Verzia špecifikácie**: 2.14 (Lovable Design System)
 
 ---
 
@@ -1166,6 +1166,77 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.14 (7. januára 2026)
+**Lovable Design System - Kompletný redesign UI:**
+
+Implementácia nového dizajnového systému podľa LOVABLE_ZITA-TODO-Design-System.md s modernou farebnou paletou, novými fontami a konzistentnými komponentmi.
+
+**Branch:** `redesign/lovable-style`
+
+**Fáza 1 - Dizajnový systém:**
+- ✅ `app/globals.css` - Kompletný prepis CSS premenných
+  - Nové farby: `--background: #fffcf7` (krémová), `--primary: #0039cc` (ZITA Blue), `--secondary: #ffbf9b` (peach)
+  - Kanban farby: backlog, todo, in_progress, review, done
+  - Priority farby: low, medium, high, urgent
+  - Department farby: 8 predefinovaných farieb
+  - Timer premenné pre aktívny stav
+  - Nové animácie: pulse-soft, fade-in, scale-in, slide-in
+- ✅ `app/layout.tsx` - Google Fonts (DM Serif Display + DM Sans)
+
+**Fáza 2 - Layout komponenty:**
+- ✅ `components/layout/sidebar.tsx` - Nové farby, font-heading pre logo
+- ✅ `components/layout/sidebar-drop-item.tsx` - Sémantické farby
+- ✅ `components/layout/header.tsx` - bg-card, font-heading
+- ✅ `components/ui/theme-toggle.tsx` - Zjednodušený na single-click Moon/Sun toggle
+
+**Fáza 3 - UI komponenty:**
+- ✅ `components/ui/button.tsx` - Nové varianty s sémantickými farbami
+- ✅ `components/ui/checkbox.tsx` - Kruhový štýl (Things 3 inšpirácia)
+- ✅ `components/ui/badge.tsx` - Priority a kanban varianty
+- ✅ `components/ui/input.tsx` - Sémantické farby, nový radius
+- ✅ `components/ui/modal.tsx` - bg-card, font-heading, animate-scale-in
+- ✅ `components/tasks/task-item.tsx` - ChevronRight/Down pre expand, priority farby
+- ✅ `components/tasks/task-item-expanded.tsx` - bg-accent/50 pozadie
+- ✅ `components/time-tracking/timer-indicator.tsx` - timer-badge-active class
+
+**Fáza 4 - Kanban komponenty:**
+- ✅ `components/tasks/kanban-board.tsx` - bg-background
+- ✅ `components/tasks/kanban-column.tsx` - bg-muted/50, font-heading
+- ✅ `components/tasks/kanban-card.tsx` - bg-card, sémantické farby
+
+**Fáza 5 - Stránky:**
+- ✅ `app/(dashboard)/today/page.tsx` - Konzistentné sémantické triedy
+- ✅ `app/(dashboard)/inbox/page.tsx` - Aktualizované farby
+- ✅ `app/(dashboard)/inbox/team/page.tsx` - Aktualizované farby
+- ✅ `app/(dashboard)/logbook/page.tsx` - Aktualizované farby
+- ✅ `app/(dashboard)/trash/page.tsx` - Aktualizované farby
+- ✅ `app/(dashboard)/upcoming/page.tsx` - Aktualizované farby
+- ✅ `components/tasks/task-list.tsx` - text-muted-foreground
+- ✅ `components/tasks/task-detail.tsx` - Kompletná aktualizácia farieb
+
+**Kľúčové zmeny dizajnu:**
+```css
+/* Light Mode */
+--background: #fffcf7;     /* Krémová */
+--card: #ffffff;
+--primary: #0039cc;        /* ZITA Blue */
+--secondary: #ffbf9b;      /* Peach */
+--accent: #ffddcb;         /* Svetlá peach */
+
+/* Dark Mode (invertované) */
+--background: #0a0a0a;
+--primary: #ffbf9b;        /* Peach sa stáva primárnou */
+--secondary: #2563eb;
+
+/* Fonty */
+--font-heading: "DM Serif Display", Georgia, serif;
+--font-body: "DM Sans", system-ui, sans-serif;
+```
+
+**Poznámka:** Zostáva ~50 súborov s originálnymi CSS premennými (sekundárne komponenty). Tieto fungujú správne a môžu byť postupne migrované.
+
+---
 
 ### v2.13 (6. januára 2026)
 **Unified Timer UX - Jeden zdroj pravdy:**
