@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 7. januára 2026
-**Verzia špecifikácie**: 2.16 (Time Tracker Filters + Range Calendar)
+**Verzia špecifikácie**: 2.17 (Things 3 Drag & Drop for Upcoming)
 
 ---
 
@@ -1172,6 +1172,39 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 
 ## Changelog
 
+### v2.17 (7. januára 2026)
+**Things 3 Drag & Drop for Upcoming:**
+
+Implementácia Things 3 štýlu drag & drop pre položku "Nadchádzajúce" v sidebar - pri pustení úlohy sa zobrazí kalendár pre výber dátumu.
+
+**Hlavné zmeny:**
+- ✅ `components/layout/sidebar.tsx` - Things 3 štýl pre Nadchádzajúce
+  - Pri pustení úlohy na "Nadchádzajúce" sa zobrazí kalendár popover
+  - Používateľ vyberie dátum, úloha dostane `when_type='scheduled'` a `when_date`
+  - Kalendár sa zobrazí vedľa sidebaru s názvom úlohy
+  - Klik mimo alebo X tlačidlo zruší akciu
+  - Minulé dátumy sú zakázané
+- ✅ `lib/contexts/sidebar-drop-context.tsx` - Rozšírený context
+  - Nový stav `pendingUpcomingDrop` pre uloženie čakajúcej úlohy
+  - Funkcie `setPendingUpcomingDrop` a `clearPendingUpcomingDrop`
+- ✅ `components/layout/calendar-drop-picker.tsx` - Oprava typu
+  - `handleCalendarDateSelect` teraz akceptuje `Date` namiesto `string`
+
+**UI opravy:**
+- ✅ Farba textu aktívnej položky v sidebar zmenená na tmavú
+  - Zmenené z `text-primary` na `text-foreground` pre aktívne položky
+  - Ovplyvnené: sidebar.tsx (team inbox, logbook, time)
+  - Ovplyvnené: sidebar-drop-item.tsx (všetky droppable položky)
+  - Aktívne položky majú teraz: peach pozadie + tmavý text
+
+**Upravené súbory:**
+- `components/layout/sidebar.tsx`
+- `components/layout/sidebar-drop-item.tsx`
+- `components/layout/calendar-drop-picker.tsx`
+- `lib/contexts/sidebar-drop-context.tsx`
+
+---
+
 ### v2.16 (7. januára 2026)
 **Time Tracker Filters + Range Calendar:**
 
@@ -2009,5 +2042,5 @@ if (newStatus === 'done') {
 
 ---
 
-**Verzia:** 2.10 (Slovak Diacritics + Nickname Display)
-**Posledná aktualizácia:** 6. januára 2026
+**Verzia:** 2.17 (Things 3 Drag & Drop for Upcoming)
+**Posledná aktualizácia:** 7. januára 2026
