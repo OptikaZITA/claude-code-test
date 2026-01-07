@@ -21,16 +21,18 @@ function Calendar({
       classNames={{
         months: 'flex flex-col sm:flex-row gap-2',
         month: 'flex flex-col gap-4',
-        month_caption: 'flex justify-center pt-1 relative items-center w-full',
+        month_caption: 'flex justify-between items-center px-1 py-2',
         caption_label: 'text-sm font-medium text-[var(--text-primary)]',
         nav: 'flex items-center gap-1',
         button_previous: cn(
-          'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute left-1',
-          'inline-flex items-center justify-center rounded-md hover:bg-[var(--bg-hover)]'
+          'h-7 w-7 p-0 opacity-60 hover:opacity-100',
+          'inline-flex items-center justify-center rounded-md hover:bg-[var(--bg-hover)]',
+          'text-[var(--text-primary)]'
         ),
         button_next: cn(
-          'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute right-1',
-          'inline-flex items-center justify-center rounded-md hover:bg-[var(--bg-hover)]'
+          'h-7 w-7 p-0 opacity-60 hover:opacity-100',
+          'inline-flex items-center justify-center rounded-md hover:bg-[var(--bg-hover)]',
+          'text-[var(--text-primary)]'
         ),
         month_grid: 'w-full border-collapse',
         weekdays: 'flex',

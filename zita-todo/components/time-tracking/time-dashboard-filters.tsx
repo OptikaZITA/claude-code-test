@@ -183,6 +183,12 @@ function PeriodDropdown({
     setShowCalendar(false)
   }
 
+  const handleShowCalendar = () => {
+    // Reset selection when opening calendar - first click will always be start date
+    setSelectedRange(undefined)
+    setShowCalendar(!showCalendar)
+  }
+
   const handleApplyCustomRange = () => {
     if (selectedRange?.from && selectedRange?.to) {
       const fromStr = format(selectedRange.from, 'yyyy-MM-dd')
@@ -223,7 +229,7 @@ function PeriodDropdown({
               </button>
             ))}
             <button
-              onClick={() => setShowCalendar(!showCalendar)}
+              onClick={handleShowCalendar}
               className={cn(
                 'w-full px-3 py-2 text-left text-sm rounded-md hover:bg-[var(--bg-hover)] transition-colors',
                 (period === 'custom' || showCalendar)
