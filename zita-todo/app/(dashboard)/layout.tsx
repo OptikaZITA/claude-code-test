@@ -9,7 +9,7 @@ import { KeyboardShortcutsModal } from '@/components/ui/keyboard-shortcuts-modal
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts'
 import { SidebarDropProvider } from '@/lib/contexts/sidebar-drop-context'
 import { GlobalTimerProvider } from '@/lib/contexts/global-timer-context'
-import { SidebarProvider, useSidebar } from '@/lib/contexts/sidebar-context'
+import { SidebarProvider } from '@/lib/contexts/sidebar-context'
 import { ProjectFormModal } from '@/components/projects/project-form-modal'
 import { CalendarDropPicker } from '@/components/layout/calendar-drop-picker'
 
@@ -47,7 +47,6 @@ export default function DashboardLayout({
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [areas, setAreas] = useState<Area[]>([])
-  const { sidebarOpen, setSidebarOpen } = useSidebar()
   const router = useRouter()
   const supabase = createClient()
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -170,32 +169,21 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     <GlobalTimerProvider>
       <SidebarDropProvider>
         <div className="min-h-screen bg-background">
-          {/* Sidebar Overlay - position fixed, nie súčasť layoutu */}
-          {sidebarOpen && (
-            <>
-              {/* Tmavý overlay */}
-              <div
-                className="fixed inset-0 bg-black/50 z-40 animate-fade-in"
-                onClick={() => setSidebarOpen(false)}
-              />
-              {/* Sidebar */}
-              <aside className="fixed left-0 top-0 h-full w-64 bg-card z-50 shadow-xl animate-slide-in-left">
-                <Sidebar
-                  user={user}
-                  areas={areas}
-                  onLogout={handleLogout}
-                  onCreateProject={handleCreateProject}
-                  onNavigate={() => setSidebarOpen(false)}
-                />
-              </aside>
-            </>
-          )}
+          {/* Sidebar - vždy viditeľný, fixed vľavo (skrytý na mobile) */}
+          <aside className="fixed left-0 top-0 h-full w-64 bg-card border-r border-[var(--border)] z-30 hidden lg:block">
+            <Sidebar
+              user={user}
+              areas={areas}
+              onLogout={handleLogout}
+              onCreateProject={handleCreateProject}
+            />
+          </aside>
 
           {/* Mobile Navigation (bottom bar) */}
           <MobileNav />
 
-          {/* Main Content - VŽDY rovnaká šírka a pozícia */}
-          <main className="min-h-screen overflow-auto pb-16 lg:pb-0">
+          {/* Main Content - odsadený o šírku sidebaru na desktop */}
+          <main className="min-h-screen lg:ml-64 pb-16 lg:pb-0">
             {children}
           </main>
 
