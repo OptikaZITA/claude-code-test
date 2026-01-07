@@ -115,7 +115,8 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
           return // Wait for date selection
         }
 
-        // Update when_type for other values
+        // Update when_type for time views (Today, Anytime, Someday, Inbox)
+        // IMPORTANT: Do NOT change area_id or project_id - only change time view
         const updates: Record<string, any> = {
           when_type: target.value,
           when_date: null,
@@ -124,7 +125,7 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
         // If moving to inbox, mark as inbox task
         if (target.value === 'inbox') {
           updates.is_inbox = true
-          updates.project_id = null
+          // Do NOT set project_id = null - task keeps its project
         } else {
           updates.is_inbox = false
         }
@@ -137,6 +138,7 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
 
       } else if (target.type === 'project') {
         // Move task to project - get project's area_id first
+        // IMPORTANT: Do NOT change when_type - task stays in its time view (Today, Anytime, etc.)
         const { data: project } = await supabase
           .from('projects')
           .select('area_id')
@@ -149,20 +151,21 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
             project_id: target.projectId,
             area_id: project?.area_id || null,
             is_inbox: false,
-            when_type: 'anytime',
+            // when_type is NOT changed - task stays in its current time view
           })
           .eq('id', draggedTask.id)
         updateError = error
 
       } else if (target.type === 'area') {
-        // Move task to area (without project)
+        // Move task to area
+        // IMPORTANT: Do NOT change when_type or project_id - only assign to area
         const { error } = await supabase
           .from('tasks')
           .update({
             area_id: target.areaId,
-            project_id: null,
             is_inbox: false,
-            when_type: 'anytime',
+            // when_type is NOT changed - task stays in its current time view
+            // project_id is NOT changed - task keeps its project assignment
           })
           .eq('id', draggedTask.id)
         updateError = error

@@ -3,7 +3,6 @@
 import { useEffect } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical } from 'lucide-react'
 import { TaskWithRelations } from '@/types'
 import { TaskItem } from './task-item'
 import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
@@ -83,25 +82,13 @@ export function SortableTaskItem({
     <div
       ref={setNodeRef}
       style={style}
+      {...attributes}
+      {...listeners}
       className={cn(
-        'group relative',
+        'group relative cursor-grab active:cursor-grabbing',
         isDragging && 'opacity-50 z-50'
       )}
     >
-      {/* Drag handle - visible on hover */}
-      <div
-        {...attributes}
-        {...listeners}
-        className={cn(
-          'absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6 p-1 rounded cursor-grab active:cursor-grabbing',
-          'opacity-0 group-hover:opacity-100 transition-opacity',
-          'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]',
-          isDragging && 'opacity-100'
-        )}
-      >
-        <GripVertical className="h-4 w-4" />
-      </div>
-
       <TaskItem
         task={task}
         isExpanded={isExpanded}

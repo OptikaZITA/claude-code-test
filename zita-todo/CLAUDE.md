@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 7. januára 2026
-**Verzia špecifikácie**: 2.19 (Tags Position + DeadlineBadge Colors)
+**Verzia špecifikácie**: 2.20 (Drag & Drop Fix)
 
 ---
 
@@ -1171,6 +1171,42 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.20 (7. januára 2026)
+**Drag & Drop Fix:**
+
+Oprava nekonzistentného drag handle a zlej drop logiky pre Oddelenia/Projekty podľa Things 3 štýlu.
+
+**Fáza 1 - Drag handle na celom riadku:**
+- ✅ `components/tasks/sortable-task-item.tsx` - Drag kdekoľvek na task
+  - Presun `{...attributes}` a `{...listeners}` na celý wrapper div
+  - Odstránená samostatná `GripVertical` ikona
+  - Pridaný `cursor-grab active:cursor-grabbing` štýl
+  - Drag teraz funguje konzistentne na všetkých stránkach
+
+**Fáza 2 - Oprava drop logiky:**
+- ✅ `lib/contexts/sidebar-drop-context.tsx` - Things 3 štýl drop pravidlá
+  - **Drop na Oddelenie**: Mení LEN `area_id` (zachová `when_type`, `project_id`)
+  - **Drop na Projekt**: Mení LEN `project_id` a `area_id` (zachová `when_type`)
+  - **Drop na Inbox**: Mení LEN `when_type` a `is_inbox` (zachová `project_id`)
+  - Task v "Dnes" pretiahnutý do Oddelenia zostane v "Dnes"
+
+**Pravidlá drop operácií (Things 3 štýl):**
+| Kam dropnem | Čo sa ZMENÍ | Čo sa NEZMENÍ |
+|-------------|-------------|---------------|
+| Oddelenie (Area) | `area_id` | `when_type`, `project_id` |
+| Projekt | `project_id`, `area_id` | `when_type` |
+| Dnes | `when_type = 'today'` | `area_id`, `project_id` |
+| Nadchádzajúce | `when_type = 'scheduled'`, `when_date` | `area_id`, `project_id` |
+| Kedykoľvek | `when_type = 'anytime'` | `area_id`, `project_id` |
+| Niekedy | `when_type = 'someday'` | `area_id`, `project_id` |
+| Inbox | `when_type = 'inbox'`, `is_inbox = true` | `area_id`, `project_id` |
+
+**Upravené súbory:**
+- `components/tasks/sortable-task-item.tsx`
+- `lib/contexts/sidebar-drop-context.tsx`
+
+---
 
 ### v2.19 (7. januára 2026)
 **Tags Position + DeadlineBadge Colors:**
