@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { Calendar, ChevronDown, X, Download, Users, FolderKanban, Tag, Building2 } from 'lucide-react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { Calendar as CalendarIcon, ChevronDown, X, Download, Users, FolderKanban, Tag, Building2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
 import { TimeFilters, TimePeriod, formatPeriodLabel } from '@/lib/hooks/use-time-filters'
 import { format, parseISO } from 'date-fns'
 import { sk } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
+import type { DateRange } from 'react-day-picker'
 
 interface FilterOption {
   id: string
@@ -136,14 +138,32 @@ function PeriodDropdown({
   onChange: (period: TimePeriod, from?: string, to?: string) => void
 }) {
   const [isOpen, setIsOpen] = useState(false)
-  const [customFrom, setCustomFrom] = useState(filters.from)
-  const [customTo, setCustomTo] = useState(filters.to)
+  const [showCalendar, setShowCalendar] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+
+  // Convert string dates to Date objects for the range picker
+  const dateRange = useMemo<DateRange | undefined>(() => {
+    if (filters.from && filters.to) {
+      return {
+        from: parseISO(filters.from),
+        to: parseISO(filters.to),
+      }
+    }
+    return undefined
+  }, [filters.from, filters.to])
+
+  const [selectedRange, setSelectedRange] = useState<DateRange | undefined>(dateRange)
+
+  // Sync selectedRange when filters change
+  useEffect(() => {
+    setSelectedRange(dateRange)
+  }, [dateRange])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (ref.current && !ref.current.contains(event.target as Node)) {
         setIsOpen(false)
+        setShowCalendar(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -155,8 +175,23 @@ function PeriodDropdown({
     { value: 'week', label: 'Tento týždeň' },
     { value: 'month', label: 'Tento mesiac' },
     { value: 'year', label: 'Tento rok' },
-    { value: 'custom', label: 'Vlastné obdobie' },
   ]
+
+  const handlePresetClick = (presetValue: TimePeriod) => {
+    onChange(presetValue)
+    setIsOpen(false)
+    setShowCalendar(false)
+  }
+
+  const handleApplyCustomRange = () => {
+    if (selectedRange?.from && selectedRange?.to) {
+      const fromStr = format(selectedRange.from, 'yyyy-MM-dd')
+      const toStr = format(selectedRange.to, 'yyyy-MM-dd')
+      onChange('custom', fromStr, toStr)
+      setIsOpen(false)
+      setShowCalendar(false)
+    }
+  }
 
   return (
     <div ref={ref} className="relative">
@@ -164,58 +199,72 @@ function PeriodDropdown({
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors border border-[var(--border-primary)] bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
       >
-        <Calendar className="h-4 w-4" />
+        <CalendarIcon className="h-4 w-4" />
         <span>{formatPeriodLabel(period, filters.from, filters.to)}</span>
         <ChevronDown className="h-4 w-4 ml-1" />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 z-50 w-72 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-lg">
-          {periods.map(p => (
+        <div className="absolute top-full left-0 mt-1 z-50 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-lg overflow-hidden">
+          {/* Preset options */}
+          <div className="p-1">
+            {periods.map(p => (
+              <button
+                key={p.value}
+                onClick={() => handlePresetClick(p.value)}
+                className={cn(
+                  'w-full px-3 py-2 text-left text-sm rounded-md hover:bg-[var(--bg-hover)] transition-colors',
+                  period === p.value && !showCalendar
+                    ? 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]'
+                    : 'text-[var(--text-primary)]'
+                )}
+              >
+                {p.label}
+              </button>
+            ))}
             <button
-              key={p.value}
-              onClick={() => {
-                if (p.value !== 'custom') {
-                  onChange(p.value)
-                  setIsOpen(false)
-                }
-              }}
+              onClick={() => setShowCalendar(!showCalendar)}
               className={cn(
-                'w-full px-3 py-2 text-left text-sm hover:bg-[var(--bg-hover)]',
-                period === p.value ? 'text-[var(--color-primary)] font-medium' : 'text-[var(--text-primary)]'
+                'w-full px-3 py-2 text-left text-sm rounded-md hover:bg-[var(--bg-hover)] transition-colors',
+                (period === 'custom' || showCalendar)
+                  ? 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]'
+                  : 'text-[var(--text-primary)]'
               )}
             >
-              {p.label}
+              Vlastné obdobie
             </button>
-          ))}
-
-          <div className="border-t border-[var(--border-primary)] p-3">
-            <div className="text-xs font-medium text-[var(--text-secondary)] mb-2">Vlastné obdobie</div>
-            <div className="flex gap-2 mb-2">
-              <input
-                type="date"
-                value={customFrom}
-                onChange={e => setCustomFrom(e.target.value)}
-                className="flex-1 px-2 py-1 text-sm rounded border border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-primary)]"
-              />
-              <input
-                type="date"
-                value={customTo}
-                onChange={e => setCustomTo(e.target.value)}
-                className="flex-1 px-2 py-1 text-sm rounded border border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-primary)]"
-              />
-            </div>
-            <Button
-              size="sm"
-              onClick={() => {
-                onChange('custom', customFrom, customTo)
-                setIsOpen(false)
-              }}
-              className="w-full"
-            >
-              Použiť
-            </Button>
           </div>
+
+          {/* Range Calendar */}
+          {showCalendar && (
+            <div className="border-t border-[var(--border-primary)] p-3">
+              <Calendar
+                mode="range"
+                selected={selectedRange}
+                onSelect={setSelectedRange}
+                numberOfMonths={1}
+                defaultMonth={selectedRange?.from || new Date()}
+              />
+
+              {/* Selected range display */}
+              {selectedRange?.from && (
+                <div className="mt-3 text-sm text-center text-[var(--text-secondary)]">
+                  {format(selectedRange.from, 'd. MMMM yyyy', { locale: sk })}
+                  {selectedRange.to && ` - ${format(selectedRange.to, 'd. MMMM yyyy', { locale: sk })}`}
+                </div>
+              )}
+
+              {/* Apply button */}
+              <Button
+                size="sm"
+                onClick={handleApplyCustomRange}
+                disabled={!selectedRange?.from || !selectedRange?.to}
+                className="w-full mt-3"
+              >
+                Použiť
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>
