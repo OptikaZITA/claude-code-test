@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -19,10 +19,12 @@ import {
   Trash2,
   Eye,
   Timer,
+  X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
 import { SidebarDropItem, SidebarDropProject, SidebarDropArea } from '@/components/layout/sidebar-drop-item'
 import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
 import { useTaskCounts } from '@/lib/hooks/use-task-counts'
@@ -64,8 +66,29 @@ export function Sidebar({
   const pathname = usePathname()
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set())
   const [showOtherDepartments, setShowOtherDepartments] = useState(false)
-  const { isDragging } = useSidebarDrop()
+  const {
+    isDragging,
+    showCalendarPicker,
+    pendingCalendarTask,
+    handleCalendarDateSelect,
+    handleCalendarCancel,
+  } = useSidebarDrop()
   const { counts } = useTaskCounts()
+  const calendarRef = useRef<HTMLDivElement>(null)
+
+  // Close calendar on click outside
+  useEffect(() => {
+    if (!showCalendarPicker) return
+
+    function handleClickOutside(event: MouseEvent) {
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+        handleCalendarCancel()
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showCalendarPicker, handleCalendarCancel])
   const { myDepartments, otherDepartments, canSeeAll } = useUserDepartments()
 
   const toggleArea = (areaId: string) => {
@@ -349,6 +372,36 @@ export function Sidebar({
           </div>
         </div>
       </div>
+
+      {/* Calendar picker popover for "Nadchádzajúce" drop */}
+      {showCalendarPicker && pendingCalendarTask && (
+        <div
+          ref={calendarRef}
+          className="fixed left-64 top-1/4 z-[100] rounded-lg border border-[var(--border)] bg-background shadow-xl"
+        >
+          <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-foreground">Vyber dátum</p>
+              <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                {pendingCalendarTask.title}
+              </p>
+            </div>
+            <button
+              onClick={handleCalendarCancel}
+              className="p-1 rounded-md hover:bg-accent transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <Calendar
+            mode="single"
+            selected={undefined}
+            onSelect={(date) => date && handleCalendarDateSelect(date)}
+            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+            defaultMonth={new Date()}
+          />
+        </div>
+      )}
     </aside>
   )
 }

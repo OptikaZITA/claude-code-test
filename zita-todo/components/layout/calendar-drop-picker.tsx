@@ -24,7 +24,7 @@ export function CalendarDropPicker() {
   }
 
   const handleDateClick = (date: Date) => {
-    handleCalendarDateSelect(format(date, 'yyyy-MM-dd'))
+    handleCalendarDateSelect(date)
   }
 
   // Quick options

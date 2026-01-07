@@ -23,7 +23,8 @@ interface SidebarDropContextValue {
   showCalendarPicker: boolean
   setShowCalendarPicker: (show: boolean) => void
   pendingCalendarTask: TaskWithRelations | null
-  handleCalendarDateSelect: (date: string) => Promise<void>
+  handleCalendarDateSelect: (date: Date) => Promise<void>
+  handleCalendarCancel: () => void
 }
 
 export type DropTarget =
@@ -42,16 +43,18 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
   const [pendingCalendarTask, setPendingCalendarTask] = useState<TaskWithRelations | null>(null)
   const supabase = createClient()
 
-  const handleCalendarDateSelect = useCallback(async (date: string) => {
+  const handleCalendarDateSelect = useCallback(async (date: Date) => {
     if (!pendingCalendarTask) return
+
+    const dateStr = date.toISOString().split('T')[0] // YYYY-MM-DD format
 
     try {
       await supabase
         .from('tasks')
         .update({
-          deadline: date,
           when_type: 'scheduled',
-          when_date: date,
+          when_date: dateStr,
+          is_inbox: false,
         })
         .eq('id', pendingCalendarTask.id)
 
@@ -59,23 +62,37 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
       window.dispatchEvent(new CustomEvent('task:moved', {
         detail: {
           taskId: pendingCalendarTask.id,
-          target: { type: 'calendar', date }
+          target: { type: 'when', value: 'scheduled', date: dateStr }
         }
       }))
     } catch (error) {
-      console.error('Error setting task deadline:', error)
+      console.error('Error setting task date:', error)
     } finally {
       setPendingCalendarTask(null)
       setShowCalendarPicker(false)
     }
   }, [pendingCalendarTask, supabase])
 
+  const handleCalendarCancel = useCallback(() => {
+    setPendingCalendarTask(null)
+    setShowCalendarPicker(false)
+  }, [])
+
   const handleDrop = useCallback(async (target: DropTarget) => {
     if (!draggedTask) return
 
     try {
       if (target.type === 'when') {
-        // Update when_type
+        // Special case: "scheduled" (Nadchádzajúce) - show calendar picker
+        if (target.value === 'scheduled') {
+          setPendingCalendarTask(draggedTask)
+          setShowCalendarPicker(true)
+          setDraggedTask(null)
+          setDropTarget(null)
+          return // Wait for date selection
+        }
+
+        // Update when_type for other values
         const updates: Record<string, any> = {
           when_type: target.value,
           when_date: null,
@@ -171,6 +188,7 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
         setShowCalendarPicker,
         pendingCalendarTask,
         handleCalendarDateSelect,
+        handleCalendarCancel,
       }}
     >
       {children}
