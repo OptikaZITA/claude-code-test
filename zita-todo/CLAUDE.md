@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 7. januára 2026
-**Verzia špecifikácie**: 2.14 (Lovable Design System)
+**Verzia špecifikácie**: 2.15 (Sidebar Drawer + Header Redesign)
 
 ---
 
@@ -1166,6 +1166,64 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.15 (7. januára 2026)
+**Sidebar Drawer + Header Redesign:**
+
+Implementácia podľa ZADANIE-REDESIGN-FINAL.md - sidebar ako drawer, hamburger menu v headeri, vizuálne zmeny pre task items.
+
+**Fáza 1 - Sidebar Drawer:**
+- ✅ `lib/contexts/sidebar-context.tsx` - Nový context pre globálny stav sidebaru
+  - `sidebarOpen`, `setSidebarOpen`, `toggleSidebar`
+- ✅ `app/(dashboard)/layout.tsx` - Sidebar ako drawer s overlay
+  - Sidebar skrytý by default, zobrazí sa po kliknutí na hamburger
+  - Overlay s `bg-black/50` pre zatmenie pozadia
+  - `animate-slide-in-left` animácia pri otvorení
+- ✅ `components/layout/sidebar.tsx` - Pridaný `onNavigate` prop
+  - Automatické zatvorenie po navigácii
+- ✅ `components/layout/sidebar-drop-item.tsx` - Pridaný `onNavigate` prop
+
+**Fáza 2 - Header:**
+- ✅ `components/layout/header.tsx` - Nový layout
+  - Hamburger menu button (Menu ikona) na začiatku
+  - Search roztiahnutý na `flex-1 max-w-md`
+  - Notifikácie s červenou badge (`hasUnreadNotifications` prop)
+  - Theme toggle a avatar vpravo
+
+**Fáza 3 - Task Item zmeny:**
+- ✅ `components/tasks/task-item.tsx` - Odstránený chevron/expand arrow
+  - Rozbalenie len cez double-click (desktop) / tap (mobile)
+- ✅ `components/tasks/when-picker.tsx` - "Dnes" badge modrá
+  - Zmenené z `bg-warning` na `bg-primary text-white`
+- ✅ `components/tasks/deadline-picker.tsx` - Zjednodušený štýl
+  - Sivý text s Calendar ikonou namiesto výrazného badge
+
+**Fáza 4 - Quick Add:**
+- ✅ `components/tasks/task-quick-add.tsx` - Nové správanie
+  - Default stav: modrý button "Pridať úlohu"
+  - Po kliknutí: input s bordrom, "Pridať" a "Zrušiť" tlačidlá
+  - Escape pre zrušenie
+
+**Fáza 5 - Time Summary:**
+- ✅ `components/time-tracking/time-summary-card.tsx` - Plain text štýl
+  - Odstránený box s bordrom
+  - Jednoduchý text: "Dnes: 2h 23m (5 úloh)"
+
+**Nové súbory:**
+- `lib/contexts/sidebar-context.tsx`
+
+**Upravené súbory:**
+- `app/(dashboard)/layout.tsx`
+- `components/layout/header.tsx`
+- `components/layout/sidebar.tsx`
+- `components/layout/sidebar-drop-item.tsx`
+- `components/tasks/task-item.tsx`
+- `components/tasks/when-picker.tsx`
+- `components/tasks/deadline-picker.tsx`
+- `components/tasks/task-quick-add.tsx`
+- `components/time-tracking/time-summary-card.tsx`
+
+---
 
 ### v2.14 (7. januára 2026)
 **Lovable Design System - Kompletný redesign UI:**
