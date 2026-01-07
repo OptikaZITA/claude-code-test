@@ -258,19 +258,28 @@ export function TaskItem({
 
         {/* Task content - Things 3 style layout */}
         <div className="flex-1 min-w-0">
-          {/* Row 1: Title + Notes icon */}
-          <div className="flex items-center gap-2">
-            <p
+          {/* Row 1: Title + Notes icon + TAGS */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
               className={cn(
-                'text-sm font-medium text-foreground truncate',
+                'text-sm font-medium text-foreground',
                 isCompleted && 'line-through text-muted-foreground'
               )}
             >
               {task.title}
-            </p>
+            </span>
             {task.notes && (
               <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             )}
+            {/* Tags hneď za názvom */}
+            {task.tags?.map(tag => (
+              <span
+                key={tag.id}
+                className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground whitespace-nowrap"
+              >
+                {tag.name}
+              </span>
+            ))}
           </div>
 
           {/* Row 2: Area/Department name (gray, smaller) */}
@@ -280,20 +289,6 @@ export function TaskItem({
             </span>
           )}
         </div>
-
-        {/* Tags - outline style badges */}
-        {task.tags && task.tags.length > 0 && (
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {task.tags.map(tag => (
-              <span
-                key={tag.id}
-                className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground whitespace-nowrap"
-              >
-                {tag.name}
-              </span>
-            ))}
-          </div>
-        )}
 
         {/* Right side: Time tracker, Deadline, Avatar */}
         <div className="flex items-center gap-2 shrink-0">

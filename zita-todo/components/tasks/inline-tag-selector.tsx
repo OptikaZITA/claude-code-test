@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Tag as TagIcon, Plus, Check } from 'lucide-react'
 import { Tag } from '@/types'
 import { useTags, useTaskTags } from '@/lib/hooks/use-tags'
@@ -27,8 +28,38 @@ export function InlineTagSelector({
   const [isCreating, setIsCreating] = useState(false)
   const [newTagName, setNewTagName] = useState('')
   const [newTagColor, setNewTagColor] = useState(TAG_COLORS[5])
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Update dropdown position when opened
+  useEffect(() => {
+    if (!isOpen || !triggerRef.current) return
+
+    const updatePosition = () => {
+      const rect = triggerRef.current!.getBoundingClientRect()
+      const dropdownWidth = 256 // w-64 = 16rem = 256px
+
+      // Position below the trigger, aligned to the right
+      let left = rect.right - dropdownWidth
+      const top = rect.bottom + 8
+
+      // Ensure dropdown doesn't go off-screen left
+      if (left < 8) left = 8
+
+      setDropdownPosition({ top, left })
+    }
+
+    updatePosition()
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [isOpen])
 
   const { tags: allTags, loading, createTag } = useTags()
   const { tags: taskTags, addTag, removeTag } = useTaskTags(taskId)
@@ -41,14 +72,33 @@ export function InlineTagSelector({
     if (!isOpen) return
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
-        setIsCreating(false)
+      const target = e.target as Node
+
+      // Check if clicked on trigger
+      if (triggerRef.current?.contains(target)) {
+        return
       }
+
+      // Check if clicked inside dropdown (if it exists)
+      if (dropdownRef.current?.contains(target)) {
+        return
+      }
+
+      // Clicked outside - close dropdown
+      setIsOpen(false)
+      setIsCreating(false)
+      setDropdownPosition(null)
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    // Small delay to prevent immediate closing on the same click that opened it
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside)
+    }, 0)
+
+    return () => {
+      clearTimeout(timeoutId)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
   }, [isOpen])
 
   // Focus input when opening
@@ -95,10 +145,18 @@ export function InlineTagSelector({
   }
 
   return (
-    <div ref={containerRef} className="relative">
+    <>
       {/* Icon trigger */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={triggerRef}
+        onClick={() => {
+          if (isOpen) {
+            setIsOpen(false)
+            setDropdownPosition(null)
+          } else {
+            setIsOpen(true)
+          }
+        }}
         className={cn(
           'p-2 rounded-lg transition-colors relative',
           hasSelectedTags
@@ -115,9 +173,16 @@ export function InlineTagSelector({
         )}
       </button>
 
-      {/* Dropdown */}
-      {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-64 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-xl z-50">
+      {/* Dropdown via Portal */}
+      {isOpen && dropdownPosition && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={dropdownRef}
+          className="fixed w-64 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-xl z-[9999]"
+          style={{
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+          }}
+        >
           {/* Search input */}
           <div className="p-2 border-b border-[var(--border-primary)]">
             <input
@@ -173,7 +238,7 @@ export function InlineTagSelector({
                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[var(--color-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
                   >
                     <Plus className="h-4 w-4" />
-                    <span className="text-sm">Vytvorit "{search}"</span>
+                    <span className="text-sm">Vytvoriť "{search}"</span>
                   </button>
                 )}
               </>
@@ -235,8 +300,9 @@ export function InlineTagSelector({
               </div>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   )
 }

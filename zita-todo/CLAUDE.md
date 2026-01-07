@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 7. januára 2026
-**Verzia špecifikácie**: 2.18 (Tags Things 3 Style + TagFilterBar)
+**Verzia špecifikácie**: 2.19 (Tags Position + DeadlineBadge Colors)
 
 ---
 
@@ -1171,6 +1171,42 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.19 (7. januára 2026)
+**Tags Position + DeadlineBadge Colors:**
+
+Oprava pozície tagov a pridanie farebných varovaní pre deadline podľa špecifikácie Things 3.
+
+**Fáza 1 - Tagy bližšie k názvu:**
+- ✅ `components/tasks/task-item.tsx` - Presun tagov
+  - Tagy sa teraz zobrazujú hneď za názvom úlohy a ikonou poznámky
+  - Použitý flex-wrap pre správne zalamovanie na dlhších názvoch
+  - Zmenené z `<p>` na `<span>` pre title (inline layout)
+
+**Fáza 2 - DeadlineBadge farebné varovania:**
+- ✅ `components/tasks/deadline-picker.tsx` - Aktualizovaný DeadlineBadge
+  - Pridaný import `AlertCircle` a `differenceInDays` z date-fns
+  - Farebné kódovanie podľa naliehavosti:
+    | Stav | Farba | Ikona | Text |
+    |------|-------|-------|------|
+    | Budúci (> 1 deň) | Sivá | Calendar | 15.1. |
+    | Zajtra | Oranžová | AlertTriangle | Zajtra |
+    | Dnes | Oranžová (bold) | AlertTriangle | Dnes |
+    | Po deadline | Červená (bold) | AlertCircle | 6.1. (4d po termíne) |
+
+**Fáza 3 - Tag Selector Portal fix:**
+- ✅ `components/tasks/inline-tag-selector.tsx` - Oprava orezávania
+  - Dropdown sa teraz renderuje cez Portal do `document.body`
+  - Dynamický výpočet pozície pomocou `getBoundingClientRect()`
+  - Opravený click-outside handler s `setTimeout(0)` pre správne timing
+  - z-index 9999 pre zobrazenie nad všetkým
+
+**Upravené súbory:**
+- `components/tasks/task-item.tsx`
+- `components/tasks/deadline-picker.tsx`
+- `components/tasks/inline-tag-selector.tsx`
+
+---
 
 ### v2.18 (7. januára 2026)
 **Tags Things 3 Style + TagFilterBar:**

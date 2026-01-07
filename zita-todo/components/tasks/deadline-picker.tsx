@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Flag, ChevronDown, X, AlertTriangle, Calendar } from 'lucide-react'
+import { Flag, ChevronDown, X, AlertTriangle, AlertCircle, Calendar } from 'lucide-react'
 import { Dropdown } from '@/components/ui/dropdown'
 import { cn } from '@/lib/utils/cn'
-import { format, addDays, isToday, isTomorrow, isPast, startOfDay } from 'date-fns'
+import { format, addDays, isToday, isTomorrow, isPast, startOfDay, differenceInDays } from 'date-fns'
 import { sk } from 'date-fns/locale'
 
 interface DeadlinePickerProps {
@@ -154,7 +154,7 @@ export function DeadlinePicker({
   )
 }
 
-// Badge variant for task lists - simple gray style per spec
+// Badge variant for task lists - colorful warnings based on urgency
 export function DeadlineBadge({
   value,
   size = 'sm'
@@ -173,13 +173,47 @@ export function DeadlineBadge({
     }
   }
 
+  // Calculate days difference
+  const today = startOfDay(new Date())
+  const deadlineDate = startOfDay(new Date(value))
+  const diffDays = differenceInDays(deadlineDate, today)
+
+  // Determine style and icon based on urgency
+  let colorClass = ''
+  let Icon = Calendar
+  let text = formatDate(value)
+
+  if (diffDays < 0) {
+    // OVERDUE - červená
+    colorClass = 'text-error font-medium'
+    Icon = AlertCircle
+    text = `${formatDate(value)} (${Math.abs(diffDays)}d po termíne)`
+  } else if (diffDays === 0) {
+    // DNES - oranžová
+    colorClass = 'text-warning font-medium'
+    Icon = AlertTriangle
+    text = 'Dnes'
+  } else if (diffDays === 1) {
+    // ZAJTRA - oranžová
+    colorClass = 'text-warning'
+    Icon = AlertTriangle
+    text = 'Zajtra'
+  } else {
+    // BUDÚCI - sivá
+    colorClass = 'text-muted-foreground'
+    Icon = Calendar
+  }
+
+  const iconSize = size === 'sm' ? 'h-3 w-3' : 'h-2.5 w-2.5'
+
   return (
     <span className={cn(
-      'inline-flex items-center gap-1 text-muted-foreground',
-      size === 'sm' ? 'text-sm' : 'text-xs'
+      'inline-flex items-center gap-1',
+      size === 'sm' ? 'text-sm' : 'text-xs',
+      colorClass
     )}>
-      <Calendar className={size === 'sm' ? 'h-3 w-3' : 'h-2.5 w-2.5'} />
-      <span>{formatDate(value)}</span>
+      <Icon className={iconSize} />
+      <span>{text}</span>
     </span>
   )
 }
