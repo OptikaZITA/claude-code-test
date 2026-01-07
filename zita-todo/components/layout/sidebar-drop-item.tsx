@@ -108,7 +108,7 @@ export function SidebarDropItem({
       className={cn(
         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all',
         isActive
-          ? 'bg-accent text-primary font-medium'
+          ? 'bg-accent text-foreground font-medium'
           : 'text-foreground hover:bg-accent/50',
         isDragging && 'cursor-copy',
         isDropTarget && 'ring-2 ring-primary bg-primary/10 scale-105',
@@ -242,7 +242,7 @@ export function SidebarDropArea({
         className={cn(
           'group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all',
           isActive
-            ? 'bg-accent text-primary font-medium'
+            ? 'bg-accent text-foreground font-medium'
             : 'text-foreground hover:bg-accent/50',
           isDragging && 'cursor-copy',
           isDropTarget && 'ring-2 ring-primary bg-primary/10 scale-[1.02]'
@@ -393,7 +393,7 @@ export function SidebarDropProject({
       className={cn(
         'flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all',
         isActive
-          ? 'bg-accent text-primary font-medium'
+          ? 'bg-accent text-foreground font-medium'
           : 'text-foreground hover:bg-accent/50',
         isDragging && 'cursor-copy',
         isDropTarget && 'ring-2 ring-primary bg-primary/10 scale-105'

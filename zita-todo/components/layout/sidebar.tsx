@@ -127,7 +127,7 @@ export function Sidebar({
             className={cn(
               'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
               isActive('/inbox/team')
-                ? 'bg-accent text-primary font-medium'
+                ? 'bg-accent text-foreground font-medium'
                 : 'text-foreground hover:bg-accent/50'
             )}
           >
@@ -179,7 +179,7 @@ export function Sidebar({
             className={cn(
               'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
               isActive('/logbook')
-                ? 'bg-accent text-primary font-medium'
+                ? 'bg-accent text-foreground font-medium'
                 : 'text-foreground hover:bg-accent/50'
             )}
           >
@@ -206,7 +206,7 @@ export function Sidebar({
             className={cn(
               'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
               isActive('/time')
-                ? 'bg-accent text-primary font-medium'
+                ? 'bg-accent text-foreground font-medium'
                 : 'text-foreground hover:bg-accent/50'
             )}
           >
