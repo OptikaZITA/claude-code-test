@@ -43,7 +43,7 @@ export function ProjectFormModal({
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
 
-  // Fetch areas for dropdown
+  // Fetch areas for dropdown - only if no preselectedAreaId
   useEffect(() => {
     const fetchAreas = async () => {
       const { data } = await supabase
@@ -57,10 +57,11 @@ export function ProjectFormModal({
       }
     }
 
-    if (isOpen) {
+    // Only fetch areas if we need to show the dropdown
+    if (isOpen && !preselectedAreaId) {
       fetchAreas()
     }
-  }, [isOpen, supabase])
+  }, [isOpen, preselectedAreaId, supabase])
 
   // Update areaId when preselectedAreaId changes
   useEffect(() => {
@@ -136,28 +137,31 @@ export function ProjectFormModal({
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-            Oddelenie
-          </label>
-          <select
-            value={areaId}
-            onChange={(e) => setAreaId(e.target.value)}
-            className="w-full rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-          >
-            <option value="">Vyberte oddelenie...</option>
-            {areas.map((area) => (
-              <option key={area.id} value={area.id}>
-                {area.name}
-              </option>
-            ))}
-          </select>
-          {areas.length === 0 && (
-            <p className="mt-1 text-xs text-[var(--text-secondary)]">
-              Najprv vytvorte oddelenie
-            </p>
-          )}
-        </div>
+        {/* Oddelenie dropdown - len ak NIE JE preselectedAreaId */}
+        {!preselectedAreaId && (
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+              Oddelenie
+            </label>
+            <select
+              value={areaId}
+              onChange={(e) => setAreaId(e.target.value)}
+              className="w-full rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            >
+              <option value="">Vyberte oddelenie...</option>
+              {areas.map((area) => (
+                <option key={area.id} value={area.id}>
+                  {area.name}
+                </option>
+              ))}
+            </select>
+            {areas.length === 0 && (
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                Najprv vytvorte oddelenie
+              </p>
+            )}
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
@@ -188,7 +192,7 @@ export function ProjectFormModal({
           <Button type="button" variant="ghost" onClick={handleClose}>
             Zrušiť
           </Button>
-          <Button type="submit" disabled={loading || areas.length === 0}>
+          <Button type="submit" disabled={loading || (!preselectedAreaId && areas.length === 0)}>
             {loading ? 'Vytváram...' : 'Vytvoriť'}
           </Button>
         </div>

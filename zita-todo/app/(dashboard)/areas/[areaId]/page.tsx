@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Layers, FolderKanban, Star, Filter } from 'lucide-react'
+import { Layers, FolderKanban, Star, Filter, FolderPlus } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
 import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
@@ -11,6 +11,7 @@ import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
 import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
 import { TagFilterBar } from '@/components/tasks/tag-filter-bar'
+import { ProjectFormModal } from '@/components/projects/project-form-modal'
 import { useArea, useAreaProjects, useAllAreaTasks } from '@/lib/hooks/use-areas'
 import { useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
@@ -84,13 +85,14 @@ export default function AreaDetailPage() {
   const areaId = params.areaId as string
 
   const { area, loading: areaLoading } = useArea(areaId)
-  const { projects, loading: projectsLoading } = useAreaProjects(areaId)
+  const { projects, loading: projectsLoading, refetch: refetchProjects } = useAreaProjects(areaId)
   const { tasks, loading: tasksLoading, refetch: refetchTasks } = useAllAreaTasks(areaId)
   const { createTask, updateTask, completeTask, softDelete } = useTasks()
   const { viewMode, setViewMode, isLoaded } = useViewPreference('area')
   const [showFilters, setShowFilters] = useState(false)
   const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  const [showProjectModal, setShowProjectModal] = useState(false)
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -296,10 +298,19 @@ export default function AreaDetailPage() {
         </div>
       ) : (
         <div className="flex-1 overflow-auto p-6">
-          {/* Title row with button */}
+          {/* Title row with buttons */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-heading font-semibold text-foreground">{area.name}</h2>
-            <TaskQuickAdd onAdd={(title) => handleQuickAdd(title)} />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowProjectModal(true)}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-border text-foreground hover:bg-accent transition-colors"
+              >
+                <FolderPlus className="h-4 w-4" />
+                Pridať projekt
+              </button>
+              <TaskQuickAdd onAdd={(title) => handleQuickAdd(title)} />
+            </div>
           </div>
 
           {/* Tag Filter Bar */}
@@ -393,6 +404,17 @@ export default function AreaDetailPage() {
           )}
         </div>
       )}
+
+      {/* Modal pre vytvorenie projektu */}
+      <ProjectFormModal
+        isOpen={showProjectModal}
+        onClose={() => setShowProjectModal(false)}
+        onSuccess={() => {
+          refetchProjects()
+          refetchTasks()
+        }}
+        preselectedAreaId={areaId}
+      />
     </div>
   )
 }
