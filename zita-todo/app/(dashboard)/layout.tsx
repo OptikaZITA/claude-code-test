@@ -169,17 +169,17 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   return (
     <GlobalTimerProvider>
       <SidebarDropProvider>
-        <div className="flex h-screen bg-background">
-          {/* Sidebar Drawer - hidden by default, slides in on toggle */}
+        <div className="min-h-screen bg-background">
+          {/* Sidebar Overlay - position fixed, nie súčasť layoutu */}
           {sidebarOpen && (
             <>
-              {/* Overlay */}
+              {/* Tmavý overlay */}
               <div
                 className="fixed inset-0 bg-black/50 z-40 animate-fade-in"
                 onClick={() => setSidebarOpen(false)}
               />
               {/* Sidebar */}
-              <div className="fixed left-0 top-0 h-full z-50 animate-slide-in-left shadow-lg">
+              <aside className="fixed left-0 top-0 h-full w-64 bg-card z-50 shadow-xl animate-slide-in-left">
                 <Sidebar
                   user={user}
                   areas={areas}
@@ -187,15 +187,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                   onCreateProject={handleCreateProject}
                   onNavigate={() => setSidebarOpen(false)}
                 />
-              </div>
+              </aside>
             </>
           )}
 
           {/* Mobile Navigation (bottom bar) */}
           <MobileNav />
 
-          {/* Main Content - full width now */}
-          <main className="flex-1 overflow-auto pt-0 pb-16 lg:pb-0">
+          {/* Main Content - VŽDY rovnaká šírka a pozícia */}
+          <main className="min-h-screen overflow-auto pb-16 lg:pb-0">
             {children}
           </main>
 
