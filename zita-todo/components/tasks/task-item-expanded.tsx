@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Tag, FolderOpen, Layers, Flag, User, X, Trash2, Clock } from 'lucide-react'
-import { TaskWithRelations, WhenType } from '@/types'
+import { Tag, FolderOpen, Layers, Flag, User, X, Trash2, Clock, Repeat } from 'lucide-react'
+import { TaskWithRelations, WhenType, RecurrenceRule } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar } from '@/components/ui/avatar'
 import { TagChipList } from '@/components/tags'
@@ -12,6 +12,7 @@ import { InlineDeadlinePicker } from './inline-deadline-picker'
 import { InlineTagSelector } from './inline-tag-selector'
 import { InlineLocationSelector } from './inline-location-selector'
 import { InlineTimeTracker } from './inline-time-tracker'
+import { RecurrenceConfigModal } from './recurrence-config-modal'
 
 interface TaskItemExpandedProps {
   task: TaskWithRelations
@@ -30,10 +31,12 @@ export function TaskItemExpanded({
 }: TaskItemExpandedProps) {
   const [title, setTitle] = useState(task.title)
   const [notes, setNotes] = useState(task.notes || '')
+  const [showRecurrenceModal, setShowRecurrenceModal] = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const notesRef = useRef<HTMLTextAreaElement>(null)
 
   const isCompleted = task.status === 'done'
+  const hasRecurrence = !!task.recurrence_rule
 
   // Focus title on mount
   useEffect(() => {
@@ -97,6 +100,11 @@ export function TaskItemExpanded({
   // Location (area/project) change
   const handleLocationChange = (areaId: string | null, projectId: string | null) => {
     onUpdate({ area_id: areaId, project_id: projectId })
+  }
+
+  // Recurrence change
+  const handleRecurrenceSave = (rule: RecurrenceRule | null) => {
+    onUpdate({ recurrence_rule: rule })
   }
 
   return (
@@ -184,6 +192,23 @@ export function TaskItemExpanded({
             onChange={handleDeadlineChange}
           />
 
+          {/* Recurrence */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowRecurrenceModal(true)
+            }}
+            className={cn(
+              'p-2 rounded-lg transition-colors',
+              hasRecurrence
+                ? 'text-primary hover:bg-primary/10'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+            )}
+            title={hasRecurrence ? 'Upraviť opakovanie' : 'Nastaviť opakovanie'}
+          >
+            <Repeat className="h-4 w-4" />
+          </button>
+
           {/* Divider */}
           <div className="w-px h-5 bg-[var(--border)] mx-1" />
 
@@ -232,6 +257,14 @@ export function TaskItemExpanded({
           <TagChipList tags={task.tags.slice(0, 3)} size="sm" />
         )}
       </div>
+
+      {/* Recurrence Modal */}
+      <RecurrenceConfigModal
+        isOpen={showRecurrenceModal}
+        onClose={() => setShowRecurrenceModal(false)}
+        task={task}
+        onSave={handleRecurrenceSave}
+      />
     </div>
   )
 }

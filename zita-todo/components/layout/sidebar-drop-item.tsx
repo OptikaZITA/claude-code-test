@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react'
 import { useSidebarDrop, DropTarget } from '@/lib/contexts/sidebar-drop-context'
+import { SidebarStarBadge } from '@/components/indicators'
 import { cn } from '@/lib/utils/cn'
 
 interface SidebarDropItemProps {
@@ -148,6 +149,8 @@ interface SidebarDropAreaProps {
   onCreateProject: () => void
   onNavigate?: () => void
   children?: ReactNode
+  /** Pocet taskov v "Dnes" pre toto oddelenie */
+  todayTasksCount?: number
 }
 
 export function SidebarDropArea({
@@ -160,6 +163,7 @@ export function SidebarDropArea({
   onCreateProject,
   onNavigate,
   children,
+  todayTasksCount = 0,
 }: SidebarDropAreaProps) {
   const pathname = usePathname()
   const {
@@ -268,6 +272,7 @@ export function SidebarDropArea({
             style={{ backgroundColor: areaColor || 'var(--primary)' }}
           />
           <span className="flex-1 text-left truncate">{areaName}</span>
+          <SidebarStarBadge todayTasksCount={todayTasksCount} />
         </Link>
         {isDropTarget ? (
           <span className="text-xs text-primary font-medium">
@@ -303,6 +308,8 @@ interface SidebarDropProjectProps {
   icon: ReactNode
   label: string
   onClick?: () => void
+  /** Pocet taskov v "Dnes" pre tento projekt */
+  todayTasksCount?: number
 }
 
 export function SidebarDropProject({
@@ -312,6 +319,7 @@ export function SidebarDropProject({
   icon,
   label,
   onClick,
+  todayTasksCount = 0,
 }: SidebarDropProjectProps) {
   const {
     isDragging,
@@ -400,11 +408,13 @@ export function SidebarDropProject({
       )}
     >
       {icon}
-      <span>{label}</span>
-      {isDropTarget && (
-        <span className="ml-auto text-xs text-primary font-medium">
+      <span className="flex-1">{label}</span>
+      {isDropTarget ? (
+        <span className="text-xs text-primary font-medium">
           +
         </span>
+      ) : (
+        <SidebarStarBadge todayTasksCount={todayTasksCount} />
       )}
     </Link>
   )

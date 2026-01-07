@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Clock } from 'lucide-react'
@@ -8,6 +9,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { TagChipList } from '@/components/tags'
 import { WhenBadge } from '@/components/tasks/when-picker'
 import { DeadlineBadge } from '@/components/tasks/deadline-picker'
+import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
 import { cn } from '@/lib/utils/cn'
 import { formatDurationShort } from '@/lib/utils/date'
 
@@ -25,6 +27,8 @@ const priorityDots: Record<TaskPriority, string> = {
 }
 
 export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
+  const { setDraggedTask } = useSidebarDrop()
+
   const {
     attributes,
     listeners,
@@ -33,6 +37,16 @@ export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
     transition,
     isDragging: isSortableDragging,
   } = useSortable({ id: task.id })
+
+  // Notify sidebar context when dragging starts/ends
+  // This enables drag to sidebar drop targets (Trash, Areas, Projects, etc.)
+  useEffect(() => {
+    if (isSortableDragging) {
+      setDraggedTask(task)
+    } else {
+      setDraggedTask(null)
+    }
+  }, [isSortableDragging, task, setDraggedTask])
 
   const style = {
     transform: CSS.Transform.toString(transform),

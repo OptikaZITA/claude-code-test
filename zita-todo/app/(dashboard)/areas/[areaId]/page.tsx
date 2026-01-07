@@ -74,6 +74,7 @@ function ProjectSection({
           onQuickAdd={(title) => onQuickAdd(title, project.id)}
           emptyMessage="Žiadne úlohy v projekte"
           showQuickAdd={true}
+          showTodayStar={true}
         />
       </div>
     </div>
@@ -129,6 +130,31 @@ export default function AreaDetailPage() {
       looseTasks: sortTasksTodayFirst(loose)
     }
   }, [tagFilteredTasks])
+
+  // Active projects (must be before early returns)
+  const activeProjects = useMemo(() => {
+    return projects.filter(p => p.status === 'active')
+  }, [projects])
+
+  // Filter projects to only show those with tasks matching the tag filter
+  const visibleProjects = useMemo(() => {
+    if (!selectedTag) {
+      // No tag filter - show all projects
+      return activeProjects
+    }
+    // Only show projects that have at least one task with the selected tag
+    return activeProjects.filter(project => {
+      const projectTaskList = projectTasks.get(project.id) || []
+      return projectTaskList.length > 0
+    })
+  }, [activeProjects, selectedTag, projectTasks])
+
+  // Get selected tag name for empty state message
+  const selectedTagName = useMemo(() => {
+    if (!selectedTag) return null
+    const task = tasks.find(t => t.tags?.some(tag => tag.id === selectedTag))
+    return task?.tags?.find(tag => tag.id === selectedTag)?.name || null
+  }, [selectedTag, tasks])
 
   const handleQuickAdd = async (title: string, projectId?: string) => {
     try {
@@ -243,8 +269,6 @@ export default function AreaDetailPage() {
     )
   }
 
-  const activeProjects = projects.filter(p => p.status === 'active')
-
   return (
     <div className="h-full flex flex-col">
       <Header
@@ -321,7 +345,7 @@ export default function AreaDetailPage() {
           />
 
           {/* Projects with their tasks */}
-          {activeProjects.map(project => {
+          {visibleProjects.map(project => {
             const projectTaskList = projectTasks.get(project.id) || []
             return (
               <ProjectSection
@@ -357,6 +381,7 @@ export default function AreaDetailPage() {
                 onQuickAdd={(title) => handleQuickAdd(title)}
                 emptyMessage=""
                 showQuickAdd={true}
+                showTodayStar={true}
               />
             </div>
           )}
@@ -378,7 +403,11 @@ export default function AreaDetailPage() {
           {tagFilteredTasks.length === 0 && tasks.length > 0 && (hasActiveFilters || selectedTag) && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Filter className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
-              <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Žiadne úlohy nezodpovedajú filtrom</p>
+              <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
+                {selectedTag && selectedTagName
+                  ? `Žiadne úlohy s tagom "${selectedTagName}"`
+                  : 'Žiadne úlohy nezodpovedajú filtrom'}
+              </p>
               <button
                 onClick={() => { clearFilters(); setSelectedTag(null); }}
                 className="text-[var(--color-primary)] hover:underline"

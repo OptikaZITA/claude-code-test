@@ -11,10 +11,12 @@ import { CalendarView } from '@/components/calendar/calendar-view'
 import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
 import { TagFilterBar } from '@/components/tasks/tag-filter-bar'
 import { TimeSummaryCard } from '@/components/time-tracking/time-summary-card'
+import { NewTasksBanner } from '@/components/indicators'
 import { useTodayTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useViewPreference } from '@/lib/hooks/use-view-preference'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
+import { useNewTasks } from '@/lib/hooks/use-new-tasks'
 import { TaskWithRelations, TaskStatus } from '@/types'
 import { isToday, isPast, parseISO } from 'date-fns'
 
@@ -26,6 +28,9 @@ export default function TodayPage() {
   const [showFilters, setShowFilters] = useState(false)
   const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
+
+  // New tasks tracking (zlta bodka + banner)
+  const { newTasksCount, acknowledge, acknowledging, isTaskNew, refetch: refetchNewTasks } = useNewTasks()
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -246,6 +251,16 @@ export default function TodayPage() {
             <TaskQuickAdd onAdd={handleQuickAdd} />
           </div>
 
+          {/* New Tasks Banner */}
+          <NewTasksBanner
+            count={newTasksCount}
+            onAcknowledge={async () => {
+              await acknowledge()
+              refetchNewTasks()
+            }}
+            loading={acknowledging}
+          />
+
           {/* Time Summary */}
           {(timeSummary.totalSeconds > 0 || timeSummary.taskCount > 0) && (
             <TimeSummaryCard
@@ -320,6 +335,7 @@ export default function TodayPage() {
             onReorder={handleReorder}
             showQuickAdd={false}
             emptyMessage={overdueTasks.length > 0 ? '' : ''}
+            isTaskNew={(task) => isTaskNew(task.added_to_today_at)}
           />
         </div>
       )}

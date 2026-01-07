@@ -146,6 +146,7 @@ export interface Task {
   sort_order: number
   archived_at: string | null
   deleted_at: string | null
+  added_to_today_at: string | null  // Timestamp kedy bol task pridany do Dnes (pre zltu bodku)
   checklist_items: ChecklistItem[]
   recurrence_rule: RecurrenceRule | null
   created_at: string
@@ -219,24 +220,52 @@ export interface InvitationWithDetails extends Invitation {
   department_list?: Area[]
 }
 
-// Recurrence types
-export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly'
-export type WeekDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
+// Recurrence types - Things 3 style
+export type RecurrenceType = 'after_completion' | 'scheduled'
+export type RecurrenceUnit = 'day' | 'week' | 'month' | 'year'
+export type RecurrenceEndType = 'never' | 'after_count' | 'on_date'
 
 export interface RecurrenceRule {
-  frequency: RecurrenceFrequency
-  interval: number // Every X days/weeks/months/years
-  weekDays?: WeekDay[] // For weekly: which days
-  monthDay?: number // For monthly: which day of month (1-31)
-  endDate?: string // When to stop recurring
-  endAfterOccurrences?: number // Stop after X occurrences
+  // Typ opakovania
+  type: RecurrenceType
+
+  // Interval a jednotka
+  interval: number           // 1, 2, 3...
+  unit: RecurrenceUnit
+
+  // Kedy skončiť opakovanie
+  end_type: RecurrenceEndType
+  end_after_count?: number   // po X opakovaniach
+  end_on_date?: string       // ISO date string
+
+  // Pre scheduled - ďalšie dátumy
+  next_date?: string         // ISO date - kedy je ďalší výskyt
+  completed_count?: number   // počet dokončených opakovaní
+
+  // Voliteľné
+  reminder_time?: string     // "12:00" - čas pripomienky
+  deadline_days_before?: number // deadline X dní pred
 }
 
-export interface RecurringTask extends Task {
-  recurrence_rule: RecurrenceRule | null
-  parent_task_id: string | null // For recurring instances
-  next_occurrence_at: string | null
-  occurrences_count: number
+// Helper pre formátovanie recurrence rule do čitateľného textu
+export function formatRecurrenceRule(rule: RecurrenceRule): string {
+  const unitLabels: Record<RecurrenceUnit, { singular: string; plural: string }> = {
+    day: { singular: 'deň', plural: 'dni' },
+    week: { singular: 'týždeň', plural: 'týždne' },
+    month: { singular: 'mesiac', plural: 'mesiace' },
+    year: { singular: 'rok', plural: 'roky' },
+  }
+
+  const unit = unitLabels[rule.unit]
+  const intervalText = rule.interval === 1
+    ? unit.singular
+    : `${rule.interval} ${unit.plural}`
+
+  if (rule.type === 'after_completion') {
+    return `Každý ${intervalText} po dokončení`
+  }
+
+  return `Každý ${intervalText}`
 }
 
 // Kanban types - používa TaskStatus namiesto samostatného KanbanColumn

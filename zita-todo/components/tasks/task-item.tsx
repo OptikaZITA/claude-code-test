@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Trash2, Star, FileText } from 'lucide-react'
+import { Trash2, Star, FileText, Repeat } from 'lucide-react'
 import { TaskWithRelations, TaskPriority } from '@/types'
 import { isToday, parseISO } from 'date-fns'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -9,6 +9,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { DeadlineBadge } from '@/components/tasks/deadline-picker'
 import { TaskItemExpanded } from '@/components/tasks/task-item-expanded'
 import { InlineTimeTracker } from '@/components/tasks/inline-time-tracker'
+import { TodayStarIndicator, NewTaskIndicator } from '@/components/indicators'
 import { cn } from '@/lib/utils/cn'
 
 const SWIPE_THRESHOLD = 80 // pixels to trigger delete action
@@ -24,6 +25,10 @@ interface TaskItemProps {
   onUpdate?: (updates: Partial<TaskWithRelations>) => void
   onDelete?: () => void
   enableInlineEdit?: boolean
+  /** Zobrazit hviezdicku pre tasky v "Dnes" (pouziva sa na strankach projektov/oddeleni) */
+  showTodayStar?: boolean
+  /** Je task "novy" - zobrazit zltu bodku (pouziva sa len na Today stranke) */
+  isNew?: boolean
 }
 
 // Priority colors using new design system
@@ -71,6 +76,8 @@ export function TaskItem({
   onUpdate,
   onDelete,
   enableInlineEdit = true,
+  showTodayStar = false,
+  isNew = false,
 }: TaskItemProps) {
   const isCompleted = task.status === 'done'
   const isMobile = useIsMobile()
@@ -237,24 +244,26 @@ export function TaskItem({
         onTouchEnd={isMobile && onDelete ? handleTouchEnd : undefined}
       >
         {/* Checkbox */}
-        <div onClick={(e) => e.stopPropagation()} className="shrink-0 pt-0.5">
+        <div onClick={(e) => e.stopPropagation()} className="shrink-0 pt-0.5 flex items-center gap-1">
+          {/* Zlta bodka pre novy task */}
+          <NewTaskIndicator isNew={isNew} className="mr-0.5" />
           <Checkbox
             checked={isCompleted}
             onChange={(checked) => onComplete(checked)}
           />
         </div>
 
-        {/* Star indicator for today tasks or priority */}
-        {(isTodayTask || task.priority !== 'low') && (
+        {/* Star indicator - Today star alebo priority star */}
+        {showTodayStar && isTodayTask ? (
+          <TodayStarIndicator isInToday={true} size="md" className="mt-0.5" />
+        ) : task.priority !== 'low' ? (
           <Star
             className={cn(
               'h-4 w-4 shrink-0 mt-0.5',
-              isTodayTask
-                ? 'text-secondary fill-secondary'
-                : priorityColors[task.priority]
+              priorityColors[task.priority]
             )}
           />
-        )}
+        ) : null}
 
         {/* Task content - Things 3 style layout */}
         <div className="flex-1 min-w-0">
@@ -270,6 +279,12 @@ export function TaskItem({
             </span>
             {task.notes && (
               <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            )}
+            {/* Recurrence ikona */}
+            {task.recurrence_rule && (
+              <span title="Opakujúca sa úloha">
+                <Repeat className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+              </span>
             )}
             {/* Tags hneď za názvom */}
             {task.tags?.map(tag => (

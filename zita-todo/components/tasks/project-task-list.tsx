@@ -16,6 +16,8 @@ interface ProjectTaskListProps {
   onHeadingUpdate: (headingId: string, title: string) => Promise<void>
   onHeadingDelete: (headingId: string) => Promise<void>
   emptyMessage?: string
+  /** Zobrazit hviezdicku pre tasky v "Dnes" */
+  showTodayStar?: boolean
 }
 
 export function ProjectTaskList({
@@ -28,6 +30,7 @@ export function ProjectTaskList({
   onHeadingUpdate,
   onHeadingDelete,
   emptyMessage = 'Žiadne úlohy',
+  showTodayStar = false,
 }: ProjectTaskListProps) {
   const [expandedHeadings, setExpandedHeadings] = useState<Set<string>>(
     new Set(headings.map((h) => h.id))
@@ -86,6 +89,7 @@ export function ProjectTaskList({
               task={task}
               onClick={() => onTaskClick(task)}
               onComplete={(completed) => onTaskComplete(task.id, completed)}
+              showTodayStar={showTodayStar}
             />
           ))}
         </div>
@@ -114,6 +118,7 @@ export function ProjectTaskList({
                     task={task}
                     onClick={() => onTaskClick(task)}
                     onComplete={(completed) => onTaskComplete(task.id, completed)}
+                    showTodayStar={showTodayStar}
                   />
                 ))}
               </div>

@@ -2,8 +2,45 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Task, TaskWithRelations, Tag } from '@/types'
+import { Task, TaskWithRelations, Tag, RecurrenceRule } from '@/types'
 import { sortTasksTodayFirst } from '@/lib/utils/task-sorting'
+import { addDays, addWeeks, addMonths, addYears } from 'date-fns'
+
+// Helper pre výpočet nasledujúceho dátumu pre recurrence
+function getNextRecurrenceDate(fromDate: Date, rule: RecurrenceRule): Date {
+  switch (rule.unit) {
+    case 'day':
+      return addDays(fromDate, rule.interval)
+    case 'week':
+      return addWeeks(fromDate, rule.interval)
+    case 'month':
+      return addMonths(fromDate, rule.interval)
+    case 'year':
+      return addYears(fromDate, rule.interval)
+    default:
+      return addDays(fromDate, rule.interval)
+  }
+}
+
+// Skontroluje či sa má vytvoriť nový recurring task
+function shouldCreateRecurringTask(rule: RecurrenceRule, nextDate: Date): boolean {
+  // Kontrola end conditions
+  if (rule.end_type === 'after_count') {
+    const completedCount = rule.completed_count || 0
+    const endAfterCount = rule.end_after_count || 0
+    if (completedCount >= endAfterCount) {
+      return false
+    }
+  }
+
+  if (rule.end_type === 'on_date' && rule.end_on_date) {
+    if (nextDate > new Date(rule.end_on_date)) {
+      return false
+    }
+  }
+
+  return true
+}
 
 // Helper to transform Supabase nested tags structure to flat Tag[]
 // Supabase returns: tags: [{ tag: { id, name, color } }, ...]
@@ -54,14 +91,18 @@ export function useTasks() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
+    const whenType = task.when_type || 'inbox'
+
     const { data, error } = await supabase
       .from('tasks')
       .insert({
         ...task,
         created_by: user.id,
         inbox_user_id: task.inbox_type === 'personal' ? user.id : null,
-        when_type: task.when_type || 'inbox',
+        when_type: whenType,
         is_inbox: task.is_inbox !== undefined ? task.is_inbox : (!task.project_id && !task.area_id),
+        // Auto-set added_to_today_at when creating task in 'today'
+        added_to_today_at: whenType === 'today' ? new Date().toISOString() : null,
       })
       .select()
       .single()
@@ -72,9 +113,19 @@ export function useTasks() {
   }
 
   const updateTask = async (taskId: string, updates: Partial<Task>) => {
+    // Auto-set added_to_today_at when task moves to 'today'
+    const finalUpdates = { ...updates }
+    if (updates.when_type === 'today' && !updates.added_to_today_at) {
+      finalUpdates.added_to_today_at = new Date().toISOString()
+    }
+    // Clear added_to_today_at when task moves away from 'today'
+    if (updates.when_type && updates.when_type !== 'today') {
+      finalUpdates.added_to_today_at = null
+    }
+
     const { data, error } = await supabase
       .from('tasks')
-      .update(updates)
+      .update(finalUpdates)
       .eq('id', taskId)
       .select()
       .single()
@@ -105,6 +156,9 @@ export function useTasks() {
   }
 
   const completeTask = async (taskId: string, completed: boolean) => {
+    // Najprv získaj aktuálny task pre recurrence logiku
+    const currentTask = tasks.find(t => t.id === taskId)
+
     // AUTO-LOGBOOK: Keď task je done, presunie sa do Logbooku (when_type = null)
     // Keď sa odznačí, vráti sa do inbox
     await updateTask(taskId, {
@@ -112,6 +166,67 @@ export function useTasks() {
       completed_at: completed ? new Date().toISOString() : null,
       when_type: completed ? null : 'inbox', // Auto-logbook: null = Logbook
     } as Partial<Task>)
+
+    // After completion recurring logic
+    if (completed && currentTask?.recurrence_rule?.type === 'after_completion') {
+      const rule = currentTask.recurrence_rule
+      const nextDate = getNextRecurrenceDate(new Date(), rule)
+
+      if (shouldCreateRecurringTask(rule, nextDate)) {
+        // Vytvor nový recurring task
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        // Aktualizuj recurrence_rule s novým completed_count
+        const newRule: RecurrenceRule = {
+          ...rule,
+          completed_count: (rule.completed_count || 0) + 1,
+          next_date: nextDate.toISOString().split('T')[0],
+        }
+
+        // Reset checklist items (všetky unchecked)
+        const resetChecklist = currentTask.checklist_items?.map(item => ({
+          ...item,
+          completed: false,
+        })) || []
+
+        // Vytvor nový task
+        const { error } = await supabase
+          .from('tasks')
+          .insert({
+            title: currentTask.title,
+            notes: currentTask.notes,
+            description: currentTask.description,
+            area_id: currentTask.area_id,
+            project_id: currentTask.project_id,
+            heading_id: currentTask.heading_id,
+            priority: currentTask.priority,
+            assignee_id: currentTask.assignee_id,
+            when_type: 'scheduled',
+            when_date: nextDate.toISOString().split('T')[0],
+            deadline: rule.deadline_days_before !== undefined
+              ? addDays(nextDate, -rule.deadline_days_before).toISOString().split('T')[0]
+              : null,
+            recurrence_rule: newRule,
+            checklist_items: resetChecklist,
+            created_by: user.id,
+            inbox_type: currentTask.inbox_type,
+            inbox_user_id: currentTask.inbox_user_id,
+            organization_id: currentTask.organization_id,
+            added_to_today_at: new Date().toISOString(), // Pre žltú bodku signalizáciu
+            status: 'todo',
+          })
+
+        if (error) {
+          console.error('Error creating recurring task:', error)
+        } else {
+          // Emit event pre refresh na iných stránkach
+          window.dispatchEvent(new CustomEvent('task:moved'))
+        }
+
+        await fetchTasks()
+      }
+    }
   }
 
   // Reorder tasks - update sort_order for affected tasks

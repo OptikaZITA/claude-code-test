@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import {
   DndContext,
   DragEndEvent,
@@ -14,6 +14,7 @@ import {
 import { TaskWithRelations, TaskStatus, DEFAULT_KANBAN_COLUMNS } from '@/types'
 import { KanbanColumn as KanbanColumnComponent } from './kanban-column'
 import { KanbanCard } from './kanban-card'
+import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
 
 interface KanbanBoardProps {
   tasks: TaskWithRelations[]
@@ -29,6 +30,7 @@ export function KanbanBoard({
   onQuickAdd,
 }: KanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null)
+  const { dropTarget, handleDrop: handleSidebarDrop, setDropTarget } = useSidebarDrop()
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -38,18 +40,26 @@ export function KanbanBoard({
     })
   )
 
-  const getTasksByStatus = (status: TaskStatus) => {
+  const getTasksByStatus = useCallback((status: TaskStatus) => {
     return tasks.filter((task) => task.status === status)
-  }
+  }, [tasks])
 
-  const handleDragStart = (event: DragStartEvent) => {
+  const handleDragStart = useCallback((event: DragStartEvent) => {
     const task = tasks.find((t) => t.id === event.active.id)
     setActiveTask(task || null)
-  }
+  }, [tasks])
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
     setActiveTask(null)
+
+    // Check if there's a sidebar drop target (trash, when, project, area)
+    // This has priority over Kanban column drops
+    if (dropTarget) {
+      handleSidebarDrop(dropTarget)
+      setDropTarget(null)
+      return
+    }
 
     if (!over) return
 
@@ -78,7 +88,12 @@ export function KanbanBoard({
         }
       }
     }
-  }
+  }, [tasks, onTaskMove, dropTarget, handleSidebarDrop, setDropTarget])
+
+  const handleDragCancel = useCallback(() => {
+    setActiveTask(null)
+    setDropTarget(null)
+  }, [setDropTarget])
 
   return (
     <DndContext
@@ -86,6 +101,7 @@ export function KanbanBoard({
       collisionDetection={closestCorners}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       <div className="flex h-full gap-4 overflow-x-auto p-6 bg-background">
         {DEFAULT_KANBAN_COLUMNS.map((column) => (

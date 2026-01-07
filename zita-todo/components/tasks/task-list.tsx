@@ -37,6 +37,10 @@ interface TaskListProps {
   enableDrag?: boolean
   enableReorder?: boolean
   enableInlineEdit?: boolean
+  /** Callback pre zistenie ci je task novy (zlta bodka) */
+  isTaskNew?: (task: TaskWithRelations) => boolean
+  /** Zobrazit hviezdicku pre tasky v "Dnes" (pouziva sa na strankach projektov/oddeleni) */
+  showTodayStar?: boolean
 }
 
 export function TaskList({
@@ -52,6 +56,8 @@ export function TaskList({
   enableDrag = true,
   enableReorder = true,
   enableInlineEdit = true,
+  isTaskNew,
+  showTodayStar = false,
 }: TaskListProps) {
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null)
   const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null)
@@ -178,6 +184,7 @@ export function TaskList({
 
   const renderTaskItem = (task: TaskWithRelations) => {
     const isExpanded = expandedTaskId === task.id
+    const taskIsNew = isTaskNew ? isTaskNew(task) : false
 
     if (shouldUseSortable) {
       return (
@@ -196,6 +203,8 @@ export function TaskList({
           onUpdate={(updates) => handleTaskUpdate(task.id, updates)}
           onDelete={onTaskDelete ? () => onTaskDelete(task.id) : undefined}
           enableInlineEdit={enableInlineEdit}
+          isNew={taskIsNew}
+          showTodayStar={showTodayStar}
         />
       )
     }
@@ -215,6 +224,8 @@ export function TaskList({
         onUpdate={(updates) => handleTaskUpdate(task.id, updates)}
         onDelete={onTaskDelete ? () => onTaskDelete(task.id) : undefined}
         enableInlineEdit={enableInlineEdit}
+        isNew={taskIsNew}
+        showTodayStar={showTodayStar}
       />
     )
 

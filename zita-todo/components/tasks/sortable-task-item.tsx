@@ -19,6 +19,10 @@ interface SortableTaskItemProps {
   onDelete?: () => void
   enableInlineEdit?: boolean
   isDragDisabled?: boolean
+  /** Je task "novy" - zobrazit zltu bodku */
+  isNew?: boolean
+  /** Zobrazit hviezdicku pre tasky v "Dnes" */
+  showTodayStar?: boolean
 }
 
 export function SortableTaskItem({
@@ -32,6 +36,8 @@ export function SortableTaskItem({
   onDelete,
   enableInlineEdit = true,
   isDragDisabled = false,
+  isNew = false,
+  showTodayStar = false,
 }: SortableTaskItemProps) {
   const { setDraggedTask } = useSidebarDrop()
 
@@ -74,6 +80,8 @@ export function SortableTaskItem({
         onUpdate={onUpdate}
         onDelete={onDelete}
         enableInlineEdit={enableInlineEdit}
+        isNew={isNew}
+        showTodayStar={showTodayStar}
       />
     )
   }
@@ -99,6 +107,8 @@ export function SortableTaskItem({
         onUpdate={onUpdate}
         onDelete={onDelete}
         enableInlineEdit={enableInlineEdit}
+        isNew={isNew}
+        showTodayStar={showTodayStar}
       />
     </div>
   )

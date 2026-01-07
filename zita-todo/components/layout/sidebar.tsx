@@ -29,6 +29,7 @@ import { SidebarDropItem, SidebarDropProject, SidebarDropArea } from '@/componen
 import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
 import { useTaskCounts } from '@/lib/hooks/use-task-counts'
 import { useUserDepartments } from '@/lib/hooks/use-user-departments'
+import { useTodayTasksCounts } from '@/lib/hooks/use-new-tasks'
 import { UserRole, canSeeAllDepartments, canManageUsers } from '@/types'
 
 interface Area {
@@ -78,6 +79,7 @@ export function Sidebar({
 
   // No longer using document listener - using overlay instead
   const { myDepartments, otherDepartments, canSeeAll } = useUserDepartments()
+  const { getProjectTodayCount, getAreaTodayCount } = useTodayTasksCounts()
 
   const toggleArea = (areaId: string) => {
     const newExpanded = new Set(expandedAreas)
@@ -247,6 +249,7 @@ export function Sidebar({
             onToggle={() => toggleArea(area.id)}
             onCreateProject={() => onCreateProject(area.id)}
             onNavigate={onNavigate}
+            todayTasksCount={getAreaTodayCount(area.id)}
           >
             {area.projects.map((project) => (
               <SidebarDropProject
@@ -257,6 +260,7 @@ export function Sidebar({
                 icon={<FolderKanban className="h-4 w-4" />}
                 label={project.name}
                 onClick={onNavigate}
+                todayTasksCount={getProjectTodayCount(project.id)}
               />
             ))}
             <button
@@ -296,6 +300,7 @@ export function Sidebar({
                 onToggle={() => toggleArea(area.id)}
                 onCreateProject={() => onCreateProject(area.id)}
                 onNavigate={onNavigate}
+                todayTasksCount={getAreaTodayCount(area.id)}
               >
                 {area.projects.map((project) => (
                   <SidebarDropProject
@@ -306,6 +311,7 @@ export function Sidebar({
                     icon={<FolderKanban className="h-4 w-4" />}
                     label={project.name}
                     onClick={onNavigate}
+                    todayTasksCount={getProjectTodayCount(project.id)}
                   />
                 ))}
               </SidebarDropArea>

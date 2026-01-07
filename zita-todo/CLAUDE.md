@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 7. januára 2026
-**Verzia špecifikácie**: 2.20 (Drag & Drop Fix)
+**Verzia špecifikácie**: 2.26 (Area Detail Page Hooks Fix)
 
 ---
 
@@ -138,6 +138,9 @@ recurrence_rule (jsonb, nullable)
 -- Soft delete
 deleted_at (timestamptz, nullable)  -- NOVÉ v2.4
 
+-- Signalization
+added_to_today_at (timestamptz, nullable)  -- NOVÉ v2.22: Kedy bol task pridaný do "Dnes"
+
 created_at (timestamptz)
 updated_at (timestamptz)
 completed_at (timestamptz, nullable)
@@ -226,6 +229,15 @@ project_id (uuid FK → projects)
 user_id (uuid FK → users)
 role (text: 'owner' | 'editor' | 'viewer')
 PRIMARY KEY (project_id, user_id)
+```
+
+#### USER_SETTINGS ⭐ NOVÁ TABUĽKA v2.22
+```sql
+id (uuid PK)
+user_id (uuid FK → users NOT NULL, UNIQUE)
+last_acknowledged (timestamptz, nullable)  -- Kedy naposledy používateľ klikol "OK" na žlté bodky
+created_at (timestamptz DEFAULT now())
+updated_at (timestamptz DEFAULT now())
 ```
 
 #### USER_INTEGRATIONS (existujúce)
@@ -1171,6 +1183,312 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.26 (7. januára 2026)
+**Area Detail Page Hooks Error Fix:**
+
+Oprava kritického React Rules of Hooks erroru, ktorý spôsoboval crash aplikácie pri navigácii na Area Detail stránku.
+
+**Problém:**
+- Aplikácia padala s chybou: "Rendered fewer hooks than expected"
+- Chyba nastávala pri načítaní Area Detail stránky (`/areas/[areaId]`)
+
+**Príčina:**
+- `useMemo` hooks (`visibleProjects`, `selectedTagName`) boli umiestnené PO early returns
+- React vyžaduje, aby všetky hooks boli volané v rovnakom poradí pri každom renderovaní
+- Keď bol `areaLoading=true`, early return spôsobil, že niektoré hooks neboli zavolané
+
+**Riešenie:**
+- ✅ `app/(dashboard)/areas/[areaId]/page.tsx`
+  - Presunutie `activeProjects`, `visibleProjects` a `selectedTagName` useMemo hooks PRED early returns
+  - Odstránenie duplicitných definícií, ktoré boli po early returns
+
+**Pravidlo React Rules of Hooks:**
+```typescript
+// ✅ SPRÁVNE - všetky hooks pred early returns
+const { area, loading: areaLoading } = useArea(areaId)
+const visibleProjects = useMemo(() => ..., [deps])
+const selectedTagName = useMemo(() => ..., [deps])
+
+if (areaLoading) return <Loading />  // early return AŽ PO hooks
+
+// ❌ ZLE - hooks po early returns
+if (areaLoading) return <Loading />
+const visibleProjects = useMemo(() => ..., [deps])  // CRASH!
+```
+
+**Upravené súbory:**
+- `app/(dashboard)/areas/[areaId]/page.tsx`
+
+---
+
+### v2.25 (7. januára 2026)
+**Tag Filter Empty Projects Fix:**
+
+Oprava správania filtrovania podľa tagov na Area Detail stránke - skrytie projektov bez úloh s vybraným tagom.
+
+**Problém:**
+- Pri filtrovaní podľa tagu sa zobrazovali všetky projekty, aj keď nemali žiadne úlohy s daným tagom
+- Prázdne projekty bez relevantných úloh zaberali miesto a zhoršovali UX
+
+**Riešenie:**
+- ✅ `app/(dashboard)/areas/[areaId]/page.tsx`
+  - Nový `visibleProjects` useMemo - filtruje projekty podľa toho, či obsahujú úlohy s vybraným tagom
+  - Nový `selectedTagName` useMemo - získa názov vybraného tagu pre empty state správu
+  - Vylepšený empty state s konkrétnou správou: "Žiadne úlohy s tagom \"názov\""
+
+**Logika filtrovania:**
+```typescript
+const visibleProjects = useMemo(() => {
+  if (!selectedTag) return activeProjects  // Bez filtra = všetky projekty
+  // S filtrom = len projekty s aspoň jednou úlohou s tagom
+  return activeProjects.filter(project => {
+    const projectTaskList = projectTasks.get(project.id) || []
+    return projectTaskList.length > 0
+  })
+}, [activeProjects, selectedTag, projectTasks])
+```
+
+**Upravené súbory:**
+- `app/(dashboard)/areas/[areaId]/page.tsx`
+
+---
+
+### v2.24 (7. januára 2026)
+**Recurring Tasks (Opakujúce sa úlohy):**
+
+Implementácia opakujúcich sa úloh inšpirovaná Things 3. Umožňuje nastaviť task, ktorý sa automaticky opakuje podľa definovaného pravidla.
+
+**Dva typy opakovania:**
+
+1. **After Completion (Po dokončení):**
+   - Nový task sa vytvorí až keď dokončím predchádzajúci
+   - Príklad: "Zálohovať PC" - 1 týždeň po dokončení
+   - Výhoda: Ak nestíham, nenahromadia sa mi nedokončené tasky
+
+2. **Scheduled (Pevný rozvrh):**
+   - Nový task sa vytvorí podľa kalendára, nezávisle od dokončenia
+   - Príklad: "Daily standup" - každý pracovný deň
+   - Výhoda: Dodržiavam pevný termín
+
+**Nové typy (types/index.ts):**
+- `RecurrenceType = 'after_completion' | 'scheduled'`
+- `RecurrenceUnit = 'day' | 'week' | 'month' | 'year'`
+- `RecurrenceEndType = 'never' | 'after_count' | 'on_date'`
+- Prepísaný `RecurrenceRule` interface s podporou oboch typov
+
+**Nové komponenty:**
+- ✅ `components/tasks/recurrence-config-modal.tsx` - Modal pre nastavenie opakovania
+  - Výber typu (Po dokončení / Podľa rozvrhu)
+  - Nastavenie intervalu (každý X dní/týždňov/mesiacov/rokov)
+  - End conditions (nikdy / po X opakovaniach / k dátumu)
+  - Voliteľné: pripomienky a automatický deadline
+  - Preview budúcich dátumov pre scheduled typ
+- ✅ `components/tasks/recurrence-badge.tsx` - Badge a IconButton komponenty
+
+**Integrácia do UI:**
+- ✅ `components/tasks/task-item.tsx` - Ikona 🔄 vedľa názvu recurring taskov
+- ✅ `components/tasks/task-item-expanded.tsx` - Tlačidlo pre otvorenie modalu v toolbare
+
+**Backend logika (lib/hooks/use-tasks.ts):**
+- ✅ `getNextRecurrenceDate()` - Výpočet nasledujúceho dátumu
+- ✅ `shouldCreateRecurringTask()` - Kontrola end conditions
+- ✅ Rozšírený `completeTask()` - Automatické vytvorenie nového tasku pri dokončení after_completion tasku
+  - Kópia všetkých relevantných polí (title, notes, project, tags, priority, atď.)
+  - Reset checklistu (všetky položky unchecked)
+  - Aktualizácia completed_count
+  - Nastavenie when_date na vypočítaný dátum
+  - Integrácia so signalizáciou (žltá bodka)
+
+**API endpoint:**
+- ✅ `app/api/tasks/[id]/recurrence/route.ts`
+  - `PATCH` - Nastaviť/aktualizovať recurrence rule
+  - `DELETE` - Odstrániť opakovanie
+  - `GET` - Získať recurrence rule pre task
+
+**Príklad JSON recurrence_rule:**
+```json
+{
+  "type": "after_completion",
+  "interval": 1,
+  "unit": "week",
+  "end_type": "never",
+  "completed_count": 3
+}
+```
+
+**Nové súbory:**
+- `components/tasks/recurrence-config-modal.tsx`
+- `components/tasks/recurrence-badge.tsx`
+- `app/api/tasks/[id]/recurrence/route.ts`
+
+**Odstránené súbory (staré implementácie):**
+- `components/tasks/recurrence-config.tsx`
+- `lib/utils/recurrence.ts`
+
+**Upravené súbory:**
+- `types/index.ts` - Nové typy pre recurrence
+- `lib/hooks/use-tasks.ts` - After completion logika
+- `components/tasks/task-item.tsx` - Recurrence ikona
+- `components/tasks/task-item-expanded.tsx` - Recurrence tlačidlo a modal
+
+---
+
+### v2.23 (7. januára 2026)
+**Kanban to Sidebar Drag & Drop Fix:**
+
+Oprava drag & drop z Kanban zobrazenia do sidebar položiek (Kôš, Oddelenia, Projekty, atď.).
+
+**Problém:**
+- Drag & drop fungoval správne z listového zobrazenia do sidebaru
+- Z Kanban zobrazenia nefungoval - sidebar nereagoval na drop
+
+**Príčina:**
+- Kanban používal vlastný `DndContext` z @dnd-kit
+- Sidebar počúval na `isDragging` z `SidebarDropContext`
+- Kanban karty nenotifikovali `SidebarDropContext` pri drag
+
+**Riešenie:**
+
+**Fáza 1 - KanbanCard notifikuje SidebarDropContext:**
+- ✅ `components/tasks/kanban-card.tsx`
+  - Import `useSidebarDrop` hook
+  - `useEffect` nastavuje `setDraggedTask(task)` pri `isSortableDragging`
+  - Sidebar teraz vidí aj drag z Kanban kariet
+
+**Fáza 2 - KanbanBoard kontroluje sidebar drop target:**
+- ✅ `components/tasks/kanban-board.tsx`
+  - Import `useSidebarDrop` hook
+  - V `handleDragEnd` kontrola `dropTarget` pred Kanban logikou
+  - Ak je `dropTarget` nastavený, volá `handleSidebarDrop(dropTarget)`
+  - Pridaný `handleDragCancel` pre úpratu stavu
+
+**Výsledok:**
+| Akcia | Pred | Po |
+|-------|------|-----|
+| Drag z listu do Koša | ✅ Funguje | ✅ Funguje |
+| Drag z Kanban do Koša | ❌ Nefunguje | ✅ Funguje |
+| Drag z Kanban do Area | ❌ Nefunguje | ✅ Funguje |
+| Drag z Kanban do Projektu | ❌ Nefunguje | ✅ Funguje |
+| Drag z Kanban medzi stĺpcami | ✅ Funguje | ✅ Funguje |
+
+**Upravené súbory:**
+- `components/tasks/kanban-card.tsx`
+- `components/tasks/kanban-board.tsx`
+
+---
+
+### v2.22 (7. januára 2026)
+**Signalization - Star Indicator & Yellow Dot:**
+
+Implementácia Things 3 štýlu signalizácie pre úlohy v "Dnes" - hviezdička (⭐) a žltá bodka (🟡).
+
+**Fáza 1 - Databázové zmeny:**
+- ✅ `tasks.added_to_today_at` - Nový stĺpec pre sledovanie kedy bol task pridaný do "Dnes"
+- ✅ `user_settings` tabuľka - Nová tabuľka pre uloženie `last_acknowledged` timestampu
+- ✅ RLS politiky pre user_settings
+
+**Fáza 2 - API endpoint:**
+- ✅ `/api/user/acknowledge-tasks` - GET pre počet nových úloh, POST pre acknowledge
+
+**Fáza 3 - Komponenty:**
+- ✅ `components/indicators/today-star-indicator.tsx` - Zlatá hviezdička pre "Dnes" tasky
+- ✅ `components/indicators/new-task-indicator.tsx` - Žltá bodka pre nové tasky
+- ✅ `components/indicators/new-tasks-banner.tsx` - Banner "Máte X nových úloh"
+- ✅ `components/indicators/sidebar-star-badge.tsx` - Star badge pre sidebar
+- ✅ `components/indicators/index.ts` - Exporty
+
+**Fáza 4 - Hooks:**
+- ✅ `lib/hooks/use-new-tasks.ts` - useNewTasks hook pre žltú bodku logiku
+  - `newTasksCount` - počet nových úloh
+  - `acknowledge()` - volá POST API
+  - `isTaskNew(added_to_today_at)` - callback pre určenie či je task nový
+- ✅ `useTodayTasksCounts()` - počítadlo "Dnes" taskov pre sidebar star badges
+
+**Fáza 5 - Integrácia:**
+- ✅ `components/tasks/task-item.tsx` - Props `showTodayStar`, `isNew`
+  - TodayStarIndicator zobrazená keď `showTodayStar && when_type === 'today'`
+  - NewTaskIndicator zobrazená keď `isNew`
+- ✅ `components/tasks/task-list.tsx` - Props `showTodayStar`, `isTaskNew`
+- ✅ `components/tasks/sortable-task-item.tsx` - Props `showTodayStar`, `isNew`
+- ✅ `components/tasks/project-task-list.tsx` - Prop `showTodayStar`
+- ✅ `components/layout/sidebar.tsx` - SidebarStarBadge pre areas/projekty
+- ✅ `components/layout/sidebar-drop-item.tsx` - `todayTasksCount` prop
+- ✅ `app/(dashboard)/today/page.tsx` - NewTasksBanner + isTaskNew callback
+- ✅ `app/(dashboard)/projects/[projectId]/page.tsx` - showTodayStar={true}
+- ✅ `app/(dashboard)/areas/[areaId]/page.tsx` - showTodayStar={true}
+- ✅ `lib/hooks/use-tasks.ts` - Auto-set added_to_today_at pri when_type='today'
+
+**Vizuálne pravidlá:**
+| Indikátor | Kde sa zobrazuje | Podmienka |
+|-----------|------------------|-----------|
+| ⭐ Hviezdička | Project/Area stránky, Sidebar | Task je v "Dnes" (`when_type === 'today'`) |
+| 🟡 Žltá bodka | Today stránka | `added_to_today_at > last_acknowledged` |
+| Banner | Today stránka | Počet nových > 0 |
+
+**Workflow:**
+1. Task sa pridá do "Dnes" → nastaví sa `added_to_today_at = NOW()`
+2. Používateľ vidí žltú bodku na Today stránke
+3. Klikne "OK" na banner → volá sa `/api/user/acknowledge-tasks` POST
+4. `last_acknowledged` sa aktualizuje → žlté bodky zmiznú
+
+**Nové súbory:**
+- `components/indicators/today-star-indicator.tsx`
+- `components/indicators/new-task-indicator.tsx`
+- `components/indicators/new-tasks-banner.tsx`
+- `components/indicators/sidebar-star-badge.tsx`
+- `components/indicators/index.ts`
+- `lib/hooks/use-new-tasks.ts`
+- `app/api/user/acknowledge-tasks/route.ts`
+
+**Upravené súbory:**
+- `types/index.ts` - added_to_today_at field
+- `lib/hooks/use-tasks.ts` - auto-set added_to_today_at
+- `components/tasks/task-item.tsx`
+- `components/tasks/task-list.tsx`
+- `components/tasks/sortable-task-item.tsx`
+- `components/tasks/project-task-list.tsx`
+- `components/layout/sidebar.tsx`
+- `components/layout/sidebar-drop-item.tsx`
+- `app/(dashboard)/today/page.tsx`
+- `app/(dashboard)/projects/[projectId]/page.tsx`
+- `app/(dashboard)/areas/[areaId]/page.tsx`
+
+---
+
+### v2.21 (7. januára 2026)
+**Area Project Button + ProjectFormModal Simplification:**
+
+Pridanie tlačidla "+ Pridať projekt" na stránku oddelenia a zjednodušenie ProjectFormModal keď je area preselected.
+
+**Fáza 1 - Pridať projekt tlačidlo na Area page:**
+- ✅ `app/(dashboard)/areas/[areaId]/page.tsx` - Nové tlačidlo "+ Pridať projekt"
+  - Import `FolderPlus` ikony z lucide-react
+  - Import `ProjectFormModal` komponentu
+  - Nový state `showProjectModal` pre ovládanie modalu
+  - Tlačidlo zobrazené vedľa počtu projektov v headeri
+  - `preselectedAreaId` automaticky nastavené na aktuálne oddelenie
+  - Po úspešnom vytvorení sa refreshnú projekty aj úlohy
+
+**Fáza 2 - Zjednodušený ProjectFormModal:**
+- ✅ `components/projects/project-form-modal.tsx` - Skrytie area dropdown
+  - Nový prop `preselectedAreaId?: string`
+  - Podmienené fetchovanie areas - len keď NIE JE preselectedAreaId
+  - Area dropdown skrytý keď je preselectedAreaId nastavené
+  - Zjednodušené UX: zo stránky oddelenia modal zobrazuje len Názov + Farba
+  - Automatický reset areaId pri zatvorení na preselectedAreaId
+
+**Výsledné UX:**
+| Kontext | Zobrazené polia |
+|---------|-----------------|
+| Z Area stránky | Názov, Farba |
+| Zo sidebar/iného | Názov, Oddelenie (dropdown), Farba |
+
+**Upravené súbory:**
+- `app/(dashboard)/areas/[areaId]/page.tsx`
+- `components/projects/project-form-modal.tsx`
+
+---
 
 ### v2.20 (7. januára 2026)
 **Drag & Drop Fix:**
@@ -2205,5 +2523,5 @@ if (newStatus === 'done') {
 
 ---
 
-**Verzia:** 2.18 (Tags Things 3 Style + TagFilterBar)
+**Verzia:** 2.26 (Area Detail Page Hooks Fix)
 **Posledná aktualizácia:** 7. januára 2026

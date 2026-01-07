@@ -268,6 +268,7 @@ export default function ProjectPage() {
             onHeadingUpdate={handleHeadingUpdate}
             onHeadingDelete={handleHeadingDelete}
             emptyMessage=""
+            showTodayStar={true}
           />
         </div>
       )}
