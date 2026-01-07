@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Layers, FolderKanban, Star, Filter } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
+import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
 import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
@@ -285,6 +286,12 @@ export default function AreaDetailPage() {
         </div>
       ) : (
         <div className="flex-1 overflow-auto p-6">
+          {/* Title row with button */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-heading font-semibold text-foreground">{area.name}</h2>
+            <TaskQuickAdd onAdd={(title) => handleQuickAdd(title)} />
+          </div>
+
           {/* Projects with their tasks */}
           {activeProjects.map(project => {
             const projectTaskList = projectTasks.get(project.id) || []

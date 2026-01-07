@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { Star, AlertCircle, Filter } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
+import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
@@ -229,6 +230,12 @@ export default function TodayPage() {
         </div>
       ) : (
         <div className="flex-1 overflow-auto p-6">
+          {/* Title row with button */}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-heading font-semibold text-foreground">Dnes</h2>
+            <TaskQuickAdd onAdd={handleQuickAdd} />
+          </div>
+
           {/* Time Summary */}
           {(timeSummary.totalSeconds > 0 || timeSummary.taskCount > 0) && (
             <TimeSummaryCard
@@ -294,6 +301,7 @@ export default function TodayPage() {
             onTaskDelete={handleTaskDelete}
             onQuickAdd={handleQuickAdd}
             onReorder={handleReorder}
+            showQuickAdd={false}
             emptyMessage={overdueTasks.length > 0 ? '' : ''}
           />
         </div>

@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { Clock, Filter } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
+import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
@@ -201,6 +202,12 @@ export default function AnytimePage() {
         </div>
       ) : (
         <div className="flex-1 overflow-auto p-6">
+          {/* Title row with button */}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-heading font-semibold text-foreground">Kedykoľvek</h2>
+            <TaskQuickAdd onAdd={handleQuickAdd} />
+          </div>
+
           {filteredTasks.length === 0 && tasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Clock className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
@@ -232,6 +239,7 @@ export default function AnytimePage() {
             onTaskDelete={handleTaskDelete}
             onQuickAdd={handleQuickAdd}
             onReorder={handleReorder}
+            showQuickAdd={false}
             emptyMessage=""
           />
         </div>

@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { FolderKanban, Filter } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { ProjectTaskList } from '@/components/tasks/project-task-list'
+import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
 import { TaskDetail } from '@/components/tasks/task-detail'
@@ -213,6 +214,12 @@ export default function ProjectPage() {
         </div>
       ) : (
         <div className="flex-1 overflow-auto p-6">
+          {/* Title row with button */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-heading font-semibold text-foreground">{project.name}</h2>
+            <TaskQuickAdd onAdd={(title) => handleQuickAdd(title)} />
+          </div>
+
           {filteredTasks.length === 0 && tasks.length === 0 && headings.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <FolderKanban className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />

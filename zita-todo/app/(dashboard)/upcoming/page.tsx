@@ -4,6 +4,7 @@ import { useState, useMemo, useRef } from 'react'
 import { CalendarDays, Filter } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
+import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { MiniCalendar } from '@/components/calendar/mini-calendar'
 import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
@@ -192,6 +193,12 @@ export default function UpcomingPage() {
       )}
 
       <div className="flex-1 overflow-auto p-6">
+        {/* Title row with button */}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-heading font-semibold text-foreground">Nadchádzajúce</h2>
+          <TaskQuickAdd onAdd={handleQuickAdd} />
+        </div>
+
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Mini Calendar - Sidebar on desktop, top on mobile */}
           <div className="lg:w-72 flex-shrink-0">
