@@ -1,28 +1,16 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, Suspense, useCallback } from 'react'
 import { Timer } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TimeDashboardFilters } from '@/components/time-tracking/time-dashboard-filters'
 import { TimeDashboardSummary } from '@/components/time-tracking/time-dashboard-summary'
 import { TimeDashboardCharts } from '@/components/time-tracking/time-dashboard-charts'
 import { TimeDashboardTable } from '@/components/time-tracking/time-dashboard-table'
-import { useTimeFilters } from '@/lib/hooks/use-time-filters'
+import { useTimeFilters, TimeFilters } from '@/lib/hooks/use-time-filters'
 import { useTimeReport } from '@/lib/hooks/use-time-report'
-import { useAreas } from '@/lib/hooks/use-areas'
+import { useCascadingTimeFilters } from '@/lib/hooks/use-cascading-time-filters'
 import { useTags } from '@/lib/hooks/use-tags'
-import { createClient } from '@/lib/supabase/client'
-
-interface User {
-  id: string
-  full_name: string | null
-  nickname: string | null
-}
-
-interface Project {
-  id: string
-  name: string
-}
 
 function TimeDashboardContent() {
   const { filters, period, setFilters, setPeriod } = useTimeFilters()
@@ -37,61 +25,44 @@ function TimeDashboardContent() {
     groupBy: filters.groupBy,
   })
 
-  const { areas, loading: areasLoading } = useAreas()
+  // Use cascading filters hook for filtered options
+  const cascadingOptions = useCascadingTimeFilters({ filters })
   const { tags, loading: tagsLoading } = useTags()
 
-  const [users, setUsers] = useState<User[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
-  const [usersLoading, setUsersLoading] = useState(true)
-  const [projectsLoading, setProjectsLoading] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
   const [tableMode, setTableMode] = useState<'summary' | 'detailed'>('summary')
 
-  // Fetch users
-  useEffect(() => {
-    async function fetchUsers() {
-      try {
-        const supabase = createClient()
-        const { data, error } = await supabase
-          .from('users')
-          .select('id, full_name, nickname')
-          .eq('status', 'active')
-          .order('nickname', { ascending: true })
+  // Handle cascading filter changes
+  const handleCascadingFilterChange = useCallback((newFilters: Partial<TimeFilters>) => {
+    // When area changes, reset project if it doesn't belong to selected areas
+    if ('areaIds' in newFilters) {
+      const newAreaIds = newFilters.areaIds || []
 
-        if (error) throw error
-        setUsers(data || [])
-      } catch (err) {
-        console.error('Error fetching users:', err)
-      } finally {
-        setUsersLoading(false)
+      if (newAreaIds.length > 0 && filters.projectIds.length > 0) {
+        // Filter out projects that don't belong to selected areas
+        const validProjectIds = filters.projectIds.filter(projectId => {
+          const project = cascadingOptions.projects.find(p => p.id === projectId)
+          return project && project.area_id && newAreaIds.includes(project.area_id)
+        })
+
+        if (validProjectIds.length !== filters.projectIds.length) {
+          newFilters.projectIds = validProjectIds
+        }
       }
     }
 
-    fetchUsers()
-  }, [])
+    // When project changes, auto-set area if not already set
+    if ('projectIds' in newFilters && newFilters.projectIds && newFilters.projectIds.length > 0) {
+      const firstProjectId = newFilters.projectIds[0]
+      const project = cascadingOptions.projects.find(p => p.id === firstProjectId)
 
-  // Fetch projects
-  useEffect(() => {
-    async function fetchProjects() {
-      try {
-        const supabase = createClient()
-        const { data, error } = await supabase
-          .from('projects')
-          .select('id, name')
-          .eq('status', 'active')
-          .order('name', { ascending: true })
-
-        if (error) throw error
-        setProjects(data || [])
-      } catch (err) {
-        console.error('Error fetching projects:', err)
-      } finally {
-        setProjectsLoading(false)
+      if (project?.area_id && filters.areaIds.length === 0) {
+        newFilters.areaIds = [project.area_id]
       }
     }
 
-    fetchProjects()
-  }, [])
+    setFilters(newFilters)
+  }, [filters, cascadingOptions.projects, setFilters])
 
   const handleExport = async () => {
     setIsExporting(true)
@@ -109,7 +80,7 @@ function TimeDashboardContent() {
     console.log('Drilldown:', id, type)
   }
 
-  const isLoadingFilters = areasLoading || tagsLoading || usersLoading || projectsLoading
+  const isLoadingFilters = cascadingOptions.loading || tagsLoading
 
   if (loading && !data) {
     return (
@@ -145,14 +116,15 @@ function TimeDashboardContent() {
         <TimeDashboardFilters
           filters={filters}
           period={period}
-          onFiltersChange={setFilters}
+          onFiltersChange={handleCascadingFilterChange}
           onPeriodChange={setPeriod}
           onExport={handleExport}
-          areas={areas.map(a => ({ id: a.id, name: a.name }))}
-          projects={projects}
-          users={users}
+          areas={cascadingOptions.areas}
+          projects={cascadingOptions.projects}
+          users={cascadingOptions.users}
           tags={tags.map(t => ({ id: t.id, name: t.name, color: t.color }))}
           isExporting={isExporting}
+          isLoading={isLoadingFilters}
         />
 
         {/* Summary cards */}

@@ -8,26 +8,11 @@ import { format, parseISO } from 'date-fns'
 import { sk } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
 
-interface Area {
+interface FilterOption {
   id: string
   name: string
-}
-
-interface Project {
-  id: string
-  name: string
-}
-
-interface User {
-  id: string
-  full_name: string | null
-  nickname: string | null
-}
-
-interface TagItem {
-  id: string
-  name: string
-  color: string | null
+  color?: string | null
+  area_id?: string | null
 }
 
 interface TimeDashboardFiltersProps {
@@ -36,11 +21,12 @@ interface TimeDashboardFiltersProps {
   onFiltersChange: (filters: Partial<TimeFilters>) => void
   onPeriodChange: (period: TimePeriod, from?: string, to?: string) => void
   onExport: () => void
-  areas: Area[]
-  projects: Project[]
-  users: User[]
-  tags: TagItem[]
+  areas: FilterOption[]
+  projects: FilterOption[]
+  users: FilterOption[]
+  tags: FilterOption[]
   isExporting?: boolean
+  isLoading?: boolean
 }
 
 function MultiSelectDropdown<T extends { id: string }>({
@@ -50,6 +36,7 @@ function MultiSelectDropdown<T extends { id: string }>({
   selectedIds,
   onChange,
   getLabel,
+  emptyMessage = 'Žiadne položky',
 }: {
   label: string
   icon: React.ElementType
@@ -57,6 +44,7 @@ function MultiSelectDropdown<T extends { id: string }>({
   selectedIds: string[]
   onChange: (ids: string[]) => void
   getLabel: (item: T) => string
+  emptyMessage?: string
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -97,7 +85,7 @@ function MultiSelectDropdown<T extends { id: string }>({
       {isOpen && (
         <div className="absolute top-full left-0 mt-1 z-50 w-64 max-h-64 overflow-auto rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-lg">
           {items.length === 0 ? (
-            <div className="p-3 text-sm text-[var(--text-secondary)]">Žiadne položky</div>
+            <div className="p-3 text-sm text-[var(--text-secondary)]">{emptyMessage}</div>
           ) : (
             <>
               {selectedCount > 0 && (
@@ -245,7 +233,27 @@ export function TimeDashboardFilters({
   users,
   tags,
   isExporting,
+  isLoading,
 }: TimeDashboardFiltersProps) {
+  // Check if there are any active filters
+  const hasActiveFilters =
+    filters.areaIds.length > 0 ||
+    filters.projectIds.length > 0 ||
+    filters.userIds.length > 0 ||
+    filters.tagIds.length > 0 ||
+    filters.onlyMine
+
+  // Clear all entity filters (not period)
+  const handleClearFilters = () => {
+    onFiltersChange({
+      areaIds: [],
+      projectIds: [],
+      userIds: [],
+      tagIds: [],
+      onlyMine: false,
+    })
+  }
+
   return (
     <div className="space-y-3">
       {/* First row: Period and multi-selects */}
@@ -259,6 +267,7 @@ export function TimeDashboardFilters({
           selectedIds={filters.areaIds}
           onChange={ids => onFiltersChange({ areaIds: ids })}
           getLabel={item => item.name}
+          emptyMessage={isLoading ? 'Načítavam...' : 'Žiadne oddelenia s časom'}
         />
 
         <MultiSelectDropdown
@@ -268,6 +277,13 @@ export function TimeDashboardFilters({
           selectedIds={filters.projectIds}
           onChange={ids => onFiltersChange({ projectIds: ids })}
           getLabel={item => item.name}
+          emptyMessage={
+            isLoading
+              ? 'Načítavam...'
+              : filters.areaIds.length > 0
+              ? 'Žiadne projekty v oddelení'
+              : 'Žiadne projekty s časom'
+          }
         />
 
         <MultiSelectDropdown
@@ -276,7 +292,14 @@ export function TimeDashboardFilters({
           items={users}
           selectedIds={filters.userIds}
           onChange={ids => onFiltersChange({ userIds: ids })}
-          getLabel={item => item.nickname || item.full_name || 'Neznámy'}
+          getLabel={item => item.name}
+          emptyMessage={
+            isLoading
+              ? 'Načítavam...'
+              : filters.areaIds.length > 0 || filters.projectIds.length > 0
+              ? 'Žiadni kolegovia s časom'
+              : 'Žiadni kolegovia'
+          }
         />
 
         <MultiSelectDropdown
@@ -286,7 +309,19 @@ export function TimeDashboardFilters({
           selectedIds={filters.tagIds}
           onChange={ids => onFiltersChange({ tagIds: ids })}
           getLabel={item => item.name}
+          emptyMessage={isLoading ? 'Načítavam...' : 'Žiadne tagy'}
         />
+
+        {/* Clear filters button */}
+        {hasActiveFilters && (
+          <button
+            onClick={handleClearFilters}
+            className="flex items-center gap-1 px-2 py-1.5 text-sm text-[var(--color-error)] hover:bg-[var(--color-error)]/10 rounded-lg transition-colors"
+          >
+            <X className="h-4 w-4" />
+            <span>Zrušiť filtre</span>
+          </button>
+        )}
       </div>
 
       {/* Second row: Toggle and export */}
