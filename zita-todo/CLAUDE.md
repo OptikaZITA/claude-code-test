@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 7. januára 2026
-**Verzia špecifikácie**: 2.15 (Sidebar Drawer + Header Redesign)
+**Verzia špecifikácie**: 2.16 (Time Tracker Filters + Range Calendar)
 
 ---
 
@@ -17,6 +17,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 - **Backend**: Supabase (PostgreSQL, Auth, RLS, Real-time subscriptions)
 - **Drag & Drop**: @dnd-kit
 - **Dátumy**: date-fns (slovenský locale)
+- **Kalendár**: react-day-picker (range selection)
 - **Ikony**: lucide-react
 - **Deployment**: Vercel
 - **PWA**: Service Worker, Web Push API
@@ -726,9 +727,11 @@ zita-todo/
 │   │   ├── timer.tsx
 │   │   ├── timer-indicator.tsx       # NOVÉ - globálny indikátor v headeri
 │   │   ├── time-entries-list.tsx
-│   │   └── time-summary.tsx          # NOVÉ
+│   │   ├── time-summary.tsx          # NOVÉ
+│   │   └── time-dashboard-filters.tsx # NOVÉ v2.16 - Kaskádové filtre + Range calendar
 │   └── ui/
 │       ├── button.tsx
+│       ├── calendar.tsx              # NOVÉ v2.16 - Range calendar picker
 │       ├── input.tsx
 │       ├── textarea.tsx
 │       ├── modal.tsx
@@ -758,6 +761,8 @@ zita-todo/
 │   │   ├── use-tags.ts               # NOVÉ v2.3 - Tags CRUD hook
 │   │   ├── use-task-moved.ts         # NOVÉ v2.3 - Event listener pre refresh
 │   │   ├── use-time-tracking.ts      # + useGlobalTimer, useTimeTotals
+│   │   ├── use-time-filters.ts       # URL-based filter management
+│   │   ├── use-cascading-time-filters.ts # NOVÉ v2.16 - Kaskádové filtre pre Časovač
 │   │   ├── use-task-time-total.ts    # NOVÉ v2.13 - Total time per task
 │   │   ├── use-organization.ts
 │   │   ├── use-realtime.ts
@@ -1166,6 +1171,54 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.16 (7. januára 2026)
+**Time Tracker Filters + Range Calendar:**
+
+Implementácia kaskádových (závislých) filtrov v Časovači a nahradenie dvoch date inputov jedným range calendar pickerom.
+
+**Fáza 1 - Kaskádové filtre:**
+- ✅ `lib/hooks/use-cascading-time-filters.ts` - Nový hook pre závislé filtre
+  - Načíta všetky areas, projects, users, tags
+  - Buduje vzťahové mapy: `projectToArea`, `userToAreas`, `userToProjects`
+  - Filtruje možnosti na základe aktuálneho výberu
+  - Hierarchia: Oddelenie → Projekt → Kolega → Tag
+- ✅ `app/(dashboard)/time/page.tsx` - Integrácia kaskádových filtrov
+  - `handleCascadingFilterChange` - logika pre závislosti filtrov
+  - Keď sa zmení area, vyfiltrujú sa neplatné projekty
+  - Keď sa vyberie projekt, auto-nastaví sa area
+- ✅ `components/time-tracking/time-dashboard-filters.tsx` - Vylepšené UI
+  - Kontextové prázdne správy ("Žiadne projekty v oddelení")
+  - "Zrušiť filtre" tlačidlo pre reset všetkých entity filtrov
+
+**Fáza 2 - Range Calendar Picker:**
+- ✅ Inštalácia `react-day-picker@^9.0.0`
+- ✅ `components/ui/calendar.tsx` - Nový kalendár komponent
+  - Podpora `mode="range"` pre výber rozsahu dátumov
+  - Custom `MonthCaption` s navigáciou v jednom riadku: `◀ január 2026 ▶`
+  - Slovenská lokalizácia (sk locale)
+  - Vizuálne zvýraznenie vybraného rozsahu
+  - CSS premenné pre dark/light mode
+- ✅ `components/time-tracking/time-dashboard-filters.tsx` - Nový PeriodDropdown
+  - Presety: Dnes, Tento týždeň, Tento mesiac, Tento rok
+  - "Vlastné obdobie" otvorí range kalendár
+  - Prvý klik = začiatočný dátum, druhý klik = koncový dátum
+  - Zobrazenie vybraného rozsahu pod kalendárom
+  - "Použiť" tlačidlo pre potvrdenie
+
+**Nové súbory:**
+- `lib/hooks/use-cascading-time-filters.ts`
+- `components/ui/calendar.tsx`
+
+**Upravené súbory:**
+- `app/(dashboard)/time/page.tsx`
+- `components/time-tracking/time-dashboard-filters.tsx`
+- `package.json` (pridaný react-day-picker)
+
+**Nové závislosti:**
+- `react-day-picker@^9.0.0`
+
+---
 
 ### v2.15 (7. januára 2026)
 **Sidebar Drawer + Header Redesign:**
