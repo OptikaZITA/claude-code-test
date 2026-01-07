@@ -8,6 +8,7 @@ import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { MiniCalendar } from '@/components/calendar/mini-calendar'
 import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
+import { TagFilterBar } from '@/components/tasks/tag-filter-bar'
 import { useUpcomingTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
@@ -24,11 +25,20 @@ export default function UpcomingPage() {
   const dateRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const [showFilters, setShowFilters] = useState(false)
   const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
+  const [selectedTag, setSelectedTag] = useState<string | null>(null)
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
     return filterTasks(tasks, filters)
   }, [tasks, filters])
+
+  // Apply tag filter
+  const tagFilteredTasks = useMemo(() => {
+    if (!selectedTag) return filteredTasks
+    return filteredTasks.filter(task =>
+      task.tags?.some(tag => tag.id === selectedTag)
+    )
+  }, [filteredTasks, selectedTag])
 
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
@@ -37,7 +47,7 @@ export default function UpcomingPage() {
   const groupedTasks = useMemo(() => {
     const groups: Map<string, TaskWithRelations[]> = new Map()
 
-    filteredTasks.forEach(task => {
+    tagFilteredTasks.forEach(task => {
       if (task.when_date) {
         const dateKey = startOfDay(parseISO(task.when_date)).toISOString()
         if (!groups.has(dateKey)) {
@@ -204,7 +214,7 @@ export default function UpcomingPage() {
           <div className="lg:w-72 flex-shrink-0">
             <div className="lg:sticky lg:top-6">
               <MiniCalendar
-                tasks={filteredTasks}
+                tasks={tagFilteredTasks}
                 selectedDate={selectedDate}
                 onDateSelect={handleDateSelect}
               />
@@ -217,7 +227,7 @@ export default function UpcomingPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Celkom úloh</span>
-                    <span className="font-medium text-foreground">{filteredTasks.length}</span>
+                    <span className="font-medium text-foreground">{tagFilteredTasks.length}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Dni s úlohami</span>
@@ -230,6 +240,13 @@ export default function UpcomingPage() {
 
           {/* Tasks list */}
           <div className="flex-1 min-w-0">
+            {/* Tag Filter Bar */}
+            <TagFilterBar
+              tasks={filteredTasks}
+              selectedTag={selectedTag}
+              onSelectTag={setSelectedTag}
+            />
+
             {/* Selected date indicator */}
             {selectedDate && (
               <div className="mb-4 flex items-center gap-2 px-3 py-2 rounded-[var(--radius-md)] bg-primary/10 border border-primary/20">
@@ -257,12 +274,12 @@ export default function UpcomingPage() {
                   Naplánujte úlohy na konkrétny dátum
                 </p>
               </div>
-            ) : groupedTasks.length === 0 && hasActiveFilters ? (
+            ) : groupedTasks.length === 0 && (hasActiveFilters || selectedTag) ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Filter className="mb-4 h-12 w-12 text-muted-foreground" />
                 <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
                 <button
-                  onClick={clearFilters}
+                  onClick={() => { clearFilters(); setSelectedTag(null); }}
                   className="text-primary hover:underline"
                 >
                   Zrušiť filtre

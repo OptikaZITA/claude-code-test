@@ -2,8 +2,18 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Task, TaskWithRelations } from '@/types'
+import { Task, TaskWithRelations, Tag } from '@/types'
 import { sortTasksTodayFirst } from '@/lib/utils/task-sorting'
+
+// Helper to transform Supabase nested tags structure to flat Tag[]
+// Supabase returns: tags: [{ tag: { id, name, color } }, ...]
+// We need: tags: [{ id, name, color }, ...]
+function transformTasks(tasks: any[]): TaskWithRelations[] {
+  return tasks.map(task => ({
+    ...task,
+    tags: task.tags?.map((t: { tag: Tag }) => t.tag).filter(Boolean) || [],
+  }))
+}
 
 export function useTasks() {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
@@ -20,14 +30,15 @@ export function useTasks() {
           *,
           assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
           project:projects(id, name, color),
-          area:areas(id, name, color)
+          area:areas(id, name, color),
+          tags:task_tags(tag:tags(id, name, color))
         `)
         .is('archived_at', null)
         .is('deleted_at', null)
         .order('sort_order', { ascending: true })
 
       if (error) throw error
-      setTasks(data || [])
+      setTasks(transformTasks(data || []))
     } catch (err) {
       setError(err as Error)
     } finally {
@@ -169,7 +180,8 @@ export function useInboxTasks(type: 'personal' | 'team') {
           *,
           assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
           project:projects(id, name, color),
-          area:areas(id, name, color)
+          area:areas(id, name, color),
+          tags:task_tags(tag:tags(id, name, color))
         `)
         .eq('inbox_type', type)
         .eq('when_type', 'inbox')
@@ -185,7 +197,7 @@ export function useInboxTasks(type: 'personal' | 'team') {
       const { data, error } = await query
 
       if (error) throw error
-      setTasks(data || [])
+      setTasks(transformTasks(data || []))
     } catch (err) {
       setError(err as Error)
     } finally {
@@ -225,7 +237,8 @@ export function useTodayTasks() {
           *,
           assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
           project:projects(id, name, color),
-          area:areas(id, name, color)
+          area:areas(id, name, color),
+          tags:task_tags(tag:tags(id, name, color))
         `)
         .or(`when_type.eq.today,and(when_type.eq.scheduled,when_date.eq.${today}),and(due_date.lt.${today},status.neq.done)`)
         .is('archived_at', null)
@@ -234,7 +247,7 @@ export function useTodayTasks() {
         .order('sort_order', { ascending: true })
 
       if (error) throw error
-      setTasks(data || [])
+      setTasks(transformTasks(data || []))
     } catch (err) {
       setError(err as Error)
     } finally {
@@ -267,7 +280,8 @@ export function useUpcomingTasks() {
           *,
           assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
           project:projects(id, name, color),
-          area:areas(id, name, color)
+          area:areas(id, name, color),
+          tags:task_tags(tag:tags(id, name, color))
         `)
         .eq('when_type', 'scheduled')
         .gte('when_date', today)
@@ -277,7 +291,7 @@ export function useUpcomingTasks() {
         .order('when_date', { ascending: true })
 
       if (error) throw error
-      setTasks(data || [])
+      setTasks(transformTasks(data || []))
     } catch (err) {
       setError(err as Error)
     } finally {
@@ -310,7 +324,8 @@ export function useAnytimeTasks() {
           *,
           assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
           project:projects(id, name, color),
-          area:areas(id, name, color)
+          area:areas(id, name, color),
+          tags:task_tags(tag:tags(id, name, color))
         `)
         .in('when_type', ['anytime', 'someday'])
         .is('archived_at', null)
@@ -320,7 +335,7 @@ export function useAnytimeTasks() {
 
       if (error) throw error
       // Apply today-first sorting
-      setTasks(sortTasksTodayFirst(data || []))
+      setTasks(sortTasksTodayFirst(transformTasks(data || [])))
     } catch (err) {
       setError(err as Error)
     } finally {
@@ -352,7 +367,8 @@ export function useLogbookTasks() {
           *,
           assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
           project:projects(id, name, color),
-          area:areas(id, name, color)
+          area:areas(id, name, color),
+          tags:task_tags(tag:tags(id, name, color))
         `)
         .eq('status', 'done')
         .is('archived_at', null)
@@ -361,7 +377,7 @@ export function useLogbookTasks() {
         .limit(100)
 
       if (error) throw error
-      setTasks(data || [])
+      setTasks(transformTasks(data || []))
     } catch (err) {
       setError(err as Error)
     } finally {
@@ -393,14 +409,15 @@ export function useTrashTasks() {
           *,
           assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
           project:projects(id, name, color),
-          area:areas(id, name, color)
+          area:areas(id, name, color),
+          tags:task_tags(tag:tags(id, name, color))
         `)
         .not('deleted_at', 'is', null)
         .order('deleted_at', { ascending: false })
         .limit(100)
 
       if (error) throw error
-      setTasks(data || [])
+      setTasks(transformTasks(data || []))
     } catch (err) {
       setError(err as Error)
     } finally {

@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 7. januára 2026
-**Verzia špecifikácie**: 2.17 (Things 3 Drag & Drop for Upcoming)
+**Verzia špecifikácie**: 2.18 (Tags Things 3 Style + TagFilterBar)
 
 ---
 
@@ -1172,6 +1172,84 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 
 ## Changelog
 
+### v2.18 (7. januára 2026)
+**Tags Things 3 Style + TagFilterBar:**
+
+Implementácia Things 3 štýlu pre zobrazenie tagov v task itemoch a pridanie TagFilterBar komponentu pre filtrovanie úloh podľa tagov.
+
+**Fáza 1 - Tagy v Supabase queries:**
+- ✅ `lib/hooks/use-tasks.ts` - Rozšírené query o tagy
+  - Pridaný nested select: `tags:task_tags(tag:tags(id, name, color))`
+  - Nová helper funkcia `transformTasks` pre flatten nested tag štruktúry
+  - Aplikované na všetky hooks: `useTasks`, `useTodayTasks`, `useUpcomingTasks`, `useAnytimeTasks`, `useSomedayTasks`, `useLogbookTasks`, `useTrashTasks`, `useInboxTasks`
+
+**Fáza 2 - Task Item Things 3 štýl:**
+- ✅ `components/tasks/task-item.tsx` - Redizajn layoutu
+  - Title + FileText ikona (ak má poznámky) v prvom riadku
+  - Area/Department meno pod titulkom (sivý text, menší)
+  - Tagy v outline štýle badges na pravej strane
+  - Odstránené komponenty: TagChipList, WhenBadge, AreaBadge
+  - Pridaný import: FileText z lucide-react
+
+**Fáza 3 - TagFilterBar komponent:**
+- ✅ `components/tasks/tag-filter-bar.tsx` - Nový komponent
+  - Extrakcia unikátnych tagov z úloh
+  - Single-select filtrovanie (jeden aktívny tag)
+  - "Všetky" tlačidlo pre reset filtra
+  - Horizontálne scrollovanie pre veľa tagov
+
+**Fáza 4 - Integrácia TagFilterBar:**
+- ✅ `app/(dashboard)/today/page.tsx` - TagFilterBar integrácia
+- ✅ `app/(dashboard)/inbox/page.tsx` - TagFilterBar integrácia
+- ✅ `app/(dashboard)/inbox/team/page.tsx` - TagFilterBar integrácia
+- ✅ `app/(dashboard)/anytime/page.tsx` - TagFilterBar integrácia
+- ✅ `app/(dashboard)/upcoming/page.tsx` - TagFilterBar integrácia
+- ✅ `app/(dashboard)/projects/[projectId]/page.tsx` - TagFilterBar integrácia
+- ✅ `app/(dashboard)/areas/[areaId]/page.tsx` - TagFilterBar integrácia
+
+**Pattern pre integráciu:**
+```typescript
+// Import
+import { TagFilterBar } from '@/components/tasks/tag-filter-bar'
+
+// State
+const [selectedTag, setSelectedTag] = useState<string | null>(null)
+
+// Tag filter memo (po filteredTasks)
+const tagFilteredTasks = useMemo(() => {
+  if (!selectedTag) return filteredTasks
+  return filteredTasks.filter(task =>
+    task.tags?.some(tag => tag.id === selectedTag)
+  )
+}, [filteredTasks, selectedTag])
+
+// JSX - TagFilterBar
+<TagFilterBar
+  tasks={filteredTasks}
+  selectedTag={selectedTag}
+  onSelectTag={setSelectedTag}
+/>
+
+// Empty state update
+{tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag) && ...}
+```
+
+**Nové súbory:**
+- `components/tasks/tag-filter-bar.tsx`
+
+**Upravené súbory:**
+- `lib/hooks/use-tasks.ts`
+- `components/tasks/task-item.tsx`
+- `app/(dashboard)/today/page.tsx`
+- `app/(dashboard)/inbox/page.tsx`
+- `app/(dashboard)/inbox/team/page.tsx`
+- `app/(dashboard)/anytime/page.tsx`
+- `app/(dashboard)/upcoming/page.tsx`
+- `app/(dashboard)/projects/[projectId]/page.tsx`
+- `app/(dashboard)/areas/[areaId]/page.tsx`
+
+---
+
 ### v2.17 (7. januára 2026)
 **Things 3 Drag & Drop for Upcoming:**
 
@@ -1197,11 +1275,24 @@ Implementácia Things 3 štýlu drag & drop pre položku "Nadchádzajúce" v sid
   - Ovplyvnené: sidebar-drop-item.tsx (všetky droppable položky)
   - Aktívne položky majú teraz: peach pozadie + tmavý text
 
+**Bug fixes:**
+- ✅ Opravený stale closure bug v `handleCalendarDateSelect`
+  - Použitie `useRef` pre aktuálnu hodnotu tasku namiesto priamej závislosti na state
+- ✅ Opravená detekcia kliknutia mimo kalendára
+  - Použitie overlay prístupu namiesto `contains()` metódy
+- ✅ Opravený timezone bug pri ukladaní dátumu
+  - Použitie lokálneho dátumu namiesto UTC konverzie (`toISOString()`)
+- ✅ Opravený `useUpcomingTasks` query
+  - Zmenené z `gt` (greater than) na `gte` (greater or equal) pre dnešný dátum
+- ✅ Pridané správne Supabase error handling
+  - Kontrola `error` objektu po každej Supabase operácii
+
 **Upravené súbory:**
 - `components/layout/sidebar.tsx`
 - `components/layout/sidebar-drop-item.tsx`
 - `components/layout/calendar-drop-picker.tsx`
 - `lib/contexts/sidebar-drop-context.tsx`
+- `lib/hooks/use-tasks.ts`
 
 ---
 
@@ -2042,5 +2133,5 @@ if (newStatus === 'done') {
 
 ---
 
-**Verzia:** 2.17 (Things 3 Drag & Drop for Upcoming)
+**Verzia:** 2.18 (Tags Things 3 Style + TagFilterBar)
 **Posledná aktualizácia:** 7. januára 2026

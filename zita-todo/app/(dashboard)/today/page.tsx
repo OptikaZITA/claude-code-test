@@ -9,6 +9,7 @@ import { TaskDetail } from '@/components/tasks/task-detail'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
 import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
+import { TagFilterBar } from '@/components/tasks/tag-filter-bar'
 import { TimeSummaryCard } from '@/components/time-tracking/time-summary-card'
 import { useTodayTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
@@ -24,23 +25,32 @@ export default function TodayPage() {
   const { viewMode, setViewMode, isLoaded } = useViewPreference('today')
   const [showFilters, setShowFilters] = useState(false)
   const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
+  const [selectedTag, setSelectedTag] = useState<string | null>(null)
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
     return filterTasks(tasks, filters)
   }, [tasks, filters])
 
+  // Apply tag filter
+  const tagFilteredTasks = useMemo(() => {
+    if (!selectedTag) return filteredTasks
+    return filteredTasks.filter(task =>
+      task.tags?.some(tag => tag.id === selectedTag)
+    )
+  }, [filteredTasks, selectedTag])
+
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
 
-  // Separate overdue tasks from today's tasks (from filtered)
-  const overdueTasks = filteredTasks.filter(task => {
+  // Separate overdue tasks from today's tasks (from tag filtered)
+  const overdueTasks = tagFilteredTasks.filter(task => {
     if (!task.due_date) return false
     const dueDate = parseISO(task.due_date)
     return isPast(dueDate) && !isToday(dueDate)
   })
 
-  const todayTasks = filteredTasks.filter(task => {
+  const todayTasks = tagFilteredTasks.filter(task => {
     if (task.when_type === 'today') return true
     if (task.when_type === 'scheduled' && task.when_date) {
       return isToday(parseISO(task.when_date))
@@ -213,7 +223,7 @@ export default function TodayPage() {
       {viewMode === 'calendar' ? (
         <div className="flex-1 overflow-hidden">
           <CalendarView
-            tasks={filteredTasks}
+            tasks={tagFilteredTasks}
             onTaskClick={setSelectedTask}
             onDateClick={handleCalendarDateClick}
             onTaskMove={handleCalendarTaskMove}
@@ -222,7 +232,7 @@ export default function TodayPage() {
       ) : viewMode === 'kanban' ? (
         <div className="flex-1 overflow-hidden">
           <KanbanBoard
-            tasks={filteredTasks}
+            tasks={tagFilteredTasks}
             onTaskMove={handleKanbanTaskMove}
             onTaskClick={setSelectedTask}
             onQuickAdd={handleKanbanQuickAdd}
@@ -245,6 +255,13 @@ export default function TodayPage() {
               className="mb-4"
             />
           )}
+
+          {/* Tag Filter Bar */}
+          <TagFilterBar
+            tasks={filteredTasks}
+            selectedTag={selectedTag}
+            onSelectTag={setSelectedTag}
+          />
 
           {/* Overdue section */}
           {overdueTasks.length > 0 && (
@@ -270,7 +287,7 @@ export default function TodayPage() {
           )}
 
           {/* Today's tasks */}
-          {filteredTasks.length === 0 && tasks.length === 0 ? (
+          {tagFilteredTasks.length === 0 && tasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Star className="mb-4 h-12 w-12 text-muted-foreground" />
               <p className="mb-2 text-lg font-medium text-foreground">
@@ -280,12 +297,12 @@ export default function TodayPage() {
                 Pridajte úlohy alebo ich presuňte na dnes
               </p>
             </div>
-          ) : filteredTasks.length === 0 && hasActiveFilters ? (
+          ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag) ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Filter className="mb-4 h-12 w-12 text-muted-foreground" />
               <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
               <button
-                onClick={clearFilters}
+                onClick={() => { clearFilters(); setSelectedTag(null); }}
                 className="text-primary hover:underline"
               >
                 Zrušiť filtre

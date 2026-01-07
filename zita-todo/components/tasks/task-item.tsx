@@ -1,13 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Trash2, Star } from 'lucide-react'
+import { Trash2, Star, FileText } from 'lucide-react'
 import { TaskWithRelations, TaskPriority } from '@/types'
 import { isToday, parseISO } from 'date-fns'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar } from '@/components/ui/avatar'
-import { TagChipList } from '@/components/tags'
-import { WhenBadge, AreaBadge } from '@/components/tasks/when-picker'
 import { DeadlineBadge } from '@/components/tasks/deadline-picker'
 import { TaskItemExpanded } from '@/components/tasks/task-item-expanded'
 import { InlineTimeTracker } from '@/components/tasks/inline-time-tracker'
@@ -258,35 +256,44 @@ export function TaskItem({
           />
         )}
 
-        {/* Task content */}
+        {/* Task content - Things 3 style layout */}
         <div className="flex-1 min-w-0">
-          <p
-            className={cn(
-              'text-sm font-medium text-foreground',
-              isCompleted && 'line-through text-muted-foreground'
-            )}
-          >
-            {task.title}
-          </p>
-
-          <div className="mt-1 flex flex-wrap items-center gap-2">
-            {task.project && (
-              <span className="text-xs text-muted-foreground">
-                {task.project.name}
-              </span>
-            )}
-
-            {/* When badge (Things 3 style) */}
-            <WhenBadge value={task.when_type} whenDate={task.when_date} />
-
-            {/* Area/Department badge */}
-            <AreaBadge area={task.area} />
-
-            {task.tags && task.tags.length > 0 && (
-              <TagChipList tags={task.tags} size="sm" />
+          {/* Row 1: Title + Notes icon */}
+          <div className="flex items-center gap-2">
+            <p
+              className={cn(
+                'text-sm font-medium text-foreground truncate',
+                isCompleted && 'line-through text-muted-foreground'
+              )}
+            >
+              {task.title}
+            </p>
+            {task.notes && (
+              <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             )}
           </div>
+
+          {/* Row 2: Area/Department name (gray, smaller) */}
+          {task.area && (
+            <span className="text-xs text-muted-foreground">
+              {task.area.name}
+            </span>
+          )}
         </div>
+
+        {/* Tags - outline style badges */}
+        {task.tags && task.tags.length > 0 && (
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {task.tags.map(tag => (
+              <span
+                key={tag.id}
+                className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground whitespace-nowrap"
+              >
+                {tag.name}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Right side: Time tracker, Deadline, Avatar */}
         <div className="flex items-center gap-2 shrink-0">

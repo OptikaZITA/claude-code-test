@@ -7,6 +7,7 @@ import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
 import { ExportMenu } from '@/components/export/export-menu'
 import { ErrorDisplay } from '@/components/layout/error-display'
 import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
+import { TagFilterBar } from '@/components/tasks/tag-filter-bar'
 import { useInboxTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
@@ -19,11 +20,20 @@ export default function TeamInboxPage() {
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
+  const [selectedTag, setSelectedTag] = useState<string | null>(null)
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
     return filterTasks(tasks, filters)
   }, [tasks, filters])
+
+  // Apply tag filter
+  const tagFilteredTasks = useMemo(() => {
+    if (!selectedTag) return filteredTasks
+    return filteredTasks.filter(task =>
+      task.tags?.some(tag => tag.id === selectedTag)
+    )
+  }, [filteredTasks, selectedTag])
 
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
@@ -141,7 +151,14 @@ export default function TeamInboxPage() {
           <TaskQuickAdd onAdd={handleQuickAdd} />
         </div>
 
-        {filteredTasks.length === 0 && tasks.length === 0 ? (
+        {/* Tag Filter Bar */}
+        <TagFilterBar
+          tasks={filteredTasks}
+          selectedTag={selectedTag}
+          onSelectTag={setSelectedTag}
+        />
+
+        {tagFilteredTasks.length === 0 && tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Users className="mb-4 h-12 w-12 text-muted-foreground" />
             <p className="mb-2 text-lg font-medium text-foreground">Tímový inbox je prázdny</p>
@@ -149,12 +166,12 @@ export default function TeamInboxPage() {
               Úlohy pridané sem uvidia všetci členovia tímu
             </p>
           </div>
-        ) : filteredTasks.length === 0 && hasActiveFilters ? (
+        ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag) ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Filter className="mb-4 h-12 w-12 text-muted-foreground" />
             <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
             <button
-              onClick={clearFilters}
+              onClick={() => { clearFilters(); setSelectedTag(null); }}
               className="text-primary hover:underline"
             >
               Zrušiť filtre
@@ -163,7 +180,7 @@ export default function TeamInboxPage() {
         ) : null}
 
         <TaskList
-          tasks={filteredTasks}
+          tasks={tagFilteredTasks}
           onTaskClick={setSelectedTask}
           onTaskComplete={handleTaskComplete}
           onTaskUpdate={handleTaskUpdate}
