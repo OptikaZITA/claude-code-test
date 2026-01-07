@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Plus } from 'lucide-react'
-import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils/cn'
 
 interface TaskQuickAddProps {
@@ -13,7 +13,7 @@ interface TaskQuickAddProps {
 
 export function TaskQuickAdd({
   onAdd,
-  placeholder = 'Pridať úlohu...',
+  placeholder = 'Názov novej úlohy...',
   className,
 }: TaskQuickAddProps) {
   const [isActive, setIsActive] = useState(false)
@@ -26,11 +26,21 @@ export function TaskQuickAdd({
     }
   }, [isActive])
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  // Listen for keyboard shortcut to open quick add
+  useEffect(() => {
+    const handleKeyboardNewTask = () => {
+      setIsActive(true)
+    }
+    window.addEventListener('keyboard:newTask', handleKeyboardNewTask)
+    return () => window.removeEventListener('keyboard:newTask', handleKeyboardNewTask)
+  }, [])
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault()
     if (title.trim()) {
       onAdd(title.trim())
       setTitle('')
+      setIsActive(false)
     }
   }
 
@@ -38,40 +48,53 @@ export function TaskQuickAdd({
     if (e.key === 'Escape') {
       setIsActive(false)
       setTitle('')
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      handleSubmit()
     }
+  }
+
+  const handleCancel = () => {
+    setIsActive(false)
+    setTitle('')
   }
 
   if (!isActive) {
     return (
-      <button
+      <Button
         onClick={() => setIsActive(true)}
         className={cn(
-          'flex w-full items-center gap-2 rounded-lg border border-dashed border-[#E5E5E5] p-3 text-sm text-[#86868B] transition-colors hover:border-[#007AFF] hover:text-[#007AFF]',
+          'bg-primary text-white hover:bg-primary/90',
           className
         )}
       >
-        <Plus className="h-4 w-4" />
-        <span>{placeholder}</span>
-      </button>
+        <Plus className="h-4 w-4 mr-2" />
+        Pridať úlohu
+      </Button>
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} className={cn('relative', className)}>
-      <Input
+    <div className={cn('flex items-center gap-2 p-4 border-b border-[var(--border)] bg-card rounded-lg', className)}>
+      <input
         ref={inputRef}
+        type="text"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        onBlur={() => {
-          if (!title.trim()) setIsActive(false)
-        }}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="pr-20"
+        className="flex-1 px-3 py-2 text-sm rounded-lg border-2 border-secondary focus:border-secondary focus:outline-none bg-background text-foreground placeholder:text-muted-foreground"
+        autoFocus
       />
-      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#86868B]">
-        Enter
-      </span>
-    </form>
+      <Button onClick={handleSubmit} size="sm" className="bg-primary text-white hover:bg-primary/90">
+        Pridať
+      </Button>
+      <button
+        onClick={handleCancel}
+        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        Zrušiť
+      </button>
+    </div>
   )
 }

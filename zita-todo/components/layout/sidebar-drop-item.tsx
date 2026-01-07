@@ -16,6 +16,7 @@ interface SidebarDropItemProps {
   className?: string
   count?: number
   isDeadline?: boolean // Show red badge for deadline tasks
+  onClick?: () => void
 }
 
 export function SidebarDropItem({
@@ -27,6 +28,7 @@ export function SidebarDropItem({
   className,
   count,
   isDeadline,
+  onClick,
 }: SidebarDropItemProps) {
   const {
     isDragging,
@@ -97,6 +99,7 @@ export function SidebarDropItem({
   return (
     <Link
       href={href}
+      onClick={onClick}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
       onDragOver={handleDragOver}
@@ -143,6 +146,7 @@ interface SidebarDropAreaProps {
   hasProjects: boolean
   onToggle: () => void
   onCreateProject: () => void
+  onNavigate?: () => void
   children?: ReactNode
 }
 
@@ -154,6 +158,7 @@ export function SidebarDropArea({
   hasProjects,
   onToggle,
   onCreateProject,
+  onNavigate,
   children,
 }: SidebarDropAreaProps) {
   const pathname = usePathname()
@@ -255,6 +260,7 @@ export function SidebarDropArea({
         </button>
         <Link
           href={`/areas/${areaId}`}
+          onClick={onNavigate}
           className="flex flex-1 items-center gap-2 min-w-0"
         >
           <span
@@ -296,6 +302,7 @@ interface SidebarDropProjectProps {
   projectId: string
   icon: ReactNode
   label: string
+  onClick?: () => void
 }
 
 export function SidebarDropProject({
@@ -304,6 +311,7 @@ export function SidebarDropProject({
   projectId,
   icon,
   label,
+  onClick,
 }: SidebarDropProjectProps) {
   const {
     isDragging,
@@ -376,6 +384,7 @@ export function SidebarDropProject({
   return (
     <Link
       href={href}
+      onClick={onClick}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
       onDragOver={handleDragOver}

@@ -51,6 +51,7 @@ interface SidebarProps {
   areas: Area[]
   onLogout: () => void
   onCreateProject: (areaId?: string) => void
+  onNavigate?: () => void
 }
 
 export function Sidebar({
@@ -58,6 +59,7 @@ export function Sidebar({
   areas,
   onLogout,
   onCreateProject,
+  onNavigate,
 }: SidebarProps) {
   const pathname = usePathname()
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set())
@@ -117,9 +119,11 @@ export function Sidebar({
             icon={<Inbox className="h-[18px] w-[18px]" />}
             label="Inbox"
             count={counts.inbox}
+            onClick={onNavigate}
           />
           <Link
             href="/inbox/team"
+            onClick={onNavigate}
             className={cn(
               'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
               isActive('/inbox/team')
@@ -149,6 +153,7 @@ export function Sidebar({
             label="Dnes"
             count={counts.todayDeadline > 0 ? counts.todayDeadline : counts.today}
             isDeadline={counts.todayDeadline > 0}
+            onClick={onNavigate}
           />
           <SidebarDropItem
             href="/upcoming"
@@ -157,6 +162,7 @@ export function Sidebar({
             icon={<CalendarDays className="h-[18px] w-[18px] text-success" />}
             label="Nadchádzajúce"
             count={counts.upcoming}
+            onClick={onNavigate}
           />
           <SidebarDropItem
             href="/anytime"
@@ -165,9 +171,11 @@ export function Sidebar({
             icon={<Clock className="h-[18px] w-[18px] text-primary" />}
             label="Kedykoľvek"
             count={counts.anytime}
+            onClick={onNavigate}
           />
           <Link
             href="/logbook"
+            onClick={onNavigate}
             className={cn(
               'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
               isActive('/logbook')
@@ -184,6 +192,7 @@ export function Sidebar({
             dropTarget={{ type: 'trash' }}
             icon={<Trash2 className="h-[18px] w-[18px] text-muted-foreground" />}
             label="Kôš"
+            onClick={onNavigate}
           />
         </div>
 
@@ -193,6 +202,7 @@ export function Sidebar({
         <div className="mb-2">
           <Link
             href="/time"
+            onClick={onNavigate}
             className={cn(
               'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
               isActive('/time')
@@ -225,6 +235,7 @@ export function Sidebar({
             hasProjects={area.projects.length > 0}
             onToggle={() => toggleArea(area.id)}
             onCreateProject={() => onCreateProject(area.id)}
+            onNavigate={onNavigate}
           >
             {area.projects.map((project) => (
               <SidebarDropProject
@@ -234,6 +245,7 @@ export function Sidebar({
                 projectId={project.id}
                 icon={<FolderKanban className="h-4 w-4" />}
                 label={project.name}
+                onClick={onNavigate}
               />
             ))}
             <button
@@ -272,6 +284,7 @@ export function Sidebar({
                 hasProjects={area.projects.length > 0}
                 onToggle={() => toggleArea(area.id)}
                 onCreateProject={() => onCreateProject(area.id)}
+                onNavigate={onNavigate}
               >
                 {area.projects.map((project) => (
                   <SidebarDropProject
@@ -281,6 +294,7 @@ export function Sidebar({
                     projectId={project.id}
                     icon={<FolderKanban className="h-4 w-4" />}
                     label={project.name}
+                    onClick={onNavigate}
                   />
                 ))}
               </SidebarDropArea>
@@ -312,13 +326,13 @@ export function Sidebar({
           </div>
           <div className="flex gap-1">
             {userCanManageUsers && (
-              <Link href="/settings/users">
+              <Link href="/settings/users" onClick={onNavigate}>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-accent/50" title="Správa používateľov">
                   <Users className="h-4 w-4" />
                 </Button>
               </Link>
             )}
-            <Link href="/settings">
+            <Link href="/settings" onClick={onNavigate}>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-accent/50" title="Nastavenia">
                 <Settings className="h-4 w-4" />
               </Button>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Flag, ChevronDown, X, AlertTriangle } from 'lucide-react'
+import { Flag, ChevronDown, X, AlertTriangle, Calendar } from 'lucide-react'
 import { Dropdown } from '@/components/ui/dropdown'
 import { cn } from '@/lib/utils/cn'
 import { format, addDays, isToday, isTomorrow, isPast, startOfDay } from 'date-fns'
@@ -154,7 +154,7 @@ export function DeadlinePicker({
   )
 }
 
-// Badge variant for task lists
+// Badge variant for task lists - simple gray style per spec
 export function DeadlineBadge({
   value,
   size = 'sm'
@@ -164,14 +164,10 @@ export function DeadlineBadge({
 }) {
   if (!value) return null
 
-  const isOverdue = isPast(startOfDay(new Date(value))) && !isToday(new Date(value))
-
   const formatDate = (date: string) => {
     try {
       const d = new Date(date)
-      if (isToday(d)) return 'Dnes'
-      if (isTomorrow(d)) return 'Zajtra'
-      return format(d, 'd. MMM', { locale: sk })
+      return format(d, 'd.M.', { locale: sk })
     } catch {
       return date
     }
@@ -179,17 +175,10 @@ export function DeadlineBadge({
 
   return (
     <span className={cn(
-      'inline-flex items-center gap-1 rounded-full',
-      size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-1.5 py-0.5 text-[10px]',
-      isOverdue
-        ? 'bg-[var(--color-error)]/10 text-[var(--color-error)]'
-        : 'bg-[var(--text-secondary)]/10 text-[var(--text-secondary)]'
+      'inline-flex items-center gap-1 text-muted-foreground',
+      size === 'sm' ? 'text-sm' : 'text-xs'
     )}>
-      {isOverdue ? (
-        <AlertTriangle className="h-3 w-3" />
-      ) : (
-        <Flag className="h-3 w-3" />
-      )}
+      <Calendar className={size === 'sm' ? 'h-3 w-3' : 'h-2.5 w-2.5'} />
       <span>{formatDate(value)}</span>
     </span>
   )

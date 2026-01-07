@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Trash2, Star, ChevronRight, ChevronDown } from 'lucide-react'
+import { Trash2, Star } from 'lucide-react'
 import { TaskWithRelations, TaskPriority } from '@/types'
 import { isToday, parseISO } from 'date-fns'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -84,15 +84,6 @@ export function TaskItem({
   const touchStartX = useRef(0)
   const touchStartY = useRef(0)
   const isHorizontalSwipe = useRef<boolean | null>(null)
-
-  const handleChevronClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (isExpanded) {
-      onCollapse?.()
-    } else {
-      onExpand?.()
-    }
-  }, [isExpanded, onExpand, onCollapse])
 
   const handleClick = useCallback(() => {
     // Don't trigger click if we just finished swiping
@@ -247,20 +238,6 @@ export function TaskItem({
         onTouchMove={isMobile && onDelete ? handleTouchMove : undefined}
         onTouchEnd={isMobile && onDelete ? handleTouchEnd : undefined}
       >
-        {/* Expand chevron */}
-        {enableInlineEdit && (
-          <button
-            onClick={handleChevronClick}
-            className="p-1 -ml-1 rounded hover:bg-accent/50 transition-colors shrink-0"
-          >
-            {isExpanded ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
-          </button>
-        )}
-
         {/* Checkbox */}
         <div onClick={(e) => e.stopPropagation()} className="shrink-0 pt-0.5">
           <Checkbox

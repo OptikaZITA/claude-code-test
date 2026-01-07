@@ -9,6 +9,7 @@ import { KeyboardShortcutsModal } from '@/components/ui/keyboard-shortcuts-modal
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts'
 import { SidebarDropProvider } from '@/lib/contexts/sidebar-drop-context'
 import { GlobalTimerProvider } from '@/lib/contexts/global-timer-context'
+import { SidebarProvider, useSidebar } from '@/lib/contexts/sidebar-context'
 import { ProjectFormModal } from '@/components/projects/project-form-modal'
 import { CalendarDropPicker } from '@/components/layout/calendar-drop-picker'
 
@@ -36,8 +37,17 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
+  return (
+    <SidebarProvider>
+      <DashboardContent>{children}</DashboardContent>
+    </SidebarProvider>
+  )
+}
+
+function DashboardContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [areas, setAreas] = useState<Area[]>([])
+  const { sidebarOpen, setSidebarOpen } = useSidebar()
   const router = useRouter()
   const supabase = createClient()
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -159,22 +169,33 @@ export default function DashboardLayout({
   return (
     <GlobalTimerProvider>
       <SidebarDropProvider>
-        <div className="flex h-screen bg-[var(--bg-secondary)]">
-          {/* Desktop Sidebar */}
-          <div className="hidden lg:block">
-            <Sidebar
-              user={user}
-              areas={areas}
-              onLogout={handleLogout}
-              onCreateProject={handleCreateProject}
-            />
-          </div>
+        <div className="flex h-screen bg-background">
+          {/* Sidebar Drawer - hidden by default, slides in on toggle */}
+          {sidebarOpen && (
+            <>
+              {/* Overlay */}
+              <div
+                className="fixed inset-0 bg-black/50 z-40 animate-fade-in"
+                onClick={() => setSidebarOpen(false)}
+              />
+              {/* Sidebar */}
+              <div className="fixed left-0 top-0 h-full z-50 animate-slide-in-left shadow-lg">
+                <Sidebar
+                  user={user}
+                  areas={areas}
+                  onLogout={handleLogout}
+                  onCreateProject={handleCreateProject}
+                  onNavigate={() => setSidebarOpen(false)}
+                />
+              </div>
+            </>
+          )}
 
-          {/* Mobile Navigation */}
+          {/* Mobile Navigation (bottom bar) */}
           <MobileNav />
 
-          {/* Main Content */}
-          <main className="flex-1 overflow-auto pt-14 lg:pt-0 pb-16 lg:pb-0">
+          {/* Main Content - full width now */}
+          <main className="flex-1 overflow-auto pt-0 pb-16 lg:pb-0">
             {children}
           </main>
 

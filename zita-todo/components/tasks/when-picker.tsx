@@ -201,15 +201,30 @@ export function WhenBadge({
     }
   }
 
+  // Custom icon with correct colors for badges
+  const getBadgeIcon = () => {
+    const iconClass = size === 'sm' ? 'w-3 h-3' : 'w-2.5 h-2.5'
+    switch (value) {
+      case 'today':
+        return <Star className={cn(iconClass, 'text-white fill-white')} />
+      case 'anytime':
+        return <Clock className={cn(iconClass, 'text-[var(--color-primary)]')} />
+      case 'scheduled':
+        return <Calendar className={cn(iconClass, 'text-[var(--color-success)]')} />
+      default:
+        return null
+    }
+  }
+
   return (
     <span className={cn(
-      "inline-flex items-center gap-1 rounded-full",
+      "inline-flex items-center gap-1 rounded-full font-medium",
       size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-1.5 py-0.5 text-[10px]',
-      value === 'today' && 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]',
+      value === 'today' && 'bg-primary text-white',
       value === 'anytime' && 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
       value === 'scheduled' && 'bg-[var(--color-success)]/10 text-[var(--color-success)]',
     )}>
-      {option.icon}
+      {getBadgeIcon()}
       <span>
         {value === 'scheduled' && whenDate
           ? formatDate(whenDate)

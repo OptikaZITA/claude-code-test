@@ -36,21 +36,21 @@ export function TimeSummaryCard({
   if (totalSeconds === 0 && taskCount === 0) return null
 
   return (
-    <div
+    <p
       className={cn(
-        'flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-primary)]',
+        'flex items-center gap-2 text-sm text-muted-foreground',
         className
       )}
     >
-      <Clock className="h-4 w-4 text-[var(--color-primary)]" />
-      <span className="text-sm text-[var(--text-primary)]">
-        {label}: <span className="font-medium">{formatDuration(totalSeconds)}</span>
+      <Clock className="h-4 w-4" />
+      <span>
+        {label}: {formatDuration(totalSeconds)}
+        {taskCount > 0 && (
+          <span className="ml-1">
+            ({taskCount} {taskCount === 1 ? 'úloha' : taskCount < 5 ? 'úlohy' : 'úloh'})
+          </span>
+        )}
       </span>
-      {taskCount > 0 && (
-        <span className="text-xs text-[var(--text-secondary)]">
-          ({taskCount} {taskCount === 1 ? 'úloha' : taskCount < 5 ? 'úlohy' : 'úloh'})
-        </span>
-      )}
-    </div>
+    </p>
   )
 }
