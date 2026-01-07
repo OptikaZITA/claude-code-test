@@ -270,7 +270,7 @@ export function useUpcomingTasks() {
           area:areas(id, name, color)
         `)
         .eq('when_type', 'scheduled')
-        .gt('when_date', today)
+        .gte('when_date', today)
         .is('archived_at', null)
         .is('deleted_at', null)
         .neq('status', 'done')

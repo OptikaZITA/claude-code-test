@@ -76,19 +76,7 @@ export function Sidebar({
   const { counts } = useTaskCounts()
   const calendarRef = useRef<HTMLDivElement>(null)
 
-  // Close calendar on click outside
-  useEffect(() => {
-    if (!showCalendarPicker) return
-
-    function handleClickOutside(event: MouseEvent) {
-      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
-        handleCalendarCancel()
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [showCalendarPicker, handleCalendarCancel])
+  // No longer using document listener - using overlay instead
   const { myDepartments, otherDepartments, canSeeAll } = useUserDepartments()
 
   const toggleArea = (areaId: string) => {
@@ -375,32 +363,48 @@ export function Sidebar({
 
       {/* Calendar picker popover for "Nadchádzajúce" drop */}
       {showCalendarPicker && pendingCalendarTask && (
-        <div
-          ref={calendarRef}
-          className="fixed left-64 top-1/4 z-[100] rounded-lg border border-[var(--border)] bg-background shadow-xl"
-        >
-          <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
-            <div>
-              <p className="text-sm font-medium text-foreground">Vyber dátum</p>
-              <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                {pendingCalendarTask.title}
-              </p>
-            </div>
-            <button
-              onClick={handleCalendarCancel}
-              className="p-1 rounded-md hover:bg-accent transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <Calendar
-            mode="single"
-            selected={undefined}
-            onSelect={(date) => date && handleCalendarDateSelect(date)}
-            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-            defaultMonth={new Date()}
+        <>
+          {/* Overlay - click to close */}
+          <div
+            className="fixed inset-0 z-[99]"
+            onClick={handleCalendarCancel}
           />
-        </div>
+          {/* Calendar picker */}
+          <div
+            ref={calendarRef}
+            className="fixed left-64 top-1/4 z-[100] rounded-lg border border-[var(--border)] bg-background shadow-xl"
+          >
+            <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">Vyber dátum</p>
+                <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                  {pendingCalendarTask.title}
+                </p>
+              </div>
+              <button
+                onClick={handleCalendarCancel}
+                className="p-1 rounded-md hover:bg-accent transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <Calendar
+              mode="single"
+              selected={undefined}
+              onSelect={(date: Date | undefined) => {
+                if (date) {
+                  handleCalendarDateSelect(date)
+                }
+              }}
+              disabled={(date: Date) => {
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
+                return date < today
+              }}
+              defaultMonth={new Date()}
+            />
+          </div>
+        </>
       )}
     </aside>
   )

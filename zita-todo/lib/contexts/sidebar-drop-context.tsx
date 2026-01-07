@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react'
 import { TaskWithRelations, WhenType, Project } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 
@@ -41,39 +41,58 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null)
   const [showCalendarPicker, setShowCalendarPicker] = useState(false)
   const [pendingCalendarTask, setPendingCalendarTask] = useState<TaskWithRelations | null>(null)
+  // Use ref to avoid stale closure in handleCalendarDateSelect
+  const pendingCalendarTaskRef = useRef<TaskWithRelations | null>(null)
   const supabase = createClient()
 
   const handleCalendarDateSelect = useCallback(async (date: Date) => {
-    if (!pendingCalendarTask) return
+    // Use ref to get the current task (avoids stale closure)
+    const task = pendingCalendarTaskRef.current
 
-    const dateStr = date.toISOString().split('T')[0] // YYYY-MM-DD format
+    if (!task) {
+      console.error('No pending calendar task in ref!')
+      return
+    }
+
+    // Use local date to avoid timezone issues (toISOString converts to UTC)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const dateStr = `${year}-${month}-${day}`
 
     try {
-      await supabase
+      const { error } = await supabase
         .from('tasks')
         .update({
           when_type: 'scheduled',
           when_date: dateStr,
           is_inbox: false,
         })
-        .eq('id', pendingCalendarTask.id)
+        .eq('id', task.id)
+
+      if (error) {
+        console.error('Supabase error setting task date:', error)
+        return
+      }
 
       // Dispatch event to refresh task lists
       window.dispatchEvent(new CustomEvent('task:moved', {
         detail: {
-          taskId: pendingCalendarTask.id,
+          taskId: task.id,
           target: { type: 'when', value: 'scheduled', date: dateStr }
         }
       }))
     } catch (error) {
       console.error('Error setting task date:', error)
     } finally {
+      pendingCalendarTaskRef.current = null
       setPendingCalendarTask(null)
       setShowCalendarPicker(false)
     }
-  }, [pendingCalendarTask, supabase])
+  }, [supabase])
 
   const handleCalendarCancel = useCallback(() => {
+    pendingCalendarTaskRef.current = null
     setPendingCalendarTask(null)
     setShowCalendarPicker(false)
   }, [])
@@ -82,9 +101,13 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
     if (!draggedTask) return
 
     try {
+      let updateError: any = null
+
       if (target.type === 'when') {
         // Special case: "scheduled" (Nadchádzajúce) - show calendar picker
         if (target.value === 'scheduled') {
+          // Set both ref and state - ref for immediate access in callback
+          pendingCalendarTaskRef.current = draggedTask
           setPendingCalendarTask(draggedTask)
           setShowCalendarPicker(true)
           setDraggedTask(null)
@@ -106,10 +129,11 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
           updates.is_inbox = false
         }
 
-        await supabase
+        const { error } = await supabase
           .from('tasks')
           .update(updates)
           .eq('id', draggedTask.id)
+        updateError = error
 
       } else if (target.type === 'project') {
         // Move task to project - get project's area_id first
@@ -119,7 +143,7 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
           .eq('id', target.projectId)
           .single()
 
-        await supabase
+        const { error } = await supabase
           .from('tasks')
           .update({
             project_id: target.projectId,
@@ -128,10 +152,11 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
             when_type: 'anytime',
           })
           .eq('id', draggedTask.id)
+        updateError = error
 
       } else if (target.type === 'area') {
         // Move task to area (without project)
-        await supabase
+        const { error } = await supabase
           .from('tasks')
           .update({
             area_id: target.areaId,
@@ -140,23 +165,32 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
             when_type: 'anytime',
           })
           .eq('id', draggedTask.id)
+        updateError = error
 
       } else if (target.type === 'trash') {
         // Soft delete the task
-        await supabase
+        const { error } = await supabase
           .from('tasks')
           .update({
             deleted_at: new Date().toISOString(),
           })
           .eq('id', draggedTask.id)
+        updateError = error
 
       } else if (target.type === 'calendar') {
         // Show calendar picker modal
+        // Set both ref and state - ref for immediate access in callback
+        pendingCalendarTaskRef.current = draggedTask
         setPendingCalendarTask(draggedTask)
         setShowCalendarPicker(true)
         setDraggedTask(null)
         setDropTarget(null)
         return // Don't dispatch event yet, wait for date selection
+      }
+
+      if (updateError) {
+        console.error('Supabase error moving task:', updateError)
+        return
       }
 
       // Dispatch event to refresh task lists
