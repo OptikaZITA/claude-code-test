@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Search, Users, Mail, Trash2, Copy } from 'lucide-react'
-import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { UserRow } from '@/components/users/user-row'
 import { InviteUserModal, InviteUserData } from '@/components/users/invite-user-modal'
@@ -118,11 +117,8 @@ export default function UsersManagementPage() {
 
   if (currentUserLoading || loading) {
     return (
-      <div className="h-full">
-        <Header title="Správa používateľov" />
-        <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent" />
-        </div>
+      <div className="flex items-center justify-center py-12">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     )
   }
@@ -132,10 +128,7 @@ export default function UsersManagementPage() {
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <Header title="Správa používateľov" />
-
-      <div className="flex-1 overflow-auto p-6">
+    <div className="p-6">
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-4 mb-6">
           {/* Search */}
@@ -311,7 +304,6 @@ export default function UsersManagementPage() {
             )}
           </div>
         </div>
-      </div>
 
       {/* Invite Modal */}
       <InviteUserModal

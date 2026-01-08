@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 8. januára 2026
-**Verzia špecifikácie**: 2.28 (Profile Photo Upload)
+**Verzia špecifikácie**: 2.29 (Settings Reorganization)
 
 ---
 
@@ -1183,6 +1183,45 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.29 (8. januára 2026)
+**Settings Reorganization:**
+
+Reorganizácia Settings stránky s tab navigáciou a zjednodušenie sidebaru.
+
+**Hlavné zmeny:**
+- `/settings` presmeruje na `/settings/profile`
+- Nová tab navigácia: Profil, Vzhľad, Integrácie, (Používatelia pre admin)
+- Sidebar zjednodušený - len 2 ikony: Nastavenia, Odhlásiť
+- Meno používateľa v sidebar je teraz celé viditeľné
+
+**URL štruktúra:**
+```
+/settings           → redirect na /settings/profile
+/settings/profile   → Profil (avatar upload, osobné údaje)
+/settings/appearance → Vzhľad (farebný režim)
+/settings/integrations → Integrácie (Push notifikácie, Slack, Email)
+/settings/users     → Používatelia (len admin)
+```
+
+**Nové súbory:**
+- `app/(dashboard)/settings/layout.tsx` - Layout s Header a SettingsTabs
+- `app/(dashboard)/settings/appearance/page.tsx` - Stránka vzhľadu
+- `app/(dashboard)/settings/integrations/page.tsx` - Stránka integrácií
+- `components/settings/settings-tabs.tsx` - Tab navigácia komponent
+- `components/settings/index.ts` - Exporty
+
+**Upravené súbory:**
+- `app/(dashboard)/settings/page.tsx` - Redirect na /settings/profile
+- `app/(dashboard)/settings/profile/page.tsx` - Odstránený Header (layout ho má)
+- `app/(dashboard)/settings/users/page.tsx` - Odstránený Header (layout ho má)
+- `components/layout/sidebar.tsx` - Odstránené ikony Profile a Users
+
+**Tab navigácia:**
+- Bežný používateľ vidí: Profil, Vzhľad, Integrácie
+- Admin vidí navyše: Používatelia
+
+---
 
 ### v2.28 (8. januára 2026)
 **Profile Photo Upload:**

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Camera, Trash2 } from 'lucide-react'
-import { Header } from '@/components/layout/header'
 import { AvatarUploadModal } from '@/components/profile/avatar-upload-modal'
 import { ProfileInfo } from '@/components/profile/profile-info'
 import { useAvatarUpload } from '@/lib/hooks/use-avatar-upload'
@@ -84,89 +83,79 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="h-full">
-        <Header title="Profil" />
-        <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        </div>
+      <div className="flex items-center justify-center py-12">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     )
   }
 
   if (!user) {
     return (
-      <div className="h-full">
-        <Header title="Profil" />
-        <div className="flex items-center justify-center py-12">
-          <p className="text-muted-foreground">Používateľ nenájdený</p>
-        </div>
+      <div className="flex items-center justify-center py-12">
+        <p className="text-muted-foreground">Používateľ nenájdený</p>
       </div>
     )
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <Header title="Profil" />
+    <div className="p-6">
+      <div className="max-w-lg mx-auto">
+        {/* Avatar section */}
+        <div className="mb-8">
+          <h3 className="text-sm font-medium text-muted-foreground mb-4">
+            Profilová fotka
+          </h3>
+          <div className="flex items-center gap-4">
+            {/* Avatar */}
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+              {user.avatar_url ? (
+                <img
+                  src={user.avatar_url}
+                  alt="Profilová fotka"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-xl font-semibold text-primary">
+                  {getInitials()}
+                </span>
+              )}
+            </div>
 
-      <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-lg mx-auto">
-          {/* Avatar section */}
-          <div className="mb-8">
-            <h3 className="text-sm font-medium text-muted-foreground mb-4">
-              Profilová fotka
-            </h3>
-            <div className="flex items-center gap-4">
-              {/* Avatar */}
-              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                {user.avatar_url ? (
-                  <img
-                    src={user.avatar_url}
-                    alt="Profilová fotka"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-xl font-semibold text-primary">
-                    {getInitials()}
-                  </span>
-                )}
-              </div>
+            {/* Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowUploadModal(true)}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                <Camera className="h-4 w-4" />
+                Zmeniť fotku
+              </button>
 
-              {/* Buttons */}
-              <div className="flex gap-2">
+              {user.avatar_url && (
                 <button
-                  onClick={() => setShowUploadModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                  onClick={handleDeleteAvatar}
+                  disabled={deleting}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-destructive hover:text-white hover:border-destructive transition-colors disabled:opacity-50"
                 >
-                  <Camera className="h-4 w-4" />
-                  Zmeniť fotku
+                  <Trash2 className="h-4 w-4" />
+                  Odstrániť
                 </button>
-
-                {user.avatar_url && (
-                  <button
-                    onClick={handleDeleteAvatar}
-                    disabled={deleting}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-destructive hover:text-white hover:border-destructive transition-colors disabled:opacity-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Odstrániť
-                  </button>
-                )}
-              </div>
+              )}
             </div>
           </div>
-
-          {/* Divider */}
-          <hr className="border-border mb-8" />
-
-          {/* Profile info */}
-          <ProfileInfo
-            fullName={user.full_name}
-            nickname={user.nickname}
-            email={user.email}
-            position={user.position}
-            role={user.role}
-          />
         </div>
+
+        {/* Divider */}
+        <hr className="border-border mb-8" />
+
+        {/* Profile info */}
+        <ProfileInfo
+          fullName={user.full_name}
+          nickname={user.nickname}
+          email={user.email}
+          position={user.position}
+          role={user.role}
+        />
       </div>
 
       {/* Avatar Upload Modal */}

@@ -20,7 +20,6 @@ import {
   Eye,
   Timer,
   X,
-  UserCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Avatar } from '@/components/ui/avatar'
@@ -31,7 +30,7 @@ import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
 import { useTaskCounts } from '@/lib/hooks/use-task-counts'
 import { useUserDepartments } from '@/lib/hooks/use-user-departments'
 import { useTodayTasksCounts } from '@/lib/hooks/use-new-tasks'
-import { UserRole, canSeeAllDepartments, canManageUsers } from '@/types'
+import { UserRole, canSeeAllDepartments } from '@/types'
 
 interface Area {
   id: string
@@ -96,9 +95,6 @@ export function Sidebar({
 
   // Get display name: prefer nickname over full_name
   const displayName = user?.nickname || user?.full_name || user?.email
-
-  // Check if user can manage users (admin only)
-  const userCanManageUsers = user?.role ? canManageUsers(user.role) : false
 
   // Filter areas based on department membership
   const myDeptIds = new Set(myDepartments.map(d => d.id))
@@ -343,18 +339,6 @@ export function Sidebar({
             )}
           </div>
           <div className="flex gap-1">
-            <Link href="/settings/profile" onClick={onNavigate}>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-accent/50" title="Profil">
-                <UserCircle className="h-4 w-4" />
-              </Button>
-            </Link>
-            {userCanManageUsers && (
-              <Link href="/settings/users" onClick={onNavigate}>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-accent/50" title="Správa používateľov">
-                  <Users className="h-4 w-4" />
-                </Button>
-              </Link>
-            )}
             <Link href="/settings" onClick={onNavigate}>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-accent/50" title="Nastavenia">
                 <Settings className="h-4 w-4" />
