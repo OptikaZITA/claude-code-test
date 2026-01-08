@@ -89,10 +89,8 @@ export function getStatusLabel(status: TaskStatus): string {
 
 export function getPriorityLabel(priority: TaskPriority): string {
   const labels: Record<TaskPriority, string> = {
-    low: 'Nízka',
-    medium: 'Stredná',
     high: 'Vysoká',
-    urgent: 'Urgentná',
+    low: 'Nízka',
   }
   return labels[priority]
 }

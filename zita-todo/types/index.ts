@@ -114,7 +114,8 @@ export interface Heading {
 // Task types
 // TaskStatus = workflow fázy pre Kanban (5 stĺpcov + canceled)
 export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'done' | 'canceled'
-export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
+// Priority: high (red flag), low (yellow flag), null = no flag
+export type TaskPriority = 'high' | 'low'
 export type InboxType = 'personal' | 'team' | null
 // WhenType = časové zaradenie pre List view (Things 3 štýl)
 export type WhenType = 'inbox' | 'today' | 'anytime' | 'someday' | 'scheduled'
@@ -130,7 +131,7 @@ export interface Task {
   notes: string | null
   status: TaskStatus
   // kanban_column removed - konsolidované do status
-  priority: TaskPriority
+  priority: TaskPriority | null  // null = no priority (no flag)
   due_date: string | null
   start_date: string | null
   when_type: WhenType | null  // null = Logbook (dokončené úlohy)

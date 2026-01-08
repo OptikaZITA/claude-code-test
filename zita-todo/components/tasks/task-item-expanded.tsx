@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Tag, FolderOpen, Layers, Flag, User, X, Trash2, Clock, Repeat } from 'lucide-react'
-import { TaskWithRelations, WhenType, RecurrenceRule } from '@/types'
+import { TaskWithRelations, WhenType, RecurrenceRule, TaskPriority } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar } from '@/components/ui/avatar'
 import { TagChipList } from '@/components/tags'
@@ -32,8 +32,10 @@ export function TaskItemExpanded({
   const [title, setTitle] = useState(task.title)
   const [notes, setNotes] = useState(task.notes || '')
   const [showRecurrenceModal, setShowRecurrenceModal] = useState(false)
+  const [showPriorityDropdown, setShowPriorityDropdown] = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const notesRef = useRef<HTMLTextAreaElement>(null)
+  const priorityButtonRef = useRef<HTMLButtonElement>(null)
 
   const isCompleted = task.status === 'done'
   const hasRecurrence = !!task.recurrence_rule
@@ -43,6 +45,18 @@ export function TaskItemExpanded({
     titleInputRef.current?.focus()
     titleInputRef.current?.select()
   }, [])
+
+  // Close priority dropdown on click outside
+  useEffect(() => {
+    if (!showPriorityDropdown) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (priorityButtonRef.current && !priorityButtonRef.current.contains(e.target as Node)) {
+        setShowPriorityDropdown(false)
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [showPriorityDropdown])
 
   // Auto-resize textarea
   useEffect(() => {
@@ -105,6 +119,18 @@ export function TaskItemExpanded({
   // Recurrence change
   const handleRecurrenceSave = (rule: RecurrenceRule | null) => {
     onUpdate({ recurrence_rule: rule })
+  }
+
+  // Priority change
+  const handlePriorityChange = (priority: TaskPriority | null) => {
+    onUpdate({ priority })
+    setShowPriorityDropdown(false)
+  }
+
+  // Priority flag colors: red (high), yellow (low)
+  const priorityFlagColors: Record<TaskPriority, string> = {
+    high: 'text-red-500',     // Červená
+    low: 'text-yellow-500',   // Žltá
   }
 
   return (
@@ -173,6 +199,62 @@ export function TaskItemExpanded({
 
           {/* Divider */}
           <div className="w-px h-5 bg-[var(--border)] mx-1" />
+
+          {/* Priority */}
+          <div className="relative">
+            <button
+              ref={priorityButtonRef}
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowPriorityDropdown(!showPriorityDropdown)
+              }}
+              className={cn(
+                'p-2 rounded-lg transition-colors',
+                task.priority && ['high', 'low'].includes(task.priority)
+                  ? priorityFlagColors[task.priority]
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+              )}
+              title="Priorita"
+            >
+              <Flag className="h-4 w-4" fill={task.priority && ['high', 'low'].includes(task.priority) ? 'currentColor' : 'none'} />
+            </button>
+
+            {/* Priority Dropdown - len 2 úrovne: Vysoká (červená) a Nízka (žltá) */}
+            {showPriorityDropdown && (
+              <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-lg py-1 min-w-[140px]">
+                <button
+                  onClick={() => handlePriorityChange(null)}
+                  className={cn(
+                    'w-full px-3 py-2 text-left text-sm hover:bg-accent flex items-center gap-2',
+                    task.priority === null && 'bg-accent'
+                  )}
+                >
+                  <span className="w-4 h-4" />
+                  Žiadna
+                </button>
+                <button
+                  onClick={() => handlePriorityChange('high')}
+                  className={cn(
+                    'w-full px-3 py-2 text-left text-sm hover:bg-accent flex items-center gap-2',
+                    task.priority === 'high' && 'bg-accent'
+                  )}
+                >
+                  <Flag className="h-4 w-4 text-red-500" fill="currentColor" />
+                  Vysoká
+                </button>
+                <button
+                  onClick={() => handlePriorityChange('low')}
+                  className={cn(
+                    'w-full px-3 py-2 text-left text-sm hover:bg-accent flex items-center gap-2',
+                    task.priority === 'low' && 'bg-accent'
+                  )}
+                >
+                  <Flag className="h-4 w-4 text-yellow-500" fill="currentColor" />
+                  Nízka
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Tags */}
           <InlineTagSelector

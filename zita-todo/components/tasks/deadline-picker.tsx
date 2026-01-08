@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Flag, ChevronDown, X, AlertTriangle, AlertCircle, Calendar } from 'lucide-react'
+import { ChevronDown, X, AlertTriangle, AlertCircle, Calendar } from 'lucide-react'
 import { Dropdown } from '@/components/ui/dropdown'
 import { cn } from '@/lib/utils/cn'
 import { format, addDays, isToday, isTomorrow, isPast, startOfDay, differenceInDays } from 'date-fns'
@@ -69,9 +69,9 @@ export function DeadlinePicker({
             {isOverdue ? (
               <AlertTriangle className={cn(size === 'sm' ? 'h-3 w-3' : 'h-4 w-4')} />
             ) : (
-              <Flag className={cn(
+              <Calendar className={cn(
                 size === 'sm' ? 'h-3 w-3' : 'h-4 w-4',
-                value && 'text-[var(--color-error)]'
+                value && 'text-[var(--color-primary)]'
               )} />
             )}
             <span>

@@ -15,10 +15,8 @@ interface CalendarDayProps {
 }
 
 const priorityColors: Record<TaskPriority, string> = {
-  urgent: 'bg-[var(--color-error)]',
-  high: 'bg-[var(--color-warning)]',
-  medium: 'bg-[var(--color-primary)]',
-  low: 'bg-[var(--text-secondary)]',
+  high: 'bg-red-500',     // Červená
+  low: 'bg-yellow-500',   // Žltá
 }
 
 export function CalendarDay({
@@ -128,9 +126,11 @@ function CalendarTask({ task, onClick }: CalendarTaskProps) {
         task.status === 'done' && 'opacity-50 line-through'
       )}
     >
-      <div
-        className={cn('h-1.5 w-1.5 flex-shrink-0 rounded-full', priorityColors[task.priority])}
-      />
+      {task.priority && ['high', 'low'].includes(task.priority) && (
+        <div
+          className={cn('h-1.5 w-1.5 flex-shrink-0 rounded-full', priorityColors[task.priority])}
+        />
+      )}
       <span className="truncate text-[var(--text-primary)]">{task.title}</span>
     </div>
   )

@@ -6,7 +6,7 @@ import { TaskList } from '@/components/tasks/task-list'
 import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
 import { ExportMenu } from '@/components/export/export-menu'
 import { ErrorDisplay } from '@/components/layout/error-display'
-import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
+import { TaskFiltersBar, ColleagueFilterBar, filterTasksByColleague } from '@/components/filters'
 import { TagFilterBar } from '@/components/tasks/tag-filter-bar'
 import { useInboxTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
@@ -21,6 +21,7 @@ export default function TeamInboxPage() {
   const [showFilters, setShowFilters] = useState(false)
   const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  const [selectedColleague, setSelectedColleague] = useState<string | null>(null)
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -34,6 +35,11 @@ export default function TeamInboxPage() {
       task.tags?.some(tag => tag.id === selectedTag)
     )
   }, [filteredTasks, selectedTag])
+
+  // Apply colleague filter (Strážci vesmíru)
+  const colleagueFilteredTasks = useMemo(() => {
+    return filterTasksByColleague(tagFilteredTasks, selectedColleague)
+  }, [tagFilteredTasks, selectedColleague])
 
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
@@ -158,7 +164,14 @@ export default function TeamInboxPage() {
           onSelectTag={setSelectedTag}
         />
 
-        {tagFilteredTasks.length === 0 && tasks.length === 0 ? (
+        {/* Colleague Filter Bar (Strážci vesmíru) */}
+        <ColleagueFilterBar
+          tasks={tagFilteredTasks}
+          selectedColleague={selectedColleague}
+          onSelectColleague={setSelectedColleague}
+        />
+
+        {colleagueFilteredTasks.length === 0 && tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Users className="mb-4 h-12 w-12 text-muted-foreground" />
             <p className="mb-2 text-lg font-medium text-foreground">Tímový inbox je prázdny</p>
@@ -166,12 +179,12 @@ export default function TeamInboxPage() {
               Úlohy pridané sem uvidia všetci členovia tímu
             </p>
           </div>
-        ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag) ? (
+        ) : colleagueFilteredTasks.length === 0 && (hasActiveFilters || selectedTag || selectedColleague) ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Filter className="mb-4 h-12 w-12 text-muted-foreground" />
             <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
             <button
-              onClick={() => { clearFilters(); setSelectedTag(null); }}
+              onClick={() => { clearFilters(); setSelectedTag(null); setSelectedColleague(null); }}
               className="text-primary hover:underline"
             >
               Zrušiť filtre
@@ -180,7 +193,7 @@ export default function TeamInboxPage() {
         ) : null}
 
         <TaskList
-          tasks={tagFilteredTasks}
+          tasks={colleagueFilteredTasks}
           onTaskClick={setSelectedTask}
           onTaskComplete={handleTaskComplete}
           onTaskUpdate={handleTaskUpdate}

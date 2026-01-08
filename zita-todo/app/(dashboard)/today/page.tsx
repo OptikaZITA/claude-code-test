@@ -8,7 +8,7 @@ import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
-import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
+import { TaskFiltersBar, ColleagueFilterBar, filterTasksByColleague } from '@/components/filters'
 import { TagFilterBar } from '@/components/tasks/tag-filter-bar'
 import { TimeSummaryCard } from '@/components/time-tracking/time-summary-card'
 import { NewTasksBanner } from '@/components/indicators'
@@ -28,6 +28,7 @@ export default function TodayPage() {
   const [showFilters, setShowFilters] = useState(false)
   const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  const [selectedColleague, setSelectedColleague] = useState<string | null>(null)
 
   // New tasks tracking (zlta bodka + banner)
   const { newTasksCount, acknowledge, acknowledging, isTaskNew, refetch: refetchNewTasks } = useNewTasks()
@@ -45,17 +46,22 @@ export default function TodayPage() {
     )
   }, [filteredTasks, selectedTag])
 
+  // Apply colleague filter (Strážci vesmíru)
+  const colleagueFilteredTasks = useMemo(() => {
+    return filterTasksByColleague(tagFilteredTasks, selectedColleague)
+  }, [tagFilteredTasks, selectedColleague])
+
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
 
-  // Separate overdue tasks from today's tasks (from tag filtered)
-  const overdueTasks = tagFilteredTasks.filter(task => {
+  // Separate overdue tasks from today's tasks (from colleague filtered)
+  const overdueTasks = colleagueFilteredTasks.filter(task => {
     if (!task.due_date) return false
     const dueDate = parseISO(task.due_date)
     return isPast(dueDate) && !isToday(dueDate)
   })
 
-  const todayTasks = tagFilteredTasks.filter(task => {
+  const todayTasks = colleagueFilteredTasks.filter(task => {
     if (task.when_type === 'today') return true
     if (task.when_type === 'scheduled' && task.when_date) {
       return isToday(parseISO(task.when_date))
@@ -228,7 +234,7 @@ export default function TodayPage() {
       {viewMode === 'calendar' ? (
         <div className="flex-1 overflow-hidden">
           <CalendarView
-            tasks={tagFilteredTasks}
+            tasks={colleagueFilteredTasks}
             onTaskClick={setSelectedTask}
             onDateClick={handleCalendarDateClick}
             onTaskMove={handleCalendarTaskMove}
@@ -237,7 +243,7 @@ export default function TodayPage() {
       ) : viewMode === 'kanban' ? (
         <div className="flex-1 overflow-hidden">
           <KanbanBoard
-            tasks={tagFilteredTasks}
+            tasks={colleagueFilteredTasks}
             onTaskMove={handleKanbanTaskMove}
             onTaskClick={setSelectedTask}
             onQuickAdd={handleKanbanQuickAdd}
@@ -278,6 +284,13 @@ export default function TodayPage() {
             onSelectTag={setSelectedTag}
           />
 
+          {/* Colleague Filter Bar (Strážci vesmíru) */}
+          <ColleagueFilterBar
+            tasks={tagFilteredTasks}
+            selectedColleague={selectedColleague}
+            onSelectColleague={setSelectedColleague}
+          />
+
           {/* Overdue section */}
           {overdueTasks.length > 0 && (
             <div className="mb-4">
@@ -302,7 +315,7 @@ export default function TodayPage() {
           )}
 
           {/* Today's tasks */}
-          {tagFilteredTasks.length === 0 && tasks.length === 0 ? (
+          {colleagueFilteredTasks.length === 0 && tasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Star className="mb-4 h-12 w-12 text-muted-foreground" />
               <p className="mb-2 text-lg font-medium text-foreground">
@@ -312,12 +325,12 @@ export default function TodayPage() {
                 Pridajte úlohy alebo ich presuňte na dnes
               </p>
             </div>
-          ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag) ? (
+          ) : colleagueFilteredTasks.length === 0 && (hasActiveFilters || selectedTag || selectedColleague) ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Filter className="mb-4 h-12 w-12 text-muted-foreground" />
               <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
               <button
-                onClick={() => { clearFilters(); setSelectedTag(null); }}
+                onClick={() => { clearFilters(); setSelectedTag(null); setSelectedColleague(null); }}
                 className="text-primary hover:underline"
               >
                 Zrušiť filtre

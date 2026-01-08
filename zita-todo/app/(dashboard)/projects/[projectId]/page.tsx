@@ -9,7 +9,7 @@ import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
 import { TaskDetail } from '@/components/tasks/task-detail'
-import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
+import { TaskFiltersBar, ColleagueFilterBar, filterTasksByColleague } from '@/components/filters'
 import { TagFilterBar } from '@/components/tasks/tag-filter-bar'
 import { useProject, useProjectTasks } from '@/lib/hooks/use-projects'
 import { useTasks } from '@/lib/hooks/use-tasks'
@@ -31,6 +31,7 @@ export default function ProjectPage() {
   const [showFilters, setShowFilters] = useState(false)
   const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  const [selectedColleague, setSelectedColleague] = useState<string | null>(null)
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -44,6 +45,11 @@ export default function ProjectPage() {
       task.tags?.some(tag => tag.id === selectedTag)
     )
   }, [filteredTasks, selectedTag])
+
+  // Apply colleague filter (Strážci vesmíru)
+  const colleagueFilteredTasks = useMemo(() => {
+    return filterTasksByColleague(tagFilteredTasks, selectedColleague)
+  }, [tagFilteredTasks, selectedColleague])
 
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetchTasks)
@@ -207,7 +213,7 @@ export default function ProjectPage() {
       {viewMode === 'calendar' ? (
         <div className="flex-1 overflow-hidden">
           <CalendarView
-            tasks={tagFilteredTasks}
+            tasks={colleagueFilteredTasks}
             onTaskClick={setSelectedTask}
             onDateClick={handleCalendarDateClick}
             onTaskMove={handleCalendarTaskMove}
@@ -216,7 +222,7 @@ export default function ProjectPage() {
       ) : viewMode === 'kanban' ? (
         <div className="flex-1 overflow-hidden">
           <KanbanBoard
-            tasks={tagFilteredTasks}
+            tasks={colleagueFilteredTasks}
             onTaskMove={handleKanbanTaskMove}
             onTaskClick={setSelectedTask}
             onQuickAdd={handleKanbanQuickAdd}
@@ -237,7 +243,14 @@ export default function ProjectPage() {
             onSelectTag={setSelectedTag}
           />
 
-          {tagFilteredTasks.length === 0 && tasks.length === 0 && headings.length === 0 ? (
+          {/* Colleague Filter Bar (Strážci vesmíru) */}
+          <ColleagueFilterBar
+            tasks={tagFilteredTasks}
+            selectedColleague={selectedColleague}
+            onSelectColleague={setSelectedColleague}
+          />
+
+          {colleagueFilteredTasks.length === 0 && tasks.length === 0 && headings.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <FolderKanban className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
               <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Projekt je prázdny</p>
@@ -245,12 +258,12 @@ export default function ProjectPage() {
                 Pridajte prvú úlohu alebo sekciu
               </p>
             </div>
-          ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag) ? (
+          ) : colleagueFilteredTasks.length === 0 && (hasActiveFilters || selectedTag || selectedColleague) ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Filter className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
               <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Žiadne úlohy nezodpovedajú filtrom</p>
               <button
-                onClick={() => { clearFilters(); setSelectedTag(null); }}
+                onClick={() => { clearFilters(); setSelectedTag(null); setSelectedColleague(null); }}
                 className="text-[var(--color-primary)] hover:underline"
               >
                 Zrušiť filtre
@@ -259,7 +272,7 @@ export default function ProjectPage() {
           ) : null}
 
           <ProjectTaskList
-            tasks={tagFilteredTasks}
+            tasks={colleagueFilteredTasks}
             headings={headings}
             onTaskClick={setSelectedTask}
             onTaskComplete={handleTaskComplete}

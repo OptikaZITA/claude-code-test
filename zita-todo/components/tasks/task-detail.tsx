@@ -8,8 +8,9 @@ import {
   ChevronDown,
   ChevronUp,
   Trash2,
+  Flag,
 } from 'lucide-react'
-import { TaskWithRelations, ChecklistItem, User, Project, WhenType, Tag as TagType } from '@/types'
+import { TaskWithRelations, ChecklistItem, User, Project, WhenType, Tag as TagType, TaskPriority } from '@/types'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -55,6 +56,7 @@ export function TaskDetail({
   const [deadline, setDeadline] = useState<string | null>(task.deadline)
   const [project, setProject] = useState<Project | null>(task.project || null)
   const [assignee, setAssignee] = useState<User | null>(task.assignee || null)
+  const [priority, setPriority] = useState<TaskPriority | null>(task.priority)
   const [showTimeEntries, setShowTimeEntries] = useState(false)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
 
@@ -77,6 +79,7 @@ export function TaskDetail({
     setDeadline(task.deadline)
     setProject(task.project || null)
     setAssignee(task.assignee || null)
+    setPriority(task.priority)
   }, [task])
 
   // Auto-save handlers
@@ -126,6 +129,13 @@ export function TaskDetail({
     setAssignee(user)
     if (onUpdate) {
       onUpdate({ assignee_id: user?.id || null, assignee: user })
+    }
+  }, [onUpdate])
+
+  const handlePriorityChange = useCallback((newPriority: TaskPriority | null) => {
+    setPriority(newPriority)
+    if (onUpdate) {
+      onUpdate({ priority: newPriority })
     }
   }, [onUpdate])
 
@@ -247,6 +257,51 @@ export function TaskDetail({
               value={assignee}
               onChange={handleAssigneeChange}
             />
+          </div>
+
+          {/* Priority Row */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground w-20">Priorita:</span>
+            <div className="flex items-center gap-2">
+              {/* None */}
+              <button
+                onClick={() => handlePriorityChange(null)}
+                className={cn(
+                  'px-3 py-1.5 text-sm rounded-lg border transition-colors',
+                  priority === null
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground hover:bg-accent'
+                )}
+              >
+                Žiadna
+              </button>
+              {/* High - red flag */}
+              <button
+                onClick={() => handlePriorityChange('high')}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition-colors',
+                  priority === 'high'
+                    ? 'border-red-500 bg-red-100 dark:bg-red-900/30'
+                    : 'border-border text-muted-foreground hover:bg-accent'
+                )}
+              >
+                <Flag className="h-4 w-4 text-red-500" fill="currentColor" />
+                Vysoká
+              </button>
+              {/* Low - yellow flag */}
+              <button
+                onClick={() => handlePriorityChange('low')}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition-colors',
+                  priority === 'low'
+                    ? 'border-yellow-500 bg-yellow-100 dark:bg-yellow-900/30'
+                    : 'border-border text-muted-foreground hover:bg-accent'
+                )}
+              >
+                <Flag className="h-4 w-4 text-yellow-500" fill="currentColor" />
+                Nízka
+              </button>
+            </div>
           </div>
 
           {/* Notes Section */}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Trash2, Star, FileText, Repeat } from 'lucide-react'
+import { Trash2, Flag, FileText, Repeat } from 'lucide-react'
 import { TaskWithRelations, TaskPriority } from '@/types'
 import { isToday, parseISO } from 'date-fns'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -31,12 +31,10 @@ interface TaskItemProps {
   isNew?: boolean
 }
 
-// Priority colors using new design system
-const priorityColors: Record<TaskPriority, string> = {
-  urgent: 'text-error fill-error',
-  high: 'text-warning fill-warning',
-  medium: 'text-[var(--priority-medium)] fill-[var(--priority-medium)]',
-  low: 'text-info',
+// Priority flag colors: red (high), yellow (low)
+const priorityFlagColors: Record<TaskPriority, string> = {
+  high: 'text-red-500',     // #EF4444 - Červená
+  low: 'text-yellow-500',   // #EAB308 - Žltá
 }
 
 // Helper to check if task is "today"
@@ -253,17 +251,21 @@ export function TaskItem({
           />
         </div>
 
-        {/* Star indicator - Today star alebo priority star */}
-        {showTodayStar && isTodayTask ? (
-          <TodayStarIndicator isInToday={true} size="md" className="mt-0.5" />
-        ) : task.priority !== 'low' ? (
-          <Star
+        {/* Priority flag - červená (high), žltá (low) - zobrazuje sa LEN pre definované priority */}
+        {task.priority && ['high', 'low'].includes(task.priority) && (
+          <Flag
             className={cn(
               'h-4 w-4 shrink-0 mt-0.5',
-              priorityColors[task.priority]
+              priorityFlagColors[task.priority]
             )}
+            fill="currentColor"
           />
-        ) : null}
+        )}
+
+        {/* Today star indicator - hviezdička pre tasky v "Dnes" (len na stránkach projektov/oddelení) */}
+        {showTodayStar && isTodayTask && (
+          <TodayStarIndicator isInToday={true} size="md" className="mt-0.5" />
+        )}
 
         {/* Task content - Things 3 style layout */}
         <div className="flex-1 min-w-0">

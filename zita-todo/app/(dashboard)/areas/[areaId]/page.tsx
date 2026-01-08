@@ -9,7 +9,7 @@ import { TaskList } from '@/components/tasks/task-list'
 import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
-import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
+import { TaskFiltersBar, ColleagueFilterBar, filterTasksByColleague } from '@/components/filters'
 import { TagFilterBar } from '@/components/tasks/tag-filter-bar'
 import { ProjectFormModal } from '@/components/projects/project-form-modal'
 import { useArea, useAreaProjects, useAllAreaTasks } from '@/lib/hooks/use-areas'
@@ -93,6 +93,7 @@ export default function AreaDetailPage() {
   const [showFilters, setShowFilters] = useState(false)
   const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  const [selectedColleague, setSelectedColleague] = useState<string | null>(null)
   const [showProjectModal, setShowProjectModal] = useState(false)
 
   // Apply filters to tasks
@@ -108,6 +109,11 @@ export default function AreaDetailPage() {
     )
   }, [filteredTasks, selectedTag])
 
+  // Apply colleague filter (Strážci vesmíru)
+  const colleagueFilteredTasks = useMemo(() => {
+    return filterTasksByColleague(tagFilteredTasks, selectedColleague)
+  }, [tagFilteredTasks, selectedColleague])
+
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetchTasks)
 
@@ -116,7 +122,7 @@ export default function AreaDetailPage() {
     const projectTasksMap = new Map<string, TaskWithRelations[]>()
     const loose: TaskWithRelations[] = []
 
-    tagFilteredTasks.forEach(task => {
+    colleagueFilteredTasks.forEach(task => {
       if (task.project_id) {
         const existing = projectTasksMap.get(task.project_id) || []
         projectTasksMap.set(task.project_id, [...existing, task])
@@ -129,7 +135,7 @@ export default function AreaDetailPage() {
       projectTasks: projectTasksMap,
       looseTasks: sortTasksTodayFirst(loose)
     }
-  }, [tagFilteredTasks])
+  }, [colleagueFilteredTasks])
 
   // Active projects (must be before early returns)
   const activeProjects = useMemo(() => {
@@ -305,7 +311,7 @@ export default function AreaDetailPage() {
       {viewMode === 'calendar' ? (
         <div className="flex-1 overflow-hidden">
           <CalendarView
-            tasks={tagFilteredTasks}
+            tasks={colleagueFilteredTasks}
             onTaskClick={() => {}}
             onDateClick={handleCalendarDateClick}
             onTaskMove={handleCalendarTaskMove}
@@ -314,7 +320,7 @@ export default function AreaDetailPage() {
       ) : viewMode === 'kanban' ? (
         <div className="flex-1 overflow-hidden">
           <KanbanBoard
-            tasks={tagFilteredTasks}
+            tasks={colleagueFilteredTasks}
             onTaskMove={handleKanbanTaskMove}
             onTaskClick={() => {}}
             onQuickAdd={handleKanbanQuickAdd}
@@ -342,6 +348,13 @@ export default function AreaDetailPage() {
             tasks={filteredTasks}
             selectedTag={selectedTag}
             onSelectTag={setSelectedTag}
+          />
+
+          {/* Colleague Filter Bar (Strážci vesmíru) */}
+          <ColleagueFilterBar
+            tasks={tagFilteredTasks}
+            selectedColleague={selectedColleague}
+            onSelectColleague={setSelectedColleague}
           />
 
           {/* Projects with their tasks */}
@@ -400,7 +413,7 @@ export default function AreaDetailPage() {
           )}
 
           {/* Filter empty state */}
-          {tagFilteredTasks.length === 0 && tasks.length > 0 && (hasActiveFilters || selectedTag) && (
+          {colleagueFilteredTasks.length === 0 && tasks.length > 0 && (hasActiveFilters || selectedTag || selectedColleague) && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Filter className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
               <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
@@ -409,7 +422,7 @@ export default function AreaDetailPage() {
                   : 'Žiadne úlohy nezodpovedajú filtrom'}
               </p>
               <button
-                onClick={() => { clearFilters(); setSelectedTag(null); }}
+                onClick={() => { clearFilters(); setSelectedTag(null); setSelectedColleague(null); }}
                 className="text-[var(--color-primary)] hover:underline"
               >
                 Zrušiť filtre
@@ -418,7 +431,7 @@ export default function AreaDetailPage() {
           )}
 
           {/* Quick add for area when no loose tasks */}
-          {looseTasks.length === 0 && (projects.length > 0 || tasks.length > 0) && !hasActiveFilters && !selectedTag && (
+          {looseTasks.length === 0 && (projects.length > 0 || tasks.length > 0) && !hasActiveFilters && !selectedTag && !selectedColleague && (
             <div className="mt-6 pt-4 border-t border-[var(--border-primary)]">
               <TaskList
                 tasks={[]}

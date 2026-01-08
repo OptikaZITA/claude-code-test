@@ -34,7 +34,7 @@ interface TaskFiltersBarProps {
 }
 
 const STATUS_OPTIONS: TaskStatus[] = ['backlog', 'todo', 'in_progress', 'review', 'done']
-const PRIORITY_OPTIONS: TaskPriority[] = ['urgent', 'high', 'medium', 'low']
+const PRIORITY_OPTIONS: TaskPriority[] = ['high', 'low']
 const DUE_DATE_OPTIONS: DueDateFilter[] = ['today', 'this_week', 'this_month', 'overdue', 'no_date']
 const WHEN_OPTIONS: WhenType[] = ['today', 'anytime', 'someday', 'scheduled']
 

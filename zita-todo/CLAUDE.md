@@ -5,8 +5,8 @@
 ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zobrazením, sledovaním času a Toggl-style time trackingom. Určená pre ~20 členný tím s podporou osobnej aj tímovej produktivity.
 
 **Dátum vytvorenia**: 2. januára 2026
-**Posledná aktualizácia**: 7. januára 2026
-**Verzia špecifikácie**: 2.26 (Area Detail Page Hooks Fix)
+**Posledná aktualizácia**: 8. januára 2026
+**Verzia špecifikácie**: 2.27 (Strážci vesmíru Filter)
 
 ---
 
@@ -1183,6 +1183,65 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.27 (8. januára 2026)
+**Strážci vesmíru - Colleague Filter:**
+
+Implementácia nového filtra pre filtrovanie úloh podľa priradeného kolegu (assignee).
+
+**Hlavné funkcie:**
+- Dynamický filter - zobrazuje len kolegov, ktorí majú minimálne 1 úlohu v aktuálnom kontexte
+- Počet úloh pri každom kolegovi v zátvorke
+- Možnosť "Nepriradené" pre úlohy bez priradeného kolegu
+- "Všetci" pre resetovanie filtra
+- Avatar a meno (nickname preferenčne) pri každom kolegovi
+- Integrácia na všetkých stránkach s úlohami
+
+**Nové súbory:**
+- `components/filters/colleague-filter-bar.tsx` - ColleagueFilterBar komponent + filterTasksByColleague helper
+
+**Upravené súbory:**
+- `components/filters/index.ts` - Export ColleagueFilterBar a filterTasksByColleague
+- `app/(dashboard)/today/page.tsx` - Integrácia ColleagueFilterBar
+- `app/(dashboard)/inbox/page.tsx` - Integrácia ColleagueFilterBar
+- `app/(dashboard)/inbox/team/page.tsx` - Integrácia ColleagueFilterBar
+- `app/(dashboard)/anytime/page.tsx` - Integrácia ColleagueFilterBar
+- `app/(dashboard)/upcoming/page.tsx` - Integrácia ColleagueFilterBar
+- `app/(dashboard)/logbook/page.tsx` - Integrácia ColleagueFilterBar
+- `app/(dashboard)/areas/[areaId]/page.tsx` - Integrácia ColleagueFilterBar
+- `app/(dashboard)/projects/[projectId]/page.tsx` - Integrácia ColleagueFilterBar
+
+**Pattern pre integráciu:**
+```typescript
+// Import
+import { ColleagueFilterBar, filterTasksByColleague } from '@/components/filters'
+
+// State
+const [selectedColleague, setSelectedColleague] = useState<string | null>(null)
+
+// Apply colleague filter (po tagFilteredTasks)
+const colleagueFilteredTasks = useMemo(() => {
+  return filterTasksByColleague(tagFilteredTasks, selectedColleague)
+}, [tagFilteredTasks, selectedColleague])
+
+// JSX - ColleagueFilterBar (po TagFilterBar)
+<ColleagueFilterBar
+  tasks={tagFilteredTasks}
+  selectedColleague={selectedColleague}
+  onSelectColleague={setSelectedColleague}
+/>
+
+// Empty state update
+{colleagueFilteredTasks.length === 0 && (hasActiveFilters || selectedTag || selectedColleague) && ...}
+```
+
+**Vizuálny štýl:**
+- Horizontálny scrollovací bar podobný TagFilterBar
+- Avatar + meno + počet v zátvorke
+- Aktívny kolega zvýraznený primary farbou
+- Zafarbenie podľa variantu: outline (default), solid (vybraný)
+
+---
 
 ### v2.26 (7. januára 2026)
 **Area Detail Page Hooks Error Fix:**

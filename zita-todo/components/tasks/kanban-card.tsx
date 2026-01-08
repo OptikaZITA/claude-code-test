@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Clock } from 'lucide-react'
+import { Clock, Flag } from 'lucide-react'
 import { TaskWithRelations, TaskPriority } from '@/types'
 import { Avatar } from '@/components/ui/avatar'
 import { TagChipList } from '@/components/tags'
@@ -19,11 +19,10 @@ interface KanbanCardProps {
   isDragging?: boolean
 }
 
-const priorityDots: Record<TaskPriority, string> = {
-  urgent: 'bg-error',
-  high: 'bg-warning',
-  medium: 'bg-[var(--priority-medium)]',
-  low: 'bg-[var(--priority-low)]',
+// Priority flag colors: red (high), yellow (low)
+const priorityFlagColors: Record<TaskPriority, string> = {
+  high: 'text-red-500',     // #EF4444 - Červená
+  low: 'text-yellow-500',   // #EAB308 - Žltá
 }
 
 export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
@@ -68,9 +67,14 @@ export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
         isCompleted && 'opacity-60'
       )}
     >
-      {/* Priority indicator + tags */}
+      {/* Priority flag + tags - zobrazuje sa LEN pre definované priority */}
       <div className="mb-2 flex items-center gap-2">
-        <div className={cn('h-2.5 w-2.5 rounded-full', priorityDots[task.priority])} />
+        {task.priority && ['high', 'low'].includes(task.priority) && (
+          <Flag
+            className={cn('h-4 w-4 shrink-0', priorityFlagColors[task.priority])}
+            fill="currentColor"
+          />
+        )}
         {task.tags && task.tags.length > 0 && (
           <TagChipList tags={task.tags.slice(0, 2)} size="sm" />
         )}

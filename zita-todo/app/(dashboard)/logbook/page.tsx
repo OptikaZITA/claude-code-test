@@ -5,7 +5,7 @@ import { BookOpen, CheckCircle2, Filter } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { TaskItem } from '@/components/tasks/task-item'
-import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
+import { TaskFiltersBar, ColleagueFilterBar, filterTasksByColleague } from '@/components/filters'
 import { useLogbookTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
@@ -19,11 +19,17 @@ export default function LogbookPage() {
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
+  const [selectedColleague, setSelectedColleague] = useState<string | null>(null)
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
     return filterTasks(tasks, filters)
   }, [tasks, filters])
+
+  // Apply colleague filter (Strážci vesmíru)
+  const colleagueFilteredTasks = useMemo(() => {
+    return filterTasksByColleague(filteredTasks, selectedColleague)
+  }, [filteredTasks, selectedColleague])
 
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
@@ -44,7 +50,7 @@ export default function LogbookPage() {
       older: [],
     }
 
-    filteredTasks.forEach(task => {
+    colleagueFilteredTasks.forEach(task => {
       if (!task.completed_at) {
         groups.older.push(task)
         return
@@ -66,7 +72,7 @@ export default function LogbookPage() {
     })
 
     return groups
-  }, [filteredTasks])
+  }, [colleagueFilteredTasks])
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
     try {
@@ -150,8 +156,15 @@ export default function LogbookPage() {
       )}
 
       <div className="flex-1 overflow-auto p-6">
+        {/* Colleague Filter Bar (Strážci vesmíru) */}
+        <ColleagueFilterBar
+          tasks={filteredTasks}
+          selectedColleague={selectedColleague}
+          onSelectColleague={setSelectedColleague}
+        />
+
         {/* Tasks grouped by time period */}
-        {filteredTasks.length === 0 && tasks.length === 0 ? (
+        {colleagueFilteredTasks.length === 0 && tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <CheckCircle2 className="mb-4 h-12 w-12 text-muted-foreground" />
             <p className="mb-2 text-lg font-medium text-foreground">
@@ -161,12 +174,12 @@ export default function LogbookPage() {
               Dokončené úlohy sa zobrazia tu
             </p>
           </div>
-        ) : filteredTasks.length === 0 && hasActiveFilters ? (
+        ) : colleagueFilteredTasks.length === 0 && (hasActiveFilters || selectedColleague) ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Filter className="mb-4 h-12 w-12 text-muted-foreground" />
             <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
             <button
-              onClick={clearFilters}
+              onClick={() => { clearFilters(); setSelectedColleague(null); }}
               className="text-primary hover:underline"
             >
               Zrušiť filtre

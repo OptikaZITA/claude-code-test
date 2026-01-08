@@ -7,7 +7,7 @@ import { TaskList } from '@/components/tasks/task-list'
 import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { MiniCalendar } from '@/components/calendar/mini-calendar'
-import { TaskFiltersBar } from '@/components/filters/task-filters-bar'
+import { TaskFiltersBar, ColleagueFilterBar, filterTasksByColleague } from '@/components/filters'
 import { TagFilterBar } from '@/components/tasks/tag-filter-bar'
 import { useUpcomingTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
@@ -26,6 +26,7 @@ export default function UpcomingPage() {
   const [showFilters, setShowFilters] = useState(false)
   const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  const [selectedColleague, setSelectedColleague] = useState<string | null>(null)
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -40,6 +41,11 @@ export default function UpcomingPage() {
     )
   }, [filteredTasks, selectedTag])
 
+  // Apply colleague filter (Strážci vesmíru)
+  const colleagueFilteredTasks = useMemo(() => {
+    return filterTasksByColleague(tagFilteredTasks, selectedColleague)
+  }, [tagFilteredTasks, selectedColleague])
+
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
 
@@ -47,7 +53,7 @@ export default function UpcomingPage() {
   const groupedTasks = useMemo(() => {
     const groups: Map<string, TaskWithRelations[]> = new Map()
 
-    tagFilteredTasks.forEach(task => {
+    colleagueFilteredTasks.forEach(task => {
       if (task.when_date) {
         const dateKey = startOfDay(parseISO(task.when_date)).toISOString()
         if (!groups.has(dateKey)) {
@@ -60,7 +66,7 @@ export default function UpcomingPage() {
     // Sort by date
     return Array.from(groups.entries())
       .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
-  }, [filteredTasks])
+  }, [colleagueFilteredTasks])
 
   // Handle date selection from mini calendar
   const handleDateSelect = (date: Date) => {
@@ -214,7 +220,7 @@ export default function UpcomingPage() {
           <div className="lg:w-72 flex-shrink-0">
             <div className="lg:sticky lg:top-6">
               <MiniCalendar
-                tasks={tagFilteredTasks}
+                tasks={colleagueFilteredTasks}
                 selectedDate={selectedDate}
                 onDateSelect={handleDateSelect}
               />
@@ -227,7 +233,7 @@ export default function UpcomingPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Celkom úloh</span>
-                    <span className="font-medium text-foreground">{tagFilteredTasks.length}</span>
+                    <span className="font-medium text-foreground">{colleagueFilteredTasks.length}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Dni s úlohami</span>
@@ -245,6 +251,13 @@ export default function UpcomingPage() {
               tasks={filteredTasks}
               selectedTag={selectedTag}
               onSelectTag={setSelectedTag}
+            />
+
+            {/* Colleague Filter Bar (Strážci vesmíru) */}
+            <ColleagueFilterBar
+              tasks={tagFilteredTasks}
+              selectedColleague={selectedColleague}
+              onSelectColleague={setSelectedColleague}
             />
 
             {/* Selected date indicator */}
@@ -274,12 +287,12 @@ export default function UpcomingPage() {
                   Naplánujte úlohy na konkrétny dátum
                 </p>
               </div>
-            ) : groupedTasks.length === 0 && (hasActiveFilters || selectedTag) ? (
+            ) : groupedTasks.length === 0 && (hasActiveFilters || selectedTag || selectedColleague) ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Filter className="mb-4 h-12 w-12 text-muted-foreground" />
                 <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
                 <button
-                  onClick={() => { clearFilters(); setSelectedTag(null); }}
+                  onClick={() => { clearFilters(); setSelectedTag(null); setSelectedColleague(null); }}
                   className="text-primary hover:underline"
                 >
                   Zrušiť filtre

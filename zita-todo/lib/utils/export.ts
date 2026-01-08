@@ -98,12 +98,11 @@ function translateStatus(status: string): string {
   return map[status] || status
 }
 
-function translatePriority(priority: string): string {
+function translatePriority(priority: string | null): string {
+  if (!priority) return 'Žiadna'
   const map: Record<string, string> = {
-    low: 'Nízka',
-    medium: 'Stredná',
     high: 'Vysoká',
-    urgent: 'Urgentná',
+    low: 'Nízka',
   }
   return map[priority] || priority
 }
@@ -165,10 +164,8 @@ function generateTasksPDFHtml(tasks: TaskWithRelations[], title: string): string
         .status-done { color: #34C759; }
         .status-in_progress { color: #FF9500; }
         .status-todo { color: #007AFF; }
-        .priority-urgent { color: #FF3B30; }
-        .priority-high { color: #FF9500; }
-        .priority-medium { color: #007AFF; }
-        .priority-low { color: #86868B; }
+        .priority-high { color: #EF4444; }
+        .priority-low { color: #EAB308; }
         @media print {
           body { padding: 0; }
           .no-print { display: none; }
@@ -210,7 +207,7 @@ function generateTasksPDFHtml(tasks: TaskWithRelations[], title: string): string
             <tr>
               <td>${escapeHtml(task.title)}</td>
               <td class="status-${task.status}">${translateStatus(task.status)}</td>
-              <td class="priority-${task.priority}">${translatePriority(task.priority)}</td>
+              <td class="${task.priority ? 'priority-' + task.priority : ''}">${translatePriority(task.priority)}</td>
               <td>${task.due_date ? format(new Date(task.due_date), 'd.M.yyyy') : '-'}</td>
               <td>${escapeHtml(task.project?.name || '-')}</td>
               <td>${formatDuration(task.total_time_seconds || 0)}</td>
