@@ -20,6 +20,7 @@ import {
   Eye,
   Timer,
   X,
+  UserCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Avatar } from '@/components/ui/avatar'
@@ -342,6 +343,11 @@ export function Sidebar({
             )}
           </div>
           <div className="flex gap-1">
+            <Link href="/settings/profile" onClick={onNavigate}>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-accent/50" title="Profil">
+                <UserCircle className="h-4 w-4" />
+              </Button>
+            </Link>
             {userCanManageUsers && (
               <Link href="/settings/users" onClick={onNavigate}>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-accent/50" title="Správa používateľov">

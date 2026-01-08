@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 8. januára 2026
-**Verzia špecifikácie**: 2.27 (Strážci vesmíru Filter)
+**Verzia špecifikácie**: 2.28 (Profile Photo Upload)
 
 ---
 
@@ -1183,6 +1183,48 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.28 (8. januára 2026)
+**Profile Photo Upload:**
+
+Implementácia upload profilovej fotky podľa ZADANIE-UPLOAD-PROFILOVEJ-FOTKY.md.
+
+**Hlavné funkcie:**
+- Nová stránka `/settings/profile` pre zobrazenie profilu a upload fotky
+- Avatar upload modal s kruhovým výrezom, zoom a drag funkciami
+- Kompresia obrázkov na max 500KB / 400x400px
+- Supabase Storage bucket 'avatars' s RLS politikami
+- Admin môže meniť fotky všetkým používateľom cez edit-user-modal
+- Používatelia môžu meniť len svoju fotku, nie ostatné údaje
+
+**Nové závislosti:**
+- `browser-image-compression` - Kompresia obrázkov na klientovi
+- `react-easy-crop` - Kruhový crop editor s zoom a drag
+
+**Nové súbory:**
+- `app/(dashboard)/settings/profile/page.tsx` - Profilová stránka
+- `components/profile/avatar-editor.tsx` - Crop editor s react-easy-crop
+- `components/profile/avatar-upload-modal.tsx` - Modal pre upload fotky
+- `components/profile/profile-info.tsx` - Zobrazenie osobných údajov (read-only)
+- `components/profile/index.ts` - Exporty
+- `lib/hooks/use-avatar-upload.ts` - Hook pre upload, kompresia, delete
+
+**Upravené súbory:**
+- `components/users/edit-user-modal.tsx` - Pridaná sekcia pre avatar (admin)
+- `components/layout/sidebar.tsx` - Pridaný link na profil (UserCircle ikona)
+
+**Supabase Storage:**
+- Bucket: `avatars` (public, 1MB limit, JPG/PNG/WEBP)
+- Cesta: `{user_id}/avatar.jpg`
+- RLS: Users môžu spravovať len svoje, admini všetky
+
+**Technické detaily:**
+- Validácia: max 1MB pred kompresiou, JPG/PNG/WEBP formáty
+- Kompresia: max 500KB, 400x400px, JPEG output
+- Cache-busting: URL s `?t={timestamp}` pre okamžitú aktualizáciu
+- Drag & Drop: Podpora pre drag súborov do upload zóny
+
+---
 
 ### v2.27 (8. januára 2026)
 **Strážci vesmíru - Colleague Filter:**

@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
+import { X, Camera, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { AvatarUploadModal } from '@/components/profile/avatar-upload-modal'
+import { useAvatarUpload } from '@/lib/hooks/use-avatar-upload'
 import { User, UserRole, Area } from '@/types'
 
 interface EditUserModalProps {
@@ -42,6 +44,9 @@ export function EditUserModal({
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showAvatarModal, setShowAvatarModal] = useState(false)
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(null)
+  const { deleteAvatar, uploading: deletingAvatar } = useAvatarUpload()
 
   // Reset form when user changes
   useEffect(() => {
@@ -53,8 +58,36 @@ export function EditUserModal({
         role: user.role,
       })
       setSelectedDepartments(userDepartments.map((d) => d.id))
+      setCurrentAvatarUrl(user.avatar_url || null)
     }
   }, [user, userDepartments])
+
+  const getInitials = () => {
+    if (user?.nickname) {
+      return user.nickname.substring(0, 2).toUpperCase()
+    }
+    if (user?.full_name) {
+      const parts = user.full_name.split(' ')
+      return parts.map((p) => p[0]).join('').substring(0, 2).toUpperCase()
+    }
+    return user?.email?.substring(0, 2).toUpperCase() || '?'
+  }
+
+  const handleAvatarSuccess = (newUrl: string) => {
+    setCurrentAvatarUrl(newUrl)
+  }
+
+  const handleDeleteAvatar = async () => {
+    if (!user) return
+
+    const confirmed = window.confirm('Naozaj chcete odstrániť profilovú fotku?')
+    if (!confirmed) return
+
+    const success = await deleteAvatar(user.id)
+    if (success) {
+      setCurrentAvatarUrl(null)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -106,6 +139,53 @@ export function EditUserModal({
               {error}
             </div>
           )}
+
+          {/* Avatar section */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+              Profilová fotka
+            </label>
+            <div className="flex items-center gap-3">
+              {/* Avatar preview */}
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                {currentAvatarUrl ? (
+                  <img
+                    src={currentAvatarUrl}
+                    alt="Profilová fotka"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-lg font-semibold text-primary">
+                    {getInitials()}
+                  </span>
+                )}
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAvatarModal(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  <Camera className="h-3 w-3" />
+                  Zmeniť
+                </button>
+
+                {currentAvatarUrl && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteAvatar}
+                    disabled={deletingAvatar}
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-[var(--border-primary)] rounded-lg hover:bg-destructive hover:text-white hover:border-destructive transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Odstrániť
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
 
           {/* Email (read-only) */}
           <div>
@@ -211,6 +291,18 @@ export function EditUserModal({
           </div>
         </form>
       </div>
+
+      {/* Avatar Upload Modal */}
+      {user && (
+        <AvatarUploadModal
+          isOpen={showAvatarModal}
+          onClose={() => setShowAvatarModal(false)}
+          userId={user.id}
+          currentAvatarUrl={currentAvatarUrl}
+          userInitials={getInitials()}
+          onSuccess={handleAvatarSuccess}
+        />
+      )}
     </div>
   )
 }
