@@ -155,6 +155,7 @@ export function DeadlinePicker({
 }
 
 // Badge variant for task lists - colorful warnings based on urgency
+// Shows only date with color indicating urgency (no text descriptions)
 export function DeadlineBadge({
   value,
   size = 'sm'
@@ -178,30 +179,18 @@ export function DeadlineBadge({
   const deadlineDate = startOfDay(new Date(value))
   const diffDays = differenceInDays(deadlineDate, today)
 
-  // Determine style and icon based on urgency
+  // Determine color based on urgency (always show date, color indicates urgency)
   let colorClass = ''
-  let Icon = Calendar
-  let text = formatDate(value)
 
   if (diffDays < 0) {
     // OVERDUE - červená
-    colorClass = 'text-error font-medium'
-    Icon = AlertCircle
-    text = `${formatDate(value)} (${Math.abs(diffDays)}d po termíne)`
-  } else if (diffDays === 0) {
-    // DNES - oranžová
-    colorClass = 'text-warning font-medium'
-    Icon = AlertTriangle
-    text = 'Dnes'
-  } else if (diffDays === 1) {
-    // ZAJTRA - oranžová
-    colorClass = 'text-warning'
-    Icon = AlertTriangle
-    text = 'Zajtra'
+    colorClass = 'text-red-500 font-medium'
+  } else if (diffDays <= 1) {
+    // DNES alebo ZAJTRA - oranžová
+    colorClass = 'text-orange-500'
   } else {
-    // BUDÚCI - sivá
+    // BUDÚCI (2+ dni) - sivá
     colorClass = 'text-muted-foreground'
-    Icon = Calendar
   }
 
   const iconSize = size === 'sm' ? 'h-3 w-3' : 'h-2.5 w-2.5'
@@ -212,8 +201,8 @@ export function DeadlineBadge({
       size === 'sm' ? 'text-sm' : 'text-xs',
       colorClass
     )}>
-      <Icon className={iconSize} />
-      <span>{text}</span>
+      <Calendar className={iconSize} />
+      <span>{formatDate(value)}</span>
     </span>
   )
 }
