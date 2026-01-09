@@ -9,7 +9,8 @@ import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { ReactNode } from 'react'
 
 interface HeaderProps {
-  title: string
+  /** @deprecated Title is no longer displayed in header - use page H1 instead */
+  title?: string
   children?: ReactNode
   /** Show view toggle (list/kanban) */
   showViewToggle?: boolean
@@ -22,7 +23,6 @@ interface HeaderProps {
 }
 
 export function Header({
-  title,
   children,
   showViewToggle = false,
   viewMode = 'list',
@@ -31,10 +31,7 @@ export function Header({
 }: HeaderProps) {
   return (
     <header className="flex h-14 items-center gap-4 border-b border-[var(--border)] bg-card px-4 lg:px-6">
-      {/* Title */}
-      <h1 className="font-heading text-xl font-semibold text-foreground">
-        {title}
-      </h1>
+      {/* Title removed - displayed in page H1 instead */}
 
       {/* Spacer */}
       <div className="flex-1" />
