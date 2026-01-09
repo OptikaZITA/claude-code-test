@@ -4,7 +4,7 @@ import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { TaskWithRelations, KanbanColumnConfig } from '@/types'
 import { KanbanCard } from './kanban-card'
-import { TaskQuickAdd } from './task-quick-add'
+import { TaskQuickAdd, TaskQuickAddData } from './task-quick-add'
 import { cn } from '@/lib/utils/cn'
 
 interface KanbanColumnProps {
@@ -73,7 +73,7 @@ export function KanbanColumn({
       {/* Quick Add */}
       <div className="p-2">
         <TaskQuickAdd
-          onAdd={onQuickAdd}
+          onAdd={(taskData: TaskQuickAddData) => onQuickAdd(taskData.title)}
           placeholder="+ Pridať úlohu"
           className="w-full"
         />

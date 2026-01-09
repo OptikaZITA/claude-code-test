@@ -4,7 +4,8 @@ import { useState, useMemo, useRef } from 'react'
 import { CalendarDays, Filter } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
-import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
+import { TaskQuickAdd, TaskQuickAddData } from '@/components/tasks/task-quick-add'
+import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { MiniCalendar } from '@/components/calendar/mini-calendar'
 import { TaskFiltersBar, ColleagueFilterBar, filterTasksByColleague } from '@/components/filters'
@@ -86,28 +87,38 @@ export default function UpcomingPage() {
     }
   }
 
-  const handleQuickAdd = async (title: string) => {
+  const handleQuickAdd = async (taskData: TaskQuickAddData) => {
     try {
-      // If a date is selected, schedule for that date
-      const taskData: any = {
-        title,
+      // If when_date is provided use it, otherwise use selectedDate or tomorrow
+      let whenDate = taskData.when_date
+      if (!whenDate) {
+        if (selectedDate) {
+          whenDate = format(selectedDate, 'yyyy-MM-dd')
+        } else {
+          whenDate = format(addDays(new Date(), 1), 'yyyy-MM-dd') // Default to tomorrow
+        }
+      }
+
+      await createTask({
+        title: taskData.title,
+        notes: taskData.notes,
+        when_type: taskData.when_type || 'scheduled',
+        when_date: whenDate,
+        area_id: taskData.area_id,
+        project_id: taskData.project_id,
+        assignee_id: taskData.assignee_id,
+        deadline: taskData.deadline,
         is_inbox: false,
         inbox_type: 'personal',
-      }
-
-      if (selectedDate) {
-        taskData.when_type = 'scheduled'
-        taskData.when_date = format(selectedDate, 'yyyy-MM-dd')
-      } else {
-        taskData.when_type = 'scheduled'
-        taskData.when_date = format(addDays(new Date(), 1), 'yyyy-MM-dd') // Default to tomorrow
-      }
-
-      await createTask(taskData)
+      })
       refetch()
     } catch (error) {
       console.error('Error creating task:', error)
     }
+  }
+
+  const handleSimpleQuickAdd = async (title: string) => {
+    await handleQuickAdd({ title })
   }
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
@@ -212,7 +223,7 @@ export default function UpcomingPage() {
         {/* Title row with button */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-heading font-semibold text-foreground">Nadchádzajúce</h2>
-          <TaskQuickAdd onAdd={handleQuickAdd} />
+          <TaskQuickAdd onAdd={handleQuickAdd} context={{ defaultWhenType: 'scheduled' }} />
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
@@ -323,7 +334,7 @@ export default function UpcomingPage() {
                         onTaskComplete={handleTaskComplete}
                         onTaskUpdate={handleInlineTaskUpdate}
                         onTaskDelete={handleTaskDelete}
-                        onQuickAdd={handleQuickAdd}
+                        onQuickAdd={handleSimpleQuickAdd}
                         onReorder={handleReorder}
                         showQuickAdd={!!isSelectedDateGroup}
                         emptyMessage=""
@@ -333,6 +344,12 @@ export default function UpcomingPage() {
                 })}
               </div>
             )}
+
+            {/* Mobile FAB + Bottom Sheet */}
+            <TaskQuickAddMobile
+              onAdd={handleQuickAdd}
+              context={{ defaultWhenType: 'scheduled' }}
+            />
           </div>
         </div>
       </div>

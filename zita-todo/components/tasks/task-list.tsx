@@ -19,7 +19,7 @@ import {
 } from '@dnd-kit/sortable'
 import { TaskWithRelations } from '@/types'
 import { TaskItem } from './task-item'
-import { TaskQuickAdd } from './task-quick-add'
+import { TaskQuickAdd, TaskQuickAddData } from './task-quick-add'
 import { SortableTaskItem } from './sortable-task-item'
 import { DraggableTask } from './draggable-task'
 import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
@@ -246,7 +246,7 @@ export function TaskList({
 
   return (
     <div className="space-y-2 pl-6" ref={containerRef}>
-      {showQuickAdd && <TaskQuickAdd onAdd={onQuickAdd} />}
+      {showQuickAdd && <TaskQuickAdd onAdd={(taskData: TaskQuickAddData) => onQuickAdd(taskData.title)} />}
 
       {tasks.length === 0 ? (
         emptyMessage ? (

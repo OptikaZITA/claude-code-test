@@ -4,7 +4,8 @@ import { useState, useMemo } from 'react'
 import { Clock, Filter } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
-import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
+import { TaskQuickAdd, TaskQuickAddData } from '@/components/tasks/task-quick-add'
+import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
@@ -47,11 +48,17 @@ export default function AnytimePage() {
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
 
-  const handleQuickAdd = async (title: string) => {
+  const handleQuickAdd = async (taskData: TaskQuickAddData) => {
     try {
       await createTask({
-        title,
-        when_type: 'anytime',
+        title: taskData.title,
+        notes: taskData.notes,
+        when_type: taskData.when_type || 'anytime',
+        when_date: taskData.when_date,
+        area_id: taskData.area_id,
+        project_id: taskData.project_id,
+        assignee_id: taskData.assignee_id,
+        deadline: taskData.deadline,
         is_inbox: false,
         inbox_type: 'personal',
       })
@@ -59,6 +66,10 @@ export default function AnytimePage() {
     } catch (error) {
       console.error('Error creating task:', error)
     }
+  }
+
+  const handleSimpleQuickAdd = async (title: string) => {
+    await handleQuickAdd({ title })
   }
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
@@ -124,18 +135,7 @@ export default function AnytimePage() {
   }
 
   const handleKanbanQuickAdd = async (title: string, status: TaskStatus) => {
-    try {
-      await createTask({
-        title,
-        status,
-        when_type: 'anytime',
-        is_inbox: false,
-        inbox_type: 'personal',
-      })
-      refetch()
-    } catch (error) {
-      console.error('Error creating task:', error)
-    }
+    await handleQuickAdd({ title })
   }
 
   // Calendar handlers
@@ -221,7 +221,7 @@ export default function AnytimePage() {
           {/* Title row with button */}
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-heading font-semibold text-foreground">Kedykoľvek</h2>
-            <TaskQuickAdd onAdd={handleQuickAdd} />
+            <TaskQuickAdd onAdd={handleQuickAdd} context={{ defaultWhenType: 'anytime' }} />
           </div>
 
           {/* Tag Filter Bar */}
@@ -267,10 +267,16 @@ export default function AnytimePage() {
             onTaskComplete={handleTaskComplete}
             onTaskUpdate={handleInlineTaskUpdate}
             onTaskDelete={handleTaskDelete}
-            onQuickAdd={handleQuickAdd}
+            onQuickAdd={handleSimpleQuickAdd}
             onReorder={handleReorder}
             showQuickAdd={false}
             emptyMessage=""
+          />
+
+          {/* Mobile FAB + Bottom Sheet */}
+          <TaskQuickAddMobile
+            onAdd={handleQuickAdd}
+            context={{ defaultWhenType: 'anytime' }}
           />
         </div>
       )}

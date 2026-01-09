@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { Layers, FolderKanban, Star, Filter, FolderPlus } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
-import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
+import { TaskQuickAdd, TaskQuickAddData } from '@/components/tasks/task-quick-add'
+import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
 import { TaskFiltersBar, ColleagueFilterBar, filterTasksByColleague } from '@/components/filters'
@@ -162,7 +163,27 @@ export default function AreaDetailPage() {
     return task?.tags?.find(tag => tag.id === selectedTag)?.name || null
   }, [selectedTag, tasks])
 
-  const handleQuickAdd = async (title: string, projectId?: string) => {
+  const handleQuickAdd = async (taskData: TaskQuickAddData) => {
+    try {
+      await createTask({
+        title: taskData.title,
+        notes: taskData.notes,
+        area_id: taskData.area_id || areaId,
+        project_id: taskData.project_id,
+        assignee_id: taskData.assignee_id,
+        deadline: taskData.deadline,
+        when_type: taskData.when_type || 'anytime',
+        when_date: taskData.when_date,
+        is_inbox: false,
+      })
+      refetchTasks()
+    } catch (error) {
+      console.error('Error creating task:', error)
+    }
+  }
+
+  // For ProjectSection and TaskList which pass only title (and optionally projectId)
+  const handleSimpleQuickAdd = async (title: string, projectId?: string) => {
     try {
       await createTask({
         title,
@@ -221,18 +242,7 @@ export default function AreaDetailPage() {
   }
 
   const handleKanbanQuickAdd = async (title: string, status: TaskStatus) => {
-    try {
-      await createTask({
-        title,
-        area_id: areaId,
-        status,
-        when_type: 'anytime',
-        is_inbox: false,
-      })
-      refetchTasks()
-    } catch (error) {
-      console.error('Error creating task:', error)
-    }
+    await handleQuickAdd({ title })
   }
 
   // Calendar handlers
@@ -339,7 +349,7 @@ export default function AreaDetailPage() {
                 <FolderPlus className="h-4 w-4" />
                 Pridať projekt
               </button>
-              <TaskQuickAdd onAdd={(title) => handleQuickAdd(title)} />
+              <TaskQuickAdd onAdd={handleQuickAdd} context={{ defaultWhenType: 'anytime', defaultAreaId: areaId }} />
             </div>
           </div>
 
@@ -369,7 +379,7 @@ export default function AreaDetailPage() {
                 onTaskComplete={handleTaskComplete}
                 onTaskUpdate={handleTaskUpdate}
                 onTaskDelete={handleTaskDelete}
-                onQuickAdd={handleQuickAdd}
+                onQuickAdd={handleSimpleQuickAdd}
               />
             )
           })}
@@ -391,7 +401,7 @@ export default function AreaDetailPage() {
                 onTaskComplete={handleTaskComplete}
                 onTaskUpdate={handleTaskUpdate}
                 onTaskDelete={handleTaskDelete}
-                onQuickAdd={(title) => handleQuickAdd(title)}
+                onQuickAdd={(title) => handleSimpleQuickAdd(title)}
                 emptyMessage=""
                 showQuickAdd={true}
                 showTodayStar={true}
@@ -438,12 +448,18 @@ export default function AreaDetailPage() {
                 onTaskComplete={() => {}}
                 onTaskUpdate={() => {}}
                 onTaskDelete={() => {}}
-                onQuickAdd={(title) => handleQuickAdd(title)}
+                onQuickAdd={(title) => handleSimpleQuickAdd(title)}
                 emptyMessage=""
                 showQuickAdd={true}
               />
             </div>
           )}
+
+          {/* Mobile FAB + Bottom Sheet */}
+          <TaskQuickAddMobile
+            onAdd={handleQuickAdd}
+            context={{ defaultWhenType: 'anytime', defaultAreaId: areaId }}
+          />
         </div>
       )}
 

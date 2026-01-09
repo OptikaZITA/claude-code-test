@@ -4,7 +4,8 @@ import { useState, useMemo } from 'react'
 import { Star, AlertCircle, Filter } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
-import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
+import { TaskQuickAdd, TaskQuickAddData } from '@/components/tasks/task-quick-add'
+import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
@@ -80,18 +81,30 @@ export default function TodayPage() {
     }
   }, [overdueTasks, todayTasks])
 
-  const handleQuickAdd = async (title: string) => {
+  const handleQuickAdd = async (taskData: TaskQuickAddData) => {
     try {
       await createTask({
-        title,
-        when_type: 'today',
+        title: taskData.title,
+        notes: taskData.notes,
+        when_type: taskData.when_type || 'today',
+        when_date: taskData.when_date,
+        area_id: taskData.area_id,
+        project_id: taskData.project_id,
+        assignee_id: taskData.assignee_id,
+        deadline: taskData.deadline,
         is_inbox: false,
         inbox_type: 'personal',
       })
+      // TODO: Handle tag_ids - would need to add tags after task creation
       refetch()
     } catch (error) {
       console.error('Error creating task:', error)
     }
+  }
+
+  // Simple handler for backward compatibility with components that only pass title
+  const handleSimpleQuickAdd = async (title: string) => {
+    await handleQuickAdd({ title })
   }
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
@@ -157,18 +170,7 @@ export default function TodayPage() {
   }
 
   const handleKanbanQuickAdd = async (title: string, status: TaskStatus) => {
-    try {
-      await createTask({
-        title,
-        status,
-        when_type: 'today',
-        is_inbox: false,
-        inbox_type: 'personal',
-      })
-      refetch()
-    } catch (error) {
-      console.error('Error creating task:', error)
-    }
+    await handleQuickAdd({ title })
   }
 
   // Calendar handlers
@@ -254,7 +256,7 @@ export default function TodayPage() {
           {/* Title row with button */}
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-heading font-semibold text-foreground">Dnes</h2>
-            <TaskQuickAdd onAdd={handleQuickAdd} />
+            <TaskQuickAdd onAdd={handleQuickAdd} context={{ defaultWhenType: 'today' }} />
           </div>
 
           {/* New Tasks Banner */}
@@ -306,7 +308,7 @@ export default function TodayPage() {
                 onTaskComplete={handleTaskComplete}
                 onTaskUpdate={handleInlineTaskUpdate}
                 onTaskDelete={handleTaskDelete}
-                onQuickAdd={() => {}}
+                onQuickAdd={handleSimpleQuickAdd}
                 onReorder={handleReorder}
                 showQuickAdd={false}
                 emptyMessage=""
@@ -344,11 +346,17 @@ export default function TodayPage() {
             onTaskComplete={handleTaskComplete}
             onTaskUpdate={handleInlineTaskUpdate}
             onTaskDelete={handleTaskDelete}
-            onQuickAdd={handleQuickAdd}
+            onQuickAdd={handleSimpleQuickAdd}
             onReorder={handleReorder}
             showQuickAdd={false}
             emptyMessage={overdueTasks.length > 0 ? '' : ''}
             isTaskNew={(task) => isTaskNew(task.added_to_today_at)}
+          />
+
+          {/* Mobile FAB + Bottom Sheet */}
+          <TaskQuickAddMobile
+            onAdd={handleQuickAdd}
+            context={{ defaultWhenType: 'today' }}
           />
         </div>
       )}

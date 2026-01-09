@@ -5,7 +5,8 @@ import { useParams } from 'next/navigation'
 import { FolderKanban, Filter } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { ProjectTaskList } from '@/components/tasks/project-task-list'
-import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
+import { TaskQuickAdd, TaskQuickAddData } from '@/components/tasks/task-quick-add'
+import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
 import { TaskDetail } from '@/components/tasks/task-detail'
@@ -56,13 +57,34 @@ export default function ProjectPage() {
 
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
 
-  const handleQuickAdd = async (title: string, headingId?: string) => {
+  const handleQuickAdd = async (taskData: TaskQuickAddData) => {
+    try {
+      await createTask({
+        title: taskData.title,
+        notes: taskData.notes,
+        project_id: taskData.project_id || projectId,
+        area_id: taskData.area_id,
+        assignee_id: taskData.assignee_id,
+        deadline: taskData.deadline,
+        when_type: taskData.when_type || 'anytime',
+        when_date: taskData.when_date,
+        status: 'backlog', // Nové úlohy v projekte začínajú v Backlog
+        is_inbox: false,
+      })
+      refetchTasks()
+    } catch (error) {
+      console.error('Error creating task:', error)
+    }
+  }
+
+  // For ProjectTaskList which passes headingId
+  const handleQuickAddWithHeading = async (title: string, headingId?: string) => {
     try {
       await createTask({
         title,
         project_id: projectId,
         heading_id: headingId || null,
-        status: 'backlog', // Nové úlohy v projekte začínajú v Backlog
+        status: 'backlog',
         when_type: 'anytime',
         is_inbox: false,
       })
@@ -123,18 +145,7 @@ export default function ProjectPage() {
   }
 
   const handleKanbanQuickAdd = async (title: string, status: TaskStatus) => {
-    try {
-      await createTask({
-        title,
-        project_id: projectId,
-        status,
-        when_type: 'anytime',
-        is_inbox: false,
-      })
-      refetchTasks()
-    } catch (error) {
-      console.error('Error creating task:', error)
-    }
+    await handleQuickAdd({ title })
   }
 
   // Calendar handlers
@@ -233,7 +244,7 @@ export default function ProjectPage() {
           {/* Title row with button */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-heading font-semibold text-foreground">{project.name}</h2>
-            <TaskQuickAdd onAdd={(title) => handleQuickAdd(title)} />
+            <TaskQuickAdd onAdd={handleQuickAdd} context={{ defaultWhenType: 'anytime', defaultProjectId: projectId }} />
           </div>
 
           {/* Tag Filter Bar */}
@@ -276,12 +287,18 @@ export default function ProjectPage() {
             headings={headings}
             onTaskClick={setSelectedTask}
             onTaskComplete={handleTaskComplete}
-            onQuickAdd={handleQuickAdd}
+            onQuickAdd={handleQuickAddWithHeading}
             onHeadingCreate={handleHeadingCreate}
             onHeadingUpdate={handleHeadingUpdate}
             onHeadingDelete={handleHeadingDelete}
             emptyMessage=""
             showTodayStar={true}
+          />
+
+          {/* Mobile FAB + Bottom Sheet */}
+          <TaskQuickAddMobile
+            onAdd={handleQuickAdd}
+            context={{ defaultWhenType: 'anytime', defaultProjectId: projectId }}
           />
         </div>
       )}

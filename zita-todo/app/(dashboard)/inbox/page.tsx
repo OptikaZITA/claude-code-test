@@ -3,7 +3,8 @@
 import { useState, useMemo } from 'react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
-import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
+import { TaskQuickAdd, TaskQuickAddData } from '@/components/tasks/task-quick-add'
+import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
@@ -49,18 +50,30 @@ export default function InboxPage() {
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
 
-  const handleQuickAdd = async (title: string) => {
+  const handleQuickAdd = async (taskData: TaskQuickAddData) => {
     try {
       const { data: { user } } = await (await import('@/lib/supabase/client')).createClient().auth.getUser()
       await createTask({
-        title,
+        title: taskData.title,
+        notes: taskData.notes,
+        when_type: taskData.when_type || 'inbox',
+        when_date: taskData.when_date,
+        area_id: taskData.area_id,
+        project_id: taskData.project_id,
+        assignee_id: taskData.assignee_id,
+        deadline: taskData.deadline,
         inbox_type: 'personal',
         inbox_user_id: user?.id,
+        is_inbox: true,
       })
       refetch()
     } catch (error) {
       console.error('Error creating task:', error)
     }
+  }
+
+  const handleSimpleQuickAdd = async (title: string) => {
+    await handleQuickAdd({ title })
   }
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
@@ -127,18 +140,7 @@ export default function InboxPage() {
   }
 
   const handleKanbanQuickAdd = async (title: string, status: TaskStatus) => {
-    try {
-      const { data: { user } } = await (await import('@/lib/supabase/client')).createClient().auth.getUser()
-      await createTask({
-        title,
-        status,
-        inbox_type: 'personal',
-        inbox_user_id: user?.id,
-      })
-      refetch()
-    } catch (error) {
-      console.error('Error creating task:', error)
-    }
+    await handleQuickAdd({ title })
   }
 
   // Calendar handlers
@@ -236,7 +238,7 @@ export default function InboxPage() {
           {/* Title row with button */}
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-heading font-semibold text-foreground">Inbox</h2>
-            <TaskQuickAdd onAdd={handleQuickAdd} />
+            <TaskQuickAdd onAdd={handleQuickAdd} context={{ defaultWhenType: 'inbox' }} />
           </div>
 
           {/* Tag Filter Bar */}
@@ -280,10 +282,16 @@ export default function InboxPage() {
             onTaskComplete={handleTaskComplete}
             onTaskUpdate={handleInlineTaskUpdate}
             onTaskDelete={handleTaskDelete}
-            onQuickAdd={handleQuickAdd}
+            onQuickAdd={handleSimpleQuickAdd}
             onReorder={handleReorder}
             showQuickAdd={false}
             emptyMessage=""
+          />
+
+          {/* Mobile FAB + Bottom Sheet */}
+          <TaskQuickAddMobile
+            onAdd={handleQuickAdd}
+            context={{ defaultWhenType: 'inbox' }}
           />
         </div>
       )}

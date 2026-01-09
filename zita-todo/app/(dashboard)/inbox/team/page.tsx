@@ -3,7 +3,8 @@
 import { useState, useMemo } from 'react'
 import { Header } from '@/components/layout/header'
 import { TaskList } from '@/components/tasks/task-list'
-import { TaskQuickAdd } from '@/components/tasks/task-quick-add'
+import { TaskQuickAdd, TaskQuickAddData } from '@/components/tasks/task-quick-add'
+import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { ExportMenu } from '@/components/export/export-menu'
 import { ErrorDisplay } from '@/components/layout/error-display'
 import { TaskFiltersBar, ColleagueFilterBar, filterTasksByColleague } from '@/components/filters'
@@ -44,16 +45,28 @@ export default function TeamInboxPage() {
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
 
-  const handleQuickAdd = async (title: string) => {
+  const handleQuickAdd = async (taskData: TaskQuickAddData) => {
     try {
       await createTask({
-        title,
+        title: taskData.title,
+        notes: taskData.notes,
+        when_type: taskData.when_type || 'inbox',
+        when_date: taskData.when_date,
+        area_id: taskData.area_id,
+        project_id: taskData.project_id,
+        assignee_id: taskData.assignee_id,
+        deadline: taskData.deadline,
         inbox_type: 'team',
+        is_inbox: true,
       })
       refetch()
     } catch (error) {
       console.error('Error creating task:', error)
     }
+  }
+
+  const handleSimpleQuickAdd = async (title: string) => {
+    await handleQuickAdd({ title })
   }
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
@@ -154,7 +167,7 @@ export default function TeamInboxPage() {
         {/* Title row with button */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-heading font-semibold text-foreground">Tímový Inbox</h2>
-          <TaskQuickAdd onAdd={handleQuickAdd} />
+          <TaskQuickAdd onAdd={handleQuickAdd} context={{ defaultWhenType: 'inbox' }} />
         </div>
 
         {/* Tag Filter Bar */}
@@ -198,10 +211,16 @@ export default function TeamInboxPage() {
           onTaskComplete={handleTaskComplete}
           onTaskUpdate={handleTaskUpdate}
           onTaskDelete={handleTaskDelete}
-          onQuickAdd={handleQuickAdd}
+          onQuickAdd={handleSimpleQuickAdd}
           onReorder={handleReorder}
           showQuickAdd={false}
           emptyMessage=""
+        />
+
+        {/* Mobile FAB + Bottom Sheet */}
+        <TaskQuickAddMobile
+          onAdd={handleQuickAdd}
+          context={{ defaultWhenType: 'inbox' }}
         />
       </div>
     </div>

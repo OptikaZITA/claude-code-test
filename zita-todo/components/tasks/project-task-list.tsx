@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { TaskWithRelations, Heading } from '@/types'
 import { TaskItem } from './task-item'
-import { TaskQuickAdd } from './task-quick-add'
+import { TaskQuickAdd, TaskQuickAddData } from './task-quick-add'
 import { HeadingItem, HeadingForm } from '@/components/headings'
 
 interface ProjectTaskListProps {
@@ -68,8 +68,8 @@ export function ProjectTaskList({
     })
   }
 
-  const handleQuickAddToHeading = (title: string, headingId: string) => {
-    onQuickAdd(title, headingId)
+  const handleQuickAddToHeading = (taskData: TaskQuickAddData, headingId: string) => {
+    onQuickAdd(taskData.title, headingId)
     setAddingTaskToHeading(null)
   }
 
@@ -78,7 +78,7 @@ export function ProjectTaskList({
   return (
     <div className="space-y-4">
       {/* Quick add for tasks without heading */}
-      <TaskQuickAdd onAdd={(title) => onQuickAdd(title)} />
+      <TaskQuickAdd onAdd={(taskData: TaskQuickAddData) => onQuickAdd(taskData.title)} />
 
       {/* Tasks without heading */}
       {tasksWithoutHeading.length > 0 && (
@@ -132,7 +132,7 @@ export function ProjectTaskList({
             {addingTaskToHeading === heading.id ? (
               <div className="mt-2">
                 <TaskQuickAdd
-                  onAdd={(title) => handleQuickAddToHeading(title, heading.id)}
+                  onAdd={(taskData: TaskQuickAddData) => handleQuickAddToHeading(taskData, heading.id)}
                   placeholder="Pridať úlohu do sekcie..."
                 />
               </div>
