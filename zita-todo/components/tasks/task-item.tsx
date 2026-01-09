@@ -226,7 +226,7 @@ export function TaskItem({
       {/* Task content (swipeable) */}
       <div
         className={cn(
-          'group flex items-start gap-2 rounded-[var(--radius-lg)] bg-card p-3 cursor-pointer relative',
+          'group flex items-start gap-2 rounded-[var(--radius-lg)] bg-card px-3 py-2 cursor-pointer relative',
           'transition-all duration-200',
           isCompleted && 'opacity-60',
           !isSwiping && 'transition-transform',
