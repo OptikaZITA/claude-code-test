@@ -82,6 +82,15 @@
   --font-heading: var(--font-dm-serif), "DM Serif Display", Georgia, serif;
   --font-body: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
 
+  /* ========== TASK ITEM COMPACT ========== */
+  --task-padding-y: 8px;
+  --task-padding-x: 12px;
+  --task-font-size: 14px;
+  --task-meta-font-size: 12px;
+  --task-gap: 4px;
+  --badge-padding-x: 8px;
+  --badge-padding-y: 4px;
+
   /* ========== RADIUS ========== */
   --radius: 12px;
   --radius-sm: 8px;

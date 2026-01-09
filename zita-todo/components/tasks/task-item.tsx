@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Trash2, Flag, FileText, Repeat } from 'lucide-react'
+import { Trash2, Flag, FileText, Repeat, Tag as TagIcon } from 'lucide-react'
 import { TaskWithRelations, TaskPriority } from '@/types'
 import { isToday, parseISO } from 'date-fns'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -12,8 +12,8 @@ import { InlineTimeTracker } from '@/components/tasks/inline-time-tracker'
 import { TodayStarIndicator, NewTaskIndicator } from '@/components/indicators'
 import { cn } from '@/lib/utils/cn'
 
-const SWIPE_THRESHOLD = 80 // pixels to trigger delete action
-const DELETE_BUTTON_WIDTH = 80 // width of delete button
+const SWIPE_THRESHOLD = 80
+const DELETE_BUTTON_WIDTH = 80
 
 interface TaskItemProps {
   task: TaskWithRelations
@@ -25,16 +25,22 @@ interface TaskItemProps {
   onUpdate?: (updates: Partial<TaskWithRelations>) => void
   onDelete?: () => void
   enableInlineEdit?: boolean
-  /** Zobrazit hviezdicku pre tasky v "Dnes" (pouziva sa na strankach projektov/oddeleni) */
+  /** Show star for tasks in "Today" (used on project/area pages) */
   showTodayStar?: boolean
-  /** Je task "novy" - zobrazit zltu bodku (pouziva sa len na Today stranke) */
+  /** Is task "new" - show yellow dot (used only on Today page) */
   isNew?: boolean
+  /** Current area ID - hide area name if matches */
+  currentAreaId?: string
+  /** Current project ID - hide project name if matches */
+  currentProjectId?: string
+  /** Show avatar only if multiple assignees in list */
+  showAvatar?: boolean
 }
 
 // Priority flag colors: red (high), yellow (low)
 const priorityFlagColors: Record<TaskPriority, string> = {
-  high: 'text-red-500',     // #EF4444 - Červená
-  low: 'text-yellow-500',   // #EAB308 - Žltá
+  high: 'text-red-500',
+  low: 'text-yellow-500',
 }
 
 // Helper to check if task is "today"
@@ -76,6 +82,9 @@ export function TaskItem({
   enableInlineEdit = true,
   showTodayStar = false,
   isNew = false,
+  currentAreaId,
+  currentProjectId,
+  showAvatar = true,
 }: TaskItemProps) {
   const isCompleted = task.status === 'done'
   const isMobile = useIsMobile()
@@ -88,12 +97,20 @@ export function TaskItem({
   const touchStartY = useRef(0)
   const isHorizontalSwipe = useRef<boolean | null>(null)
 
+  // Smart display rules
+  const shouldShowArea = task.area && task.area.id !== currentAreaId
+  const shouldShowProject = task.project && task.project.id !== currentProjectId
+  const shouldShowDeadline = !!task.deadline
+  const shouldShowPriority = task.priority && ['high', 'low'].includes(task.priority)
+  const shouldShowTimeTracker = (task.total_time_seconds ?? 0) > 0
+  const hasTags = task.tags && task.tags.length > 0
+  const hasNotes = !!task.notes
+  const hasChecklist = task.checklist_items && task.checklist_items.length > 0
+
   const handleClick = useCallback(() => {
-    // Don't trigger click if we just finished swiping
     if (swipeOffset !== 0) return
 
     if (enableInlineEdit && isMobile) {
-      // Single click on mobile expands
       onExpand?.()
     } else {
       onClick?.()
@@ -102,7 +119,6 @@ export function TaskItem({
 
   const handleDoubleClick = useCallback(() => {
     if (enableInlineEdit && !isMobile) {
-      // Double click on desktop expands
       onExpand?.()
     }
   }, [enableInlineEdit, isMobile, onExpand])
@@ -123,26 +139,19 @@ export function TaskItem({
     const diffX = touchStartX.current - currentX
     const diffY = Math.abs(touchStartY.current - currentY)
 
-    // Determine if this is a horizontal or vertical swipe
     if (isHorizontalSwipe.current === null) {
       if (Math.abs(diffX) > 10 || diffY > 10) {
         isHorizontalSwipe.current = Math.abs(diffX) > diffY
       }
     }
 
-    // Only handle horizontal swipes
     if (isHorizontalSwipe.current) {
-      // Prevent vertical scroll while swiping horizontally
       e.preventDefault()
-
-      // Only allow left swipe (positive diffX)
       if (diffX > 0) {
-        // Add resistance as user swipes further
         const resistance = diffX > DELETE_BUTTON_WIDTH ? 0.3 : 1
         const offset = Math.min(diffX * resistance, DELETE_BUTTON_WIDTH + 40)
         setSwipeOffset(offset)
       } else {
-        // Swiping right - reset
         setSwipeOffset(0)
       }
     }
@@ -153,10 +162,8 @@ export function TaskItem({
     isHorizontalSwipe.current = null
 
     if (swipeOffset > SWIPE_THRESHOLD) {
-      // Keep delete button visible
       setSwipeOffset(DELETE_BUTTON_WIDTH)
     } else {
-      // Snap back
       setSwipeOffset(0)
     }
   }, [swipeOffset])
@@ -174,7 +181,6 @@ export function TaskItem({
       setSwipeOffset(0)
     }
 
-    // Delay adding listener to avoid immediate trigger
     const timeoutId = setTimeout(() => {
       document.addEventListener('touchstart', handleClickOutside)
       document.addEventListener('mousedown', handleClickOutside)
@@ -200,9 +206,9 @@ export function TaskItem({
     )
   }
 
-  // Collapsed view with swipe-to-delete
+  // Collapsed view with swipe-to-delete - COMPACT DESIGN
   return (
-    <div className="relative overflow-hidden rounded-[var(--radius-lg)]">
+    <div className="relative overflow-hidden rounded-[var(--radius-md)]">
       {/* Delete button (revealed on swipe) */}
       {isMobile && onDelete && (
         <button
@@ -217,17 +223,18 @@ export function TaskItem({
           style={{ width: DELETE_BUTTON_WIDTH }}
         >
           <div className="flex flex-col items-center gap-1">
-            <Trash2 className="h-5 w-5" />
-            <span className="text-xs font-medium">Vymazať</span>
+            <Trash2 className="h-4 w-4" />
+            <span className="text-[10px] font-medium">Vymazať</span>
           </div>
         </button>
       )}
 
-      {/* Task content (swipeable) */}
+      {/* Task content - COMPACT: py-2, single line, truncate */}
       <div
         className={cn(
-          'group flex items-start gap-2 rounded-[var(--radius-lg)] bg-card p-3 cursor-pointer relative',
-          'transition-all duration-200',
+          'group flex items-center gap-2 rounded-[var(--radius-md)] bg-card cursor-pointer relative',
+          'py-[var(--task-padding-y)] px-[var(--task-padding-x)]',
+          'transition-all duration-150',
           isCompleted && 'opacity-60',
           !isSwiping && 'transition-transform',
           !isMobile && 'hover:bg-accent/50'
@@ -241,9 +248,8 @@ export function TaskItem({
         onTouchMove={isMobile && onDelete ? handleTouchMove : undefined}
         onTouchEnd={isMobile && onDelete ? handleTouchEnd : undefined}
       >
-        {/* Checkbox */}
-        <div onClick={(e) => e.stopPropagation()} className="shrink-0 pt-0.5 flex items-center gap-1">
-          {/* Zlta bodka pre novy task */}
+        {/* Left side: Checkbox + indicators */}
+        <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center gap-1">
           <NewTaskIndicator isNew={isNew} className="mr-0.5" />
           <Checkbox
             checked={isCompleted}
@@ -251,75 +257,103 @@ export function TaskItem({
           />
         </div>
 
-        {/* Priority flag - červená (high), žltá (low) - zobrazuje sa LEN pre definované priority */}
-        {task.priority && ['high', 'low'].includes(task.priority) && (
+        {/* Priority flag - only if set */}
+        {shouldShowPriority && (
           <Flag
             className={cn(
-              'h-4 w-4 shrink-0 mt-0.5',
-              priorityFlagColors[task.priority]
+              'h-3.5 w-3.5 shrink-0',
+              priorityFlagColors[task.priority!]
             )}
             fill="currentColor"
           />
         )}
 
-        {/* Today star indicator - hviezdička pre tasky v "Dnes" (len na stránkach projektov/oddelení) */}
+        {/* Today star indicator */}
         {showTodayStar && isTodayTask && (
-          <TodayStarIndicator isInToday={true} size="md" className="mt-0.5" />
+          <TodayStarIndicator isInToday={true} size="sm" />
         )}
 
-        {/* Task content - Things 3 style layout */}
-        <div className="flex-1 min-w-0">
-          {/* Row 1: Title + Notes icon + TAGS */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span
-              className={cn(
-                'text-sm font-medium text-foreground',
-                isCompleted && 'line-through text-muted-foreground'
-              )}
-            >
-              {task.title}
-            </span>
-            {task.notes && (
-              <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            )}
-            {/* Recurrence ikona */}
-            {task.recurrence_rule && (
-              <span title="Opakujúca sa úloha">
-                <Repeat className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-              </span>
-            )}
-            {/* Tags hneď za názvom */}
-            {task.tags?.map(tag => (
-              <span
-                key={tag.id}
-                className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground whitespace-nowrap"
-              >
-                {tag.name}
-              </span>
-            ))}
-          </div>
+        {/* Title - truncate, compact font */}
+        <span
+          className={cn(
+            'flex-1 min-w-0 truncate',
+            'text-[var(--task-font-size)] font-medium text-foreground',
+            isCompleted && 'line-through text-muted-foreground'
+          )}
+        >
+          {task.title}
+        </span>
 
-          {/* Row 2: Area/Department name (gray, smaller) */}
-          {task.area && (
-            <span className="text-xs text-muted-foreground">
-              {task.area.name}
+        {/* Meta icons: notes, checklist, recurrence */}
+        <div className="flex items-center gap-1 shrink-0">
+          {(hasNotes || hasChecklist) && (
+            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+          )}
+          {task.recurrence_rule && (
+            <span title="Opakujúca sa úloha">
+              <Repeat className="h-3 w-3 text-primary" />
             </span>
           )}
         </div>
 
-        {/* Right side: Time tracker, Deadline, Avatar */}
+        {/* Tags - desktop: max 2 + count, mobile: just icon */}
+        {hasTags && (
+          <>
+            {/* Desktop: show tags */}
+            <div className="hidden md:flex items-center gap-1 shrink-0">
+              {task.tags!.slice(0, 2).map(tag => (
+                <span
+                  key={tag.id}
+                  className="text-[var(--task-meta-font-size)] px-[var(--badge-padding-x)] py-[var(--badge-padding-y)] rounded-full border border-border text-muted-foreground whitespace-nowrap"
+                >
+                  {tag.name}
+                </span>
+              ))}
+              {task.tags!.length > 2 && (
+                <span className="text-[var(--task-meta-font-size)] text-muted-foreground">
+                  +{task.tags!.length - 2}
+                </span>
+              )}
+            </div>
+            {/* Mobile: just tag icon */}
+            <TagIcon className="h-3.5 w-3.5 text-muted-foreground md:hidden shrink-0" />
+          </>
+        )}
+
+        {/* Area/Project name - only if not on that page */}
+        {(shouldShowArea || shouldShowProject) && (
+          <span className="hidden sm:inline text-[var(--task-meta-font-size)] text-muted-foreground truncate max-w-[100px] shrink-0">
+            {shouldShowProject ? task.project?.name : task.area?.name}
+          </span>
+        )}
+
+        {/* Right side: Time, Deadline, Avatar */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Inline Time Tracker */}
-          <InlineTimeTracker taskId={task.id} />
+          {/* Time tracker - desktop only, only if has time */}
+          {shouldShowTimeTracker && (
+            <div className="hidden md:block">
+              <InlineTimeTracker taskId={task.id} compact />
+            </div>
+          )}
 
-          {/* Deadline badge */}
-          <DeadlineBadge value={task.deadline} />
+          {/* Play button - desktop only */}
+          {!shouldShowTimeTracker && (
+            <div className="hidden md:block" onClick={(e) => e.stopPropagation()}>
+              <InlineTimeTracker taskId={task.id} compact showPlayOnly />
+            </div>
+          )}
 
-          {task.assignee && (
+          {/* Deadline - only if set */}
+          {shouldShowDeadline && (
+            <DeadlineBadge value={task.deadline} size="xs" />
+          )}
+
+          {/* Avatar - only if showAvatar prop is true */}
+          {showAvatar && task.assignee && (
             <Avatar
               src={task.assignee.avatar_url}
               name={task.assignee.full_name}
-              size="sm"
+              size="xs"
             />
           )}
         </div>

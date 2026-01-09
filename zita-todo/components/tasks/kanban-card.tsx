@@ -3,11 +3,9 @@
 import { useEffect } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Clock, Flag } from 'lucide-react'
+import { Clock, Flag, FileText, Tag as TagIcon } from 'lucide-react'
 import { TaskWithRelations, TaskPriority } from '@/types'
 import { Avatar } from '@/components/ui/avatar'
-import { TagChipList } from '@/components/tags'
-import { WhenBadge } from '@/components/tasks/when-picker'
 import { DeadlineBadge } from '@/components/tasks/deadline-picker'
 import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
 import { cn } from '@/lib/utils/cn'
@@ -17,15 +15,17 @@ interface KanbanCardProps {
   task: TaskWithRelations
   onClick: () => void
   isDragging?: boolean
+  /** Show avatar only if multiple assignees */
+  showAvatar?: boolean
 }
 
 // Priority flag colors: red (high), yellow (low)
 const priorityFlagColors: Record<TaskPriority, string> = {
-  high: 'text-red-500',     // #EF4444 - Červená
-  low: 'text-yellow-500',   // #EAB308 - Žltá
+  high: 'text-red-500',
+  low: 'text-yellow-500',
 }
 
-export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
+export function KanbanCard({ task, onClick, isDragging, showAvatar = true }: KanbanCardProps) {
   const { setDraggedTask } = useSidebarDrop()
 
   const {
@@ -38,7 +38,6 @@ export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
   } = useSortable({ id: task.id })
 
   // Notify sidebar context when dragging starts/ends
-  // This enables drag to sidebar drop targets (Trash, Areas, Projects, etc.)
   useEffect(() => {
     if (isSortableDragging) {
       setDraggedTask(task)
@@ -54,6 +53,13 @@ export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
 
   const isCompleted = task.status === 'done'
 
+  // Smart display rules
+  const shouldShowPriority = task.priority && ['high', 'low'].includes(task.priority)
+  const shouldShowDeadline = !!task.deadline
+  const shouldShowTime = (task.total_time_seconds ?? 0) > 0
+  const hasTags = task.tags && task.tags.length > 0
+  const hasNotes = !!task.notes
+
   return (
     <div
       ref={setNodeRef}
@@ -62,61 +68,72 @@ export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
       {...listeners}
       onClick={onClick}
       className={cn(
-        'cursor-pointer rounded-[var(--radius-md)] bg-card p-3 shadow-sm transition-all hover:shadow-md border border-[var(--border)]',
+        'cursor-pointer rounded-[var(--radius-md)] bg-card shadow-sm transition-all hover:shadow-md border border-[var(--border)]',
+        'py-[var(--task-padding-y)] px-[var(--task-padding-x)]',
         (isDragging || isSortableDragging) && 'opacity-50 shadow-lg rotate-2 scale-105',
         isCompleted && 'opacity-60'
       )}
     >
-      {/* Priority flag + tags - zobrazuje sa LEN pre definované priority */}
-      <div className="mb-2 flex items-center gap-2">
-        {task.priority && ['high', 'low'].includes(task.priority) && (
+      {/* Row 1: Priority + Title + Notes icon */}
+      <div className="flex items-center gap-1.5 mb-1">
+        {shouldShowPriority && (
           <Flag
-            className={cn('h-4 w-4 shrink-0', priorityFlagColors[task.priority])}
+            className={cn('h-3 w-3 shrink-0', priorityFlagColors[task.priority!])}
             fill="currentColor"
           />
         )}
-        {task.tags && task.tags.length > 0 && (
-          <TagChipList tags={task.tags.slice(0, 2)} size="sm" />
-        )}
-        {task.tags && task.tags.length > 2 && (
-          <span className="text-xs text-muted-foreground">
-            +{task.tags.length - 2}
-          </span>
+        <p
+          className={cn(
+            'flex-1 min-w-0 truncate text-[var(--task-font-size)] font-medium text-foreground',
+            isCompleted && 'line-through text-muted-foreground'
+          )}
+        >
+          {task.title}
+        </p>
+        {hasNotes && (
+          <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
         )}
       </div>
 
-      {/* Title */}
-      <p
-        className={cn(
-          'mb-2 text-sm font-medium text-foreground',
-          isCompleted && 'line-through text-muted-foreground'
-        )}
-      >
-        {task.title}
-      </p>
+      {/* Row 2: Tags (max 2) */}
+      {hasTags && (
+        <div className="flex items-center gap-1 mb-1">
+          {task.tags!.slice(0, 2).map(tag => (
+            <span
+              key={tag.id}
+              className="text-[10px] px-1.5 py-0.5 rounded-full border border-border text-muted-foreground whitespace-nowrap"
+            >
+              {tag.name}
+            </span>
+          ))}
+          {task.tags!.length > 2 && (
+            <span className="text-[10px] text-muted-foreground">
+              +{task.tags!.length - 2}
+            </span>
+          )}
+        </div>
+      )}
 
-      {/* Meta info */}
+      {/* Row 3: Meta info - deadline, time, avatar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {/* When badge (Things 3 style) */}
-          <WhenBadge value={task.when_type} whenDate={task.when_date} size="xs" />
+          {shouldShowDeadline && (
+            <DeadlineBadge value={task.deadline} size="xs" />
+          )}
 
-          {/* Deadline badge */}
-          <DeadlineBadge value={task.deadline} size="xs" />
-
-          {task.total_time_seconds && task.total_time_seconds > 0 && (
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              {formatDurationShort(task.total_time_seconds)}
+          {shouldShowTime && (
+            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+              <Clock className="h-2.5 w-2.5" />
+              {formatDurationShort(task.total_time_seconds!)}
             </span>
           )}
         </div>
 
-        {task.assignee && (
+        {showAvatar && task.assignee && (
           <Avatar
             src={task.assignee.avatar_url}
             name={task.assignee.full_name}
-            size="sm"
+            size="xs"
           />
         )}
       </div>

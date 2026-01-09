@@ -9,6 +9,10 @@ import { cn } from '@/lib/utils/cn'
 interface InlineTimeTrackerProps {
   taskId: string
   className?: string
+  /** Compact mode - smaller button, tighter spacing */
+  compact?: boolean
+  /** Show only play button (no time display when 0) */
+  showPlayOnly?: boolean
 }
 
 function formatTime(seconds: number): string {
@@ -33,7 +37,7 @@ function formatRunningTime(seconds: number): string {
   return `${minutes}:${secs.toString().padStart(2, '0')}`
 }
 
-export function InlineTimeTracker({ taskId, className }: InlineTimeTrackerProps) {
+export function InlineTimeTracker({ taskId, className, compact = false, showPlayOnly = false }: InlineTimeTrackerProps) {
   const {
     isRunning,
     currentTaskId,
@@ -72,10 +76,14 @@ export function InlineTimeTracker({ taskId, className }: InlineTimeTrackerProps)
 
   const loading = actionLoading || timerLoading
 
+  // showPlayOnly mode: only show play button, no time
+  const shouldShowTime = !showPlayOnly && hasTime
+
   return (
     <div
       className={cn(
-        'flex items-center gap-1.5',
+        'flex items-center',
+        compact ? 'gap-1' : 'gap-1.5',
         isThisTaskRunning && 'animate-pulse',
         className
       )}
@@ -86,29 +94,31 @@ export function InlineTimeTracker({ taskId, className }: InlineTimeTrackerProps)
         onClick={handleClick}
         disabled={loading}
         className={cn(
-          'p-1.5 rounded-md transition-colors touch-manipulation',
+          'rounded-md transition-colors touch-manipulation',
+          compact ? 'p-1' : 'p-1.5',
           isThisTaskRunning
             ? 'bg-[var(--color-success)]/10 text-[var(--color-success)] hover:bg-[var(--color-success)]/20'
-            : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]',
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
           loading && 'opacity-50 cursor-not-allowed'
         )}
-        title={isThisTaskRunning ? 'Zastavit casovac' : 'Spustit casovac'}
+        title={isThisTaskRunning ? 'Zastaviť časovač' : 'Spustiť časovač'}
       >
         {isThisTaskRunning ? (
-          <Pause className="h-3.5 w-3.5" />
+          <Pause className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
         ) : (
-          <Play className="h-3.5 w-3.5" />
+          <Play className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
         )}
       </button>
 
       {/* Time display */}
-      {hasTime && (
+      {shouldShowTime && (
         <span
           className={cn(
-            'text-xs font-mono tabular-nums',
+            'font-mono tabular-nums',
+            compact ? 'text-[10px]' : 'text-xs',
             isThisTaskRunning
               ? 'text-[var(--color-success)] font-medium'
-              : 'text-[var(--text-secondary)]'
+              : 'text-muted-foreground'
           )}
         >
           {isThisTaskRunning ? formatRunningTime(displaySeconds) : formatTime(displaySeconds)}
