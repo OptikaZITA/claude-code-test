@@ -5,8 +5,8 @@
 ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zobrazením, sledovaním času a Toggl-style time trackingom. Určená pre ~20 členný tím s podporou osobnej aj tímovej produktivity.
 
 **Dátum vytvorenia**: 2. januára 2026
-**Posledná aktualizácia**: 8. januára 2026
-**Verzia špecifikácie**: 2.29 (Settings Reorganization)
+**Posledná aktualizácia**: 10. januára 2026
+**Verzia špecifikácie**: 2.32 (New Task Form)
 
 ---
 
@@ -1183,6 +1183,70 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.32 (10. januára 2026)
+**New Task Form - Things 3 Style:**
+
+Nový formulár pre pridávanie úloh v štýle Things 3.
+
+**Hlavné zmeny:**
+- ✅ Nový `TaskQuickAddNew` komponent s Things 3 štýlom
+- ✅ Kompaktný input s inline dropdown selektormi
+- ✅ Dropdown pre: When, Deadline, Project, Area, Assignee, Tags
+- ✅ Enter pre odoslanie, Escape pre zrušenie
+- ✅ Mobilná verzia `TaskQuickAddMobileNew` s bottom sheet
+- ✅ Zmenšený vertikálny padding task itemov (p-3 → px-3 py-2)
+
+**Nové súbory:**
+- `components/tasks/task-quick-add-new.tsx` - Desktop formulár
+- `components/tasks/task-quick-add-mobile-new.tsx` - Mobilný formulár
+
+**Upravené súbory:**
+- `components/tasks/task-item.tsx` - Zmenšený padding
+- `components/tasks/sortable-task-item.tsx` - Zmenšený padding
+
+---
+
+### v2.31 (10. januára 2026)
+**Remove Page Title Duplication:**
+
+Odstránenie duplikovaného názvu stránky z headera.
+
+**Problém:**
+- Názov stránky sa zobrazoval dvakrát - v Header komponente aj v obsahu stránky
+- Napríklad "Dnes" sa zobrazovalo v headeri aj pod ním
+
+**Riešenie:**
+- Odstránený `title` prop z Header komponentu na všetkých stránkach
+- Header teraz zobrazuje len akcie (filtre, view toggle, atď.)
+- Názov stránky zostáva len v `<h2>` v obsahu
+
+**Upravené súbory:**
+- Všetky dashboard stránky - odstránený title z Header
+
+---
+
+### v2.30 (10. januára 2026)
+**Simplify Deadline Display:**
+
+Zjednodušenie zobrazenia deadline v task itemoch.
+
+**Problém:**
+- Deadline badge bol príliš veľký a rušivý
+- Obsahoval ikonu a text "deadline" čo zaberalo veľa miesta
+
+**Riešenie:**
+- Zobrazuje sa len dátum (napr. "15.1.")
+- Farebné kódovanie podľa naliehavosti:
+  - Sivá: budúci termín (> 1 deň)
+  - Oranžová: zajtra alebo dnes
+  - Červená: po termíne
+- Odstránená ikona a slovo "deadline"
+
+**Upravené súbory:**
+- `components/tasks/deadline-picker.tsx` - DeadlineBadge zjednodušený
+
+---
 
 ### v2.29 (8. januára 2026)
 **Settings Reorganization:**
@@ -2663,5 +2727,5 @@ if (newStatus === 'done') {
 
 ---
 
-**Verzia:** 2.26 (Area Detail Page Hooks Fix)
-**Posledná aktualizácia:** 7. januára 2026
+**Verzia:** 2.32 (New Task Form)
+**Posledná aktualizácia:** 10. januára 2026
