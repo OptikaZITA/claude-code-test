@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useParams } from 'next/navigation'
-import { FolderKanban, Filter } from 'lucide-react'
+import { FolderKanban, Filter, Plus } from 'lucide-react'
 import { Header } from '@/components/layout/header'
+import { Button } from '@/components/ui/button'
 import { ProjectTaskList } from '@/components/tasks/project-task-list'
-import { TaskQuickAdd, TaskQuickAddData } from '@/components/tasks/task-quick-add'
+import { TaskQuickAdd, TaskQuickAddData, TaskQuickAddHandle } from '@/components/tasks/task-quick-add'
 import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
@@ -33,6 +34,7 @@ export default function ProjectPage() {
   const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
   const [selectedColleague, setSelectedColleague] = useState<string | null>(null)
+  const inlineFormRef = useRef<TaskQuickAddHandle>(null)
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -244,7 +246,13 @@ export default function ProjectPage() {
           {/* Title row with button */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-heading font-semibold text-foreground">{project.name}</h2>
-            <TaskQuickAdd onAdd={handleQuickAdd} context={{ defaultWhenType: 'anytime', defaultProjectId: projectId }} />
+            <Button
+              onClick={() => inlineFormRef.current?.activate()}
+              className="bg-primary text-white hover:bg-primary/90 hidden lg:flex"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Pridať úlohu
+            </Button>
           </div>
 
           {/* Tag Filter Bar */}
@@ -259,6 +267,14 @@ export default function ProjectPage() {
             tasks={tagFilteredTasks}
             selectedColleague={selectedColleague}
             onSelectColleague={setSelectedColleague}
+          />
+
+          {/* Inline Task Quick Add Form */}
+          <TaskQuickAdd
+            ref={inlineFormRef}
+            variant="inline"
+            onAdd={handleQuickAdd}
+            context={{ defaultWhenType: 'anytime', defaultProjectId: projectId }}
           />
 
           {colleagueFilteredTasks.length === 0 && tasks.length === 0 && headings.length === 0 ? (

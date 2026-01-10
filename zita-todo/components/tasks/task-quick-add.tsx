@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { Plus, Star, Tag as TagIcon, FolderOpen, User as UserIcon, Flag, X } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react'
+import { Plus, Star, Tag as TagIcon, FolderOpen, User as UserIcon, Flag, X, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { WhenType, Area, Project, User, Tag } from '@/types'
 import { createClient } from '@/lib/supabase/client'
@@ -33,12 +33,20 @@ export interface TaskQuickAddData {
   tag_ids?: string[]
 }
 
+export interface TaskQuickAddHandle {
+  activate: () => void
+  deactivate: () => void
+  isActive: boolean
+}
+
 interface TaskQuickAddProps {
   /** Handler for new task */
   onAdd: (task: TaskQuickAddData) => void
   placeholder?: string
   className?: string
   context?: TaskQuickAddContext
+  /** Variant: 'button' shows just a button, 'inline' shows the form */
+  variant?: 'button' | 'inline'
 }
 
 // When options
@@ -48,12 +56,13 @@ const whenOptions: { value: WhenType; label: string; color: string }[] = [
   { value: 'someday', label: 'Niekedy', color: 'text-muted-foreground' },
 ]
 
-export function TaskQuickAdd({
+export const TaskQuickAdd = forwardRef<TaskQuickAddHandle, TaskQuickAddProps>(function TaskQuickAdd({
   onAdd,
   placeholder = 'Nová úloha...',
   className,
   context,
-}: TaskQuickAddProps) {
+  variant = 'button',
+}, ref) {
   const [isActive, setIsActive] = useState(false)
   const [title, setTitle] = useState('')
   const [notes, setNotes] = useState('')
@@ -83,6 +92,13 @@ export function TaskQuickAdd({
   const inputRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
+
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    activate: () => setIsActive(true),
+    deactivate: () => handleCancel(),
+    isActive,
+  }))
 
   // Fetch data when active
   useEffect(() => {
@@ -141,9 +157,9 @@ export function TaskQuickAdd({
     return () => window.removeEventListener('keyboard:newTask', handleKeyboardNewTask)
   }, [])
 
-  // Click outside handler
+  // Click outside handler - only for inline variant
   useEffect(() => {
-    if (!isActive) return
+    if (!isActive || variant !== 'inline') return
 
     const handleClickOutside = (e: MouseEvent) => {
       if (formRef.current && !formRef.current.contains(e.target as Node)) {
@@ -157,7 +173,7 @@ export function TaskQuickAdd({
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isActive, title])
+  }, [isActive, title, variant])
 
   const handleSubmit = useCallback(() => {
     if (!title.trim()) return
@@ -232,8 +248,8 @@ export function TaskQuickAdd({
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
   const weekDays = ['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne']
 
-  // Inactive state - show button
-  if (!isActive) {
+  // Button variant - just render a button
+  if (variant === 'button') {
     return (
       <Button
         onClick={() => setIsActive(true)}
@@ -248,12 +264,17 @@ export function TaskQuickAdd({
     )
   }
 
-  // Active state - show expanded form
+  // Inline variant - render nothing when inactive
+  if (!isActive) {
+    return null
+  }
+
+  // Inline variant - active form
   return (
     <div
       ref={formRef}
       className={cn(
-        'bg-card rounded-xl border border-border shadow-lg overflow-hidden',
+        'bg-card rounded-xl border border-border shadow-sm mb-4',
         className
       )}
     >
@@ -279,6 +300,7 @@ export function TaskQuickAdd({
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Poznámky..."
             rows={2}
             className="w-full bg-transparent text-muted-foreground text-sm placeholder:text-muted-foreground outline-none resize-none"
@@ -573,12 +595,12 @@ export function TaskQuickAdd({
                 : 'text-muted-foreground hover:bg-accent'
             )}
           >
-            <Flag className="w-4 h-4" />
+            <Calendar className="w-4 h-4" />
             <span>{deadline ? format(new Date(deadline), 'd. MMM', { locale: sk }) : 'Deadline'}</span>
           </button>
 
           {showDeadlinePicker && (
-            <div className="absolute top-full right-0 mt-2 w-64 rounded-xl border border-border bg-card shadow-xl z-50">
+            <div className="absolute top-full left-0 mt-2 w-64 rounded-xl border border-border bg-card shadow-xl z-50">
               <div className="p-3">
                 <div className="flex items-center justify-between mb-3">
                   <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 hover:bg-accent rounded">‹</button>
@@ -664,4 +686,4 @@ export function TaskQuickAdd({
       )}
     </div>
   )
-}
+})

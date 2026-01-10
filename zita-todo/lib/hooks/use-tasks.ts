@@ -93,6 +93,18 @@ export function useTasks() {
 
     const whenType = task.when_type || 'inbox'
 
+    // Get the minimum sort_order to place new task FIRST in the list
+    const { data: minOrderData } = await supabase
+      .from('tasks')
+      .select('sort_order')
+      .is('deleted_at', null)
+      .order('sort_order', { ascending: true })
+      .limit(1)
+      .single()
+
+    const minSortOrder = minOrderData?.sort_order ?? 0
+    const newSortOrder = minSortOrder - 1
+
     const { data, error } = await supabase
       .from('tasks')
       .insert({
@@ -103,6 +115,8 @@ export function useTasks() {
         is_inbox: task.is_inbox !== undefined ? task.is_inbox : (!task.project_id && !task.area_id),
         // Auto-set added_to_today_at when creating task in 'today'
         added_to_today_at: whenType === 'today' ? new Date().toISOString() : null,
+        // Place new task FIRST in the list
+        sort_order: newSortOrder,
       })
       .select()
       .single()

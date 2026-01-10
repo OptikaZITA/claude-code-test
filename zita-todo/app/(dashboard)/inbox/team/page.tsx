@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
+import { Plus } from 'lucide-react'
 import { Header } from '@/components/layout/header'
+import { Button } from '@/components/ui/button'
 import { TaskList } from '@/components/tasks/task-list'
-import { TaskQuickAdd, TaskQuickAddData } from '@/components/tasks/task-quick-add'
+import { TaskQuickAdd, TaskQuickAddData, TaskQuickAddHandle } from '@/components/tasks/task-quick-add'
 import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { ExportMenu } from '@/components/export/export-menu'
 import { ErrorDisplay } from '@/components/layout/error-display'
@@ -23,6 +25,7 @@ export default function TeamInboxPage() {
   const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
   const [selectedColleague, setSelectedColleague] = useState<string | null>(null)
+  const inlineFormRef = useRef<TaskQuickAddHandle>(null)
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -167,7 +170,13 @@ export default function TeamInboxPage() {
         {/* Title row with button */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-heading font-semibold text-foreground">Tímový Inbox</h2>
-          <TaskQuickAdd onAdd={handleQuickAdd} context={{ defaultWhenType: 'inbox' }} />
+          <Button
+            onClick={() => inlineFormRef.current?.activate()}
+            className="bg-primary text-white hover:bg-primary/90 hidden lg:flex"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Pridať úlohu
+          </Button>
         </div>
 
         {/* Tag Filter Bar */}
@@ -182,6 +191,14 @@ export default function TeamInboxPage() {
           tasks={tagFilteredTasks}
           selectedColleague={selectedColleague}
           onSelectColleague={setSelectedColleague}
+        />
+
+        {/* Inline Task Quick Add Form */}
+        <TaskQuickAdd
+          ref={inlineFormRef}
+          variant="inline"
+          onAdd={handleQuickAdd}
+          context={{ defaultWhenType: 'inbox' }}
         />
 
         {colleagueFilteredTasks.length === 0 && tasks.length === 0 ? (

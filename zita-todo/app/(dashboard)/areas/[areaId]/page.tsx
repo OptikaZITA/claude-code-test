@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Layers, FolderKanban, Star, Filter, FolderPlus } from 'lucide-react'
+import { Layers, FolderKanban, Star, Filter, FolderPlus, Plus } from 'lucide-react'
 import { Header } from '@/components/layout/header'
+import { Button } from '@/components/ui/button'
 import { TaskList } from '@/components/tasks/task-list'
-import { TaskQuickAdd, TaskQuickAddData } from '@/components/tasks/task-quick-add'
+import { TaskQuickAdd, TaskQuickAddData, TaskQuickAddHandle } from '@/components/tasks/task-quick-add'
 import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
@@ -96,6 +97,7 @@ export default function AreaDetailPage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
   const [selectedColleague, setSelectedColleague] = useState<string | null>(null)
   const [showProjectModal, setShowProjectModal] = useState(false)
+  const inlineFormRef = useRef<TaskQuickAddHandle>(null)
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -349,7 +351,13 @@ export default function AreaDetailPage() {
                 <FolderPlus className="h-4 w-4" />
                 Pridať projekt
               </button>
-              <TaskQuickAdd onAdd={handleQuickAdd} context={{ defaultWhenType: 'anytime', defaultAreaId: areaId }} />
+              <Button
+                onClick={() => inlineFormRef.current?.activate()}
+                className="bg-primary text-white hover:bg-primary/90 hidden lg:flex"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Pridať úlohu
+              </Button>
             </div>
           </div>
 
@@ -365,6 +373,14 @@ export default function AreaDetailPage() {
             tasks={tagFilteredTasks}
             selectedColleague={selectedColleague}
             onSelectColleague={setSelectedColleague}
+          />
+
+          {/* Inline Task Quick Add Form */}
+          <TaskQuickAdd
+            ref={inlineFormRef}
+            variant="inline"
+            onAdd={handleQuickAdd}
+            context={{ defaultWhenType: 'anytime', defaultAreaId: areaId }}
           />
 
           {/* Projects with their tasks */}

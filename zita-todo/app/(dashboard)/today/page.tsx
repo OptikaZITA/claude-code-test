@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Star, AlertCircle, Filter } from 'lucide-react'
+import { useState, useMemo, useRef } from 'react'
+import { Star, AlertCircle, Filter, Plus } from 'lucide-react'
 import { Header } from '@/components/layout/header'
+import { Button } from '@/components/ui/button'
 import { TaskList } from '@/components/tasks/task-list'
-import { TaskQuickAdd, TaskQuickAddData } from '@/components/tasks/task-quick-add'
+import { TaskQuickAdd, TaskQuickAddData, TaskQuickAddHandle } from '@/components/tasks/task-quick-add'
 import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
@@ -30,6 +31,7 @@ export default function TodayPage() {
   const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
   const [selectedColleague, setSelectedColleague] = useState<string | null>(null)
+  const inlineFormRef = useRef<TaskQuickAddHandle>(null)
 
   // New tasks tracking (zlta bodka + banner)
   const { newTasksCount, acknowledge, acknowledging, isTaskNew, refetch: refetchNewTasks } = useNewTasks()
@@ -256,7 +258,13 @@ export default function TodayPage() {
           {/* Title row with button */}
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-heading font-semibold text-foreground">Dnes</h2>
-            <TaskQuickAdd onAdd={handleQuickAdd} context={{ defaultWhenType: 'today' }} />
+            <Button
+              onClick={() => inlineFormRef.current?.activate()}
+              className="bg-primary text-white hover:bg-primary/90 hidden lg:flex"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Pridať úlohu
+            </Button>
           </div>
 
           {/* New Tasks Banner */}
@@ -291,6 +299,14 @@ export default function TodayPage() {
             tasks={tagFilteredTasks}
             selectedColleague={selectedColleague}
             onSelectColleague={setSelectedColleague}
+          />
+
+          {/* Inline Task Quick Add Form */}
+          <TaskQuickAdd
+            ref={inlineFormRef}
+            variant="inline"
+            onAdd={handleQuickAdd}
+            context={{ defaultWhenType: 'today' }}
           />
 
           {/* Overdue section */}
