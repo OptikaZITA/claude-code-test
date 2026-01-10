@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 10. januára 2026
-**Verzia špecifikácie**: 2.32 (New Task Form)
+**Verzia špecifikácie**: 2.33 (Inline Form Position + Task Order)
 
 ---
 
@@ -1183,6 +1183,45 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.33 (10. januára 2026)
+**Inline Form Position + Task Order:**
+
+Oprava pozície formulára pre pridávanie úloh a poradie nových úloh.
+
+**Problém:**
+- Formulár sa zobrazoval NAD filtrami namiesto POD nimi
+- Nové úlohy sa neukladali na začiatok zoznamu
+
+**Riešenie:**
+
+**1. Pozícia formulára:**
+- Formulár sa teraz zobrazuje PO filtroch (TagFilterBar, ColleagueFilterBar)
+- Poradie: Title → Stats → TagFilter → ColleagueFilter → **FORM** → Tasks
+- Aktualizované na všetkých 7 stránkach: today, inbox, inbox/team, anytime, upcoming, projects/[id], areas/[id]
+
+**2. Poradie nových úloh:**
+- `createTask` v `use-tasks.ts` teraz nastavuje `sort_order` na minimum - 1
+- Nové úlohy sa zobrazujú ako PRVÉ v zozname
+
+**3. TaskQuickAdd vylepšenia:**
+- Podpora `forwardRef` s `useImperativeHandle`
+- Nový `variant` prop: 'button' | 'inline'
+- Export `TaskQuickAddHandle` interface pre typovanie ref
+- Tlačidlo v headeri aktivuje inline formulár cez ref
+
+**Upravené súbory:**
+- `app/(dashboard)/today/page.tsx`
+- `app/(dashboard)/inbox/page.tsx`
+- `app/(dashboard)/inbox/team/page.tsx`
+- `app/(dashboard)/anytime/page.tsx`
+- `app/(dashboard)/upcoming/page.tsx`
+- `app/(dashboard)/projects/[projectId]/page.tsx`
+- `app/(dashboard)/areas/[areaId]/page.tsx`
+- `components/tasks/task-quick-add.tsx`
+- `lib/hooks/use-tasks.ts`
+
+---
 
 ### v2.32 (10. januára 2026)
 **New Task Form - Things 3 Style:**
