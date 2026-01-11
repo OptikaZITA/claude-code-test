@@ -1,5 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { format, parseISO } from 'date-fns'
+import { sk } from 'date-fns/locale'
+
+// Helper function to check for overlapping time entries
+async function checkOverlap(
+  supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+  userId: string,
+  startedAt: string,
+  endedAt: string
+): Promise<{ hasOverlap: boolean; overlappingEntry?: { id: string; started_at: string; ended_at: string } }> {
+  const { data, error } = await supabase
+    .from('time_entries')
+    .select('id, started_at, ended_at')
+    .eq('user_id', userId)
+    .is('deleted_at', null)
+    .lt('started_at', endedAt)  // existing start < new end
+    .gt('ended_at', startedAt)  // existing end > new start
+    .limit(1)
+
+  if (error || !data || data.length === 0) {
+    return { hasOverlap: false }
+  }
+
+  return { hasOverlap: true, overlappingEntry: data[0] }
+}
 
 // POST /api/time-entries - Create manual time entry
 export async function POST(request: NextRequest) {
@@ -39,6 +64,23 @@ export async function POST(request: NextRequest) {
 
     // Calculate duration
     const duration_seconds = Math.floor((stop.getTime() - start.getTime()) / 1000)
+
+    // Check for overlapping entries
+    const { hasOverlap, overlappingEntry } = await checkOverlap(
+      supabase,
+      user.id,
+      started_at,
+      stopped_at
+    )
+
+    if (hasOverlap && overlappingEntry) {
+      const overlapStart = format(parseISO(overlappingEntry.started_at), 'HH:mm', { locale: sk })
+      const overlapEnd = format(parseISO(overlappingEntry.ended_at), 'HH:mm', { locale: sk })
+      return NextResponse.json(
+        { error: `Časový záznam sa prekrýva s iným záznamom (${overlapStart} – ${overlapEnd})` },
+        { status: 400 }
+      )
+    }
 
     // Get task details for denormalization
     const { data: task, error: taskError } = await supabase
