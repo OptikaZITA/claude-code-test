@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 11. januára 2026
-**Verzia špecifikácie**: 2.34 (Cascading Filters + Nickname Everywhere)
+**Verzia špecifikácie**: 2.35 (Time Entry Editing)
 
 ---
 
@@ -1183,6 +1183,74 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.35 (11. januára 2026)
+**Time Entry Editing:**
+
+Kompletná implementácia editácie, mazania a manuálneho pridávania časových záznamov (time entries).
+
+**Databázové zmeny:**
+- ✅ Migrácia: `deleted_at` stĺpec pre soft delete
+- ✅ Migrácia: `description` stĺpec pre poznámky
+- ✅ Index pre rýchle query na non-deleted záznamy
+
+**API Endpoints:**
+- ✅ `PUT /api/time-entries/[id]` - Editácia existujúceho záznamu
+- ✅ `POST /api/time-entries` - Manuálne pridanie nového záznamu
+- ✅ `DELETE /api/time-entries/[id]` - Soft delete záznamu
+- ✅ `GET /api/time-entries/[id]` - Získanie jedného záznamu
+- ✅ RLS: User môže editovať/mazať len svoje záznamy (admin všetky)
+
+**Nové komponenty:**
+- ✅ `components/time-tracking/edit-time-entry-modal.tsx` - Modal pre editáciu aj manuálne pridanie
+  - Dropdown pre výber úlohy (môže presunúť na inú)
+  - Popis (voliteľný)
+  - Time + Date picker pre začiatok a koniec
+  - Auto-computed trvanie
+  - Validácia: koniec > začiatok
+- ✅ `components/time-tracking/delete-time-entry-dialog.tsx` - Potvrdenie vymazania
+
+**Nové hooks:**
+- ✅ `lib/hooks/use-time-entries.ts`
+  - `useUpdateTimeEntry()` - Aktualizácia záznamu
+  - `useDeleteTimeEntry()` - Soft delete záznamu
+  - `useCreateTimeEntry()` - Manuálne vytvorenie záznamu
+  - `useTimeEntry(id)` - Získanie jedného záznamu
+
+**Aktualizované komponenty:**
+- ✅ `time-entries-list.tsx` - Tlačidlá [✏️][🗑️] pri každom zázname
+  - Zoskupenie záznamov podľa dátumu (Dnes, Včera, atď.)
+  - Tlačidlo [+ Pridať čas manuálne]
+  - Hover efekt pre akčné tlačidlá
+- ✅ `time-dashboard-table.tsx` - Stĺpec "Akcie" v Detailed view
+  - [✏️][🗑️] len pri vlastných entries (admin pri všetkých)
+  - [👁️] ikona pre cudzie záznamy
+
+**Realtime sync:**
+- ✅ Custom events: `time-entry:updated`, `time-entry:deleted`, `time-entry:created`
+- ✅ Komponenty počúvajú na tieto eventy a refreshnú dáta
+
+**Pravidlá prístupu:**
+| Rola | Editácia | Mazanie |
+|------|----------|---------|
+| Vlastník | ✅ | ✅ |
+| Admin | ✅ | ✅ |
+| Iný používateľ | ❌ | ❌ |
+
+**Nové súbory:**
+- `app/api/time-entries/route.ts`
+- `app/api/time-entries/[id]/route.ts`
+- `lib/hooks/use-time-entries.ts`
+- `components/time-tracking/edit-time-entry-modal.tsx`
+- `components/time-tracking/delete-time-entry-dialog.tsx`
+
+**Upravené súbory:**
+- `types/index.ts` - Pridané `description` a `deleted_at` do TimeEntry
+- `components/time-tracking/time-entries-list.tsx` - Kompletný prepis
+- `components/time-tracking/time-dashboard-table.tsx` - Stĺpec Akcie
+- `app/(dashboard)/time/page.tsx` - Pridané props pre editáciu
+
+---
 
 ### v2.34 (11. januára 2026)
 **Cascading Filters + Nickname Everywhere:**

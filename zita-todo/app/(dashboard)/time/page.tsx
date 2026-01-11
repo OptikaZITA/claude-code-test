@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense, useCallback } from 'react'
+import { useState, useEffect, Suspense, useCallback } from 'react'
 import { Timer } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TimeDashboardFilters } from '@/components/time-tracking/time-dashboard-filters'
@@ -11,10 +11,12 @@ import { useTimeFilters, TimeFilters } from '@/lib/hooks/use-time-filters'
 import { useTimeReport } from '@/lib/hooks/use-time-report'
 import { useCascadingTimeFilters } from '@/lib/hooks/use-cascading-time-filters'
 import { useTags } from '@/lib/hooks/use-tags'
+import { useTasks } from '@/lib/hooks/use-tasks'
+import { createClient } from '@/lib/supabase/client'
 
 function TimeDashboardContent() {
   const { filters, period, setFilters, setPeriod } = useTimeFilters()
-  const { data, loading, error, exportCSV } = useTimeReport({
+  const { data, loading, error, exportCSV, refetch } = useTimeReport({
     from: filters.from,
     to: filters.to,
     userIds: filters.userIds,
@@ -28,9 +30,31 @@ function TimeDashboardContent() {
   // Use cascading filters hook for filtered options
   const cascadingOptions = useCascadingTimeFilters({ filters })
   const { tags, loading: tagsLoading } = useTags()
+  const { tasks } = useTasks()
 
   const [isExporting, setIsExporting] = useState(false)
   const [tableMode, setTableMode] = useState<'summary' | 'detailed'>('summary')
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  // Fetch current user info
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setCurrentUserId(user.id)
+        // Check if admin
+        const { data: userData } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+        setIsAdmin(userData?.role === 'admin')
+      }
+    }
+    fetchCurrentUser()
+  }, [])
 
   // Handle cascading filter changes
   const handleCascadingFilterChange = useCallback((newFilters: Partial<TimeFilters>) => {
@@ -153,6 +177,10 @@ function TimeDashboardContent() {
               onModeChange={setTableMode}
               onUserClick={(userId) => handleDrilldown(userId, 'user')}
               totalSeconds={data.totalSeconds}
+              currentUserId={currentUserId}
+              isAdmin={isAdmin}
+              tasks={tasks}
+              onRefresh={refetch}
             />
           </>
         )}

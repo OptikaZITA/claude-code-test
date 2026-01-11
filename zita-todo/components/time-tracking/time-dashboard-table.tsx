@@ -1,10 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format, parseISO } from 'date-fns'
 import { sk } from 'date-fns/locale'
+import { Pencil, Trash2, Eye } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { TimeEntry, SummaryItem } from '@/lib/hooks/use-time-report'
+import { TimeEntry as TimeEntryType, TaskWithRelations } from '@/types'
+import { EditTimeEntryModal } from './edit-time-entry-modal'
+import { DeleteTimeEntryDialog } from './delete-time-entry-dialog'
 
 interface TimeDashboardTableProps {
   summary: SummaryItem[]
@@ -13,6 +17,10 @@ interface TimeDashboardTableProps {
   onModeChange: (mode: 'summary' | 'detailed') => void
   onUserClick?: (userId: string) => void
   totalSeconds: number
+  currentUserId?: string
+  isAdmin?: boolean
+  tasks?: TaskWithRelations[]
+  onRefresh?: () => void
 }
 
 function formatDuration(seconds: number): string {
@@ -116,7 +124,21 @@ function SummaryTable({
   )
 }
 
-function DetailedTable({ entries }: { entries: TimeEntry[] }) {
+function DetailedTable({
+  entries,
+  currentUserId,
+  isAdmin,
+  tasks,
+  onEdit,
+  onDelete,
+}: {
+  entries: TimeEntry[]
+  currentUserId?: string
+  isAdmin?: boolean
+  tasks?: TaskWithRelations[]
+  onEdit: (entry: TimeEntry) => void
+  onDelete: (entry: TimeEntry) => void
+}) {
   if (entries.length === 0) {
     return (
       <div className="text-center py-8 text-[var(--text-secondary)]">
@@ -143,57 +165,76 @@ function DetailedTable({ entries }: { entries: TimeEntry[] }) {
               Projekt
             </th>
             <th className="text-left py-3 px-4 text-xs font-medium uppercase text-[var(--text-secondary)]">
-              Tagy
+              Čas
             </th>
             <th className="text-right py-3 px-4 text-xs font-medium uppercase text-[var(--text-secondary)]">
               Trvanie
             </th>
+            <th className="text-center py-3 px-4 text-xs font-medium uppercase text-[var(--text-secondary)]">
+              Akcie
+            </th>
           </tr>
         </thead>
         <tbody>
-          {entries.map(entry => (
-            <tr
-              key={entry.id}
-              className="border-b border-[var(--border-primary)] last:border-0 hover:bg-[var(--bg-hover)]"
-            >
-              <td className="py-3 px-4 text-sm text-[var(--text-primary)]">
-                {format(parseISO(entry.date), 'd.M.yyyy', { locale: sk })}
-              </td>
-              <td className="py-3 px-4 text-sm text-[var(--text-primary)]">
-                {entry.userNickname}
-              </td>
-              <td className="py-3 px-4 text-sm text-[var(--text-primary)] max-w-xs truncate">
-                {entry.taskTitle}
-              </td>
-              <td className="py-3 px-4 text-sm text-[var(--text-secondary)]">
-                {entry.projectName || '-'}
-              </td>
-              <td className="py-3 px-4">
-                {entry.tags.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {entry.tags.slice(0, 2).map(tag => (
-                      <span
-                        key={tag}
-                        className="px-2 py-0.5 text-xs rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
+          {entries.map(entry => {
+            const canEdit = isAdmin || entry.userId === currentUserId
+            const startTime = entry.date ? format(parseISO(entry.date), 'HH:mm', { locale: sk }) : ''
+
+            return (
+              <tr
+                key={entry.id}
+                className="border-b border-[var(--border-primary)] last:border-0 hover:bg-[var(--bg-hover)] group"
+              >
+                <td className="py-3 px-4 text-sm text-[var(--text-primary)]">
+                  {format(parseISO(entry.date), 'd.M.yyyy', { locale: sk })}
+                </td>
+                <td className="py-3 px-4 text-sm text-[var(--text-primary)]">
+                  {entry.userNickname}
+                </td>
+                <td className="py-3 px-4 text-sm text-[var(--text-primary)] max-w-xs truncate">
+                  {entry.taskTitle}
+                </td>
+                <td className="py-3 px-4 text-sm text-[var(--text-secondary)]">
+                  {entry.projectName || '-'}
+                </td>
+                <td className="py-3 px-4 text-sm text-[var(--text-secondary)]">
+                  {startTime}
+                </td>
+                <td className="py-3 px-4 text-sm font-medium text-[var(--text-primary)] text-right">
+                  {formatDuration(entry.durationSeconds)}
+                </td>
+                <td className="py-3 px-4">
+                  <div className="flex items-center justify-center gap-1">
+                    {canEdit ? (
+                      <>
+                        <button
+                          onClick={() => onEdit(entry)}
+                          className="rounded p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                          title="Upraviť"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => onDelete(entry)}
+                          className="rounded p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-red-100 dark:hover:bg-red-900/20 hover:text-red-600"
+                          title="Vymazať"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        className="rounded p-1.5 text-[var(--text-secondary)] cursor-default"
+                        title="Len náhľad"
                       >
-                        {tag}
-                      </span>
-                    ))}
-                    {entry.tags.length > 2 && (
-                      <span className="px-2 py-0.5 text-xs rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
-                        +{entry.tags.length - 2}
-                      </span>
+                        <Eye className="h-4 w-4" />
+                      </button>
                     )}
                   </div>
-                ) : (
-                  <span className="text-[var(--text-secondary)]">-</span>
-                )}
-              </td>
-              <td className="py-3 px-4 text-sm font-medium text-[var(--text-primary)] text-right">
-                {formatDuration(entry.durationSeconds)}
-              </td>
-            </tr>
-          ))}
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
@@ -207,7 +248,45 @@ export function TimeDashboardTable({
   onModeChange,
   onUserClick,
   totalSeconds,
+  currentUserId,
+  isAdmin = false,
+  tasks = [],
+  onRefresh,
 }: TimeDashboardTableProps) {
+  const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null)
+  const [deletingEntry, setDeletingEntry] = useState<TimeEntry | null>(null)
+
+  // Listen for time entry events to refresh
+  useEffect(() => {
+    const handleRefresh = () => onRefresh?.()
+
+    window.addEventListener('time-entry:updated', handleRefresh)
+    window.addEventListener('time-entry:deleted', handleRefresh)
+    window.addEventListener('time-entry:created', handleRefresh)
+
+    return () => {
+      window.removeEventListener('time-entry:updated', handleRefresh)
+      window.removeEventListener('time-entry:deleted', handleRefresh)
+      window.removeEventListener('time-entry:created', handleRefresh)
+    }
+  }, [onRefresh])
+
+  // Convert report TimeEntry to component TimeEntry format for modal
+  const convertToTimeEntryType = (entry: TimeEntry): TimeEntryType => ({
+    id: entry.id,
+    organization_id: null,
+    task_id: entry.taskId,
+    user_id: entry.userId,
+    started_at: entry.date,
+    ended_at: null, // Will need to calculate from duration
+    duration_seconds: entry.durationSeconds,
+    note: null,
+    description: entry.description,
+    entry_type: 'task',
+    deleted_at: null,
+    created_at: entry.date,
+  })
+
   return (
     <div className="rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-primary)] overflow-hidden">
       {/* Header with mode toggle */}
@@ -251,9 +330,44 @@ export function TimeDashboardTable({
             onUserClick={onUserClick}
           />
         ) : (
-          <DetailedTable entries={entries} />
+          <DetailedTable
+            entries={entries}
+            currentUserId={currentUserId}
+            isAdmin={isAdmin}
+            tasks={tasks}
+            onEdit={setEditingEntry}
+            onDelete={setDeletingEntry}
+          />
         )}
       </div>
+
+      {/* Edit modal */}
+      {editingEntry && (
+        <EditTimeEntryModal
+          isOpen={!!editingEntry}
+          onClose={() => setEditingEntry(null)}
+          entry={convertToTimeEntryType(editingEntry)}
+          tasks={tasks}
+          onSuccess={() => {
+            setEditingEntry(null)
+            onRefresh?.()
+          }}
+        />
+      )}
+
+      {/* Delete dialog */}
+      {deletingEntry && (
+        <DeleteTimeEntryDialog
+          isOpen={!!deletingEntry}
+          onClose={() => setDeletingEntry(null)}
+          entry={convertToTimeEntryType(deletingEntry)}
+          taskTitle={deletingEntry.taskTitle}
+          onSuccess={() => {
+            setDeletingEntry(null)
+            onRefresh?.()
+          }}
+        />
+      )}
     </div>
   )
 }

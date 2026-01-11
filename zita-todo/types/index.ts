@@ -191,7 +191,9 @@ export interface TimeEntry {
   ended_at: string | null
   duration_seconds: number | null
   note: string | null
+  description: string | null  // For edit modal - optional description
   entry_type: TimeEntryType
+  deleted_at: string | null   // Soft delete timestamp
   created_at: string
 }
 
