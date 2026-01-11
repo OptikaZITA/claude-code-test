@@ -58,7 +58,7 @@ export function EditTimeEntryModal({
   // Initialize form when modal opens
   useEffect(() => {
     if (isOpen) {
-      if (entry) {
+      if (entry && entry.started_at) {
         // Edit mode - populate from entry
         setTaskId(entry.task_id || '')
         setDescription(entry.description || entry.note || '')
@@ -72,12 +72,19 @@ export function EditTimeEntryModal({
           setEndDate(format(endedAt, 'yyyy-MM-dd'))
           setEndTime(format(endedAt, 'HH:mm'))
         } else {
-          setEndDate(format(startedAt, 'yyyy-MM-dd'))
-          setEndTime(format(new Date(), 'HH:mm'))
+          // Calculate end time from duration if available
+          if (entry.duration_seconds) {
+            const endedAt = new Date(startedAt.getTime() + entry.duration_seconds * 1000)
+            setEndDate(format(endedAt, 'yyyy-MM-dd'))
+            setEndTime(format(endedAt, 'HH:mm'))
+          } else {
+            setEndDate(format(startedAt, 'yyyy-MM-dd'))
+            setEndTime(format(new Date(), 'HH:mm'))
+          }
         }
       } else {
         // Create mode - set defaults
-        setTaskId(preselectedTaskId || '')
+        setTaskId(preselectedTaskId || (entry?.task_id || ''))
         setDescription('')
         const now = new Date()
         const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
