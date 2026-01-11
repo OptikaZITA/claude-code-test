@@ -341,7 +341,7 @@ export function useInboxTasks(type: 'personal' | 'team') {
   return { tasks, loading, error, refetch: fetchTasks }
 }
 
-// Today view - tasks for today
+// Today view - tasks for today (default: MOJE úlohy)
 export function useTodayTasks() {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
   const [loading, setLoading] = useState(true)
@@ -360,6 +360,7 @@ export function useTodayTasks() {
       // 1. when_type = 'today'
       // 2. when_type = 'scheduled' AND when_date = today
       // 3. Overdue tasks (due_date < today AND status != done)
+      // AND belong to me (assignee, creator, or owner)
       const { data, error } = await supabase
         .from('tasks')
         .select(`
@@ -373,6 +374,8 @@ export function useTodayTasks() {
         .is('archived_at', null)
         .is('deleted_at', null)
         .neq('status', 'done')
+        // DEFAULT: Len MOJE úlohy (assignee, creator, alebo owner)
+        .or(`assignee_id.eq.${user.id},created_by.eq.${user.id},user_id.eq.${user.id}`)
         .order('sort_order', { ascending: true })
 
       if (error) throw error
@@ -391,7 +394,7 @@ export function useTodayTasks() {
   return { tasks, loading, error, refetch: fetchTasks }
 }
 
-// Upcoming view - scheduled tasks in the future
+// Upcoming view - scheduled tasks in the future (default: MOJE úlohy)
 export function useUpcomingTasks() {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
   const [loading, setLoading] = useState(true)
@@ -401,6 +404,9 @@ export function useUpcomingTasks() {
   const fetchTasks = useCallback(async () => {
     try {
       setLoading(true)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
       const today = new Date().toISOString().split('T')[0]
 
       const { data, error } = await supabase
@@ -417,6 +423,8 @@ export function useUpcomingTasks() {
         .is('archived_at', null)
         .is('deleted_at', null)
         .neq('status', 'done')
+        // DEFAULT: Len MOJE úlohy (assignee, creator, alebo owner)
+        .or(`assignee_id.eq.${user.id},created_by.eq.${user.id},user_id.eq.${user.id}`)
         .order('when_date', { ascending: true })
 
       if (error) throw error
@@ -435,7 +443,7 @@ export function useUpcomingTasks() {
   return { tasks, loading, error, refetch: fetchTasks }
 }
 
-// Anytime view - tasks without specific time
+// Anytime view - tasks without specific time (default: MOJE úlohy)
 export function useAnytimeTasks() {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
   const [loading, setLoading] = useState(true)
@@ -445,6 +453,8 @@ export function useAnytimeTasks() {
   const fetchTasks = useCallback(async () => {
     try {
       setLoading(true)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
 
       // Include both anytime and someday tasks (merged)
       const { data, error } = await supabase
@@ -460,6 +470,8 @@ export function useAnytimeTasks() {
         .is('archived_at', null)
         .is('deleted_at', null)
         .neq('status', 'done')
+        // DEFAULT: Len MOJE úlohy (assignee, creator, alebo owner)
+        .or(`assignee_id.eq.${user.id},created_by.eq.${user.id},user_id.eq.${user.id}`)
         .order('sort_order', { ascending: true })
 
       if (error) throw error
@@ -479,7 +491,7 @@ export function useAnytimeTasks() {
   return { tasks, loading, error, refetch: fetchTasks }
 }
 
-// Logbook view - completed tasks
+// Logbook view - completed tasks (default: MOJE úlohy)
 export function useLogbookTasks() {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
   const [loading, setLoading] = useState(true)
@@ -489,6 +501,8 @@ export function useLogbookTasks() {
   const fetchTasks = useCallback(async () => {
     try {
       setLoading(true)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
 
       const { data, error } = await supabase
         .from('tasks')
@@ -502,6 +516,8 @@ export function useLogbookTasks() {
         .eq('status', 'done')
         .is('archived_at', null)
         .is('deleted_at', null)
+        // DEFAULT: Len MOJE úlohy (assignee, creator, alebo owner)
+        .or(`assignee_id.eq.${user.id},created_by.eq.${user.id},user_id.eq.${user.id}`)
         .order('completed_at', { ascending: false })
         .limit(100)
 

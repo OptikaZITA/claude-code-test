@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Trash2, Flag, FileText, Repeat } from 'lucide-react'
+import { Trash2, Flag, FileText, Repeat, Lock } from 'lucide-react'
 import { TaskWithRelations, TaskPriority } from '@/types'
 import { isToday, parseISO } from 'date-fns'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -286,6 +286,11 @@ export function TaskItem({
                 <Repeat className="h-3.5 w-3.5 text-primary shrink-0" />
               </span>
             )}
+            {task.is_private && (
+              <span title="Súkromná úloha">
+                <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              </span>
+            )}
           </div>
 
           {/* Tags - inline on desktop */}
@@ -366,6 +371,9 @@ export function TaskItem({
 
             {task.notes && (
               <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            )}
+            {task.is_private && (
+              <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             )}
 
             {/* Deadline - mobile */}

@@ -138,6 +138,7 @@ export interface Task {
   when_date: string | null
   deadline: string | null
   is_inbox: boolean
+  is_private: boolean  // Súkromná úloha - viditeľná len pre vlastníka/assignee
   completed_at: string | null
   created_by: string | null
   assignee_id: string | null

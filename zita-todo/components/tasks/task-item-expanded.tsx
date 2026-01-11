@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Tag, FolderOpen, Layers, Flag, User, X, Trash2, Clock, Repeat } from 'lucide-react'
+import { Tag, FolderOpen, Layers, Flag, User, X, Trash2, Clock, Repeat, Lock, LockOpen } from 'lucide-react'
 import { TaskWithRelations, WhenType, RecurrenceRule, TaskPriority } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar } from '@/components/ui/avatar'
@@ -289,6 +289,23 @@ export function TaskItemExpanded({
             title={hasRecurrence ? 'Upraviť opakovanie' : 'Nastaviť opakovanie'}
           >
             <Repeat className="h-4 w-4" />
+          </button>
+
+          {/* Private toggle */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onUpdate({ is_private: !task.is_private })
+            }}
+            className={cn(
+              'p-2 rounded-lg transition-colors',
+              task.is_private
+                ? 'text-primary hover:bg-primary/10'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+            )}
+            title={task.is_private ? 'Zrušiť súkromie' : 'Označiť ako súkromné'}
+          >
+            {task.is_private ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}
           </button>
 
           {/* Divider */}

@@ -96,7 +96,11 @@ export async function GET(request: NextRequest): Promise<NextResponse<TimeReport
         ),
         tasks (
           id,
-          title
+          title,
+          is_private,
+          created_by,
+          assignee_id,
+          inbox_user_id
         )
       `)
       .gte('started_at', from)
@@ -179,6 +183,19 @@ export async function GET(request: NextRequest): Promise<NextResponse<TimeReport
       const projectData = e.projects as any
       const taskData = e.tasks as any
 
+      // Anonymizácia súkromných úloh iných používateľov
+      const isTaskPrivate = taskData?.is_private === true
+      const isTaskOwner =
+        taskData?.created_by === user.id ||
+        taskData?.assignee_id === user.id ||
+        taskData?.inbox_user_id === user.id ||
+        e.user_id === user.id  // Alebo je to môj time entry
+
+      // Ak je úloha súkromná a nie som vlastník, anonymizuj názov
+      const taskTitle = isTaskPrivate && !isTaskOwner
+        ? '🔒 Súkromná úloha'
+        : (taskData?.title || '')
+
       return {
         id: e.id,
         date: e.started_at.split('T')[0],
@@ -192,10 +209,10 @@ export async function GET(request: NextRequest): Promise<NextResponse<TimeReport
         projectId: e.project_id,
         projectName: projectData?.name || null,
         taskId: e.task_id,
-        taskTitle: taskData?.title || '',
-        tags: taskTagsMap.get(e.task_id) || [],
+        taskTitle,
+        tags: isTaskPrivate && !isTaskOwner ? [] : (taskTagsMap.get(e.task_id) || []),  // Skry aj tagy
         durationSeconds: e.duration_seconds || 0,
-        description: e.description,
+        description: isTaskPrivate && !isTaskOwner ? null : e.description,  // Skry aj popis
       }
     })
 

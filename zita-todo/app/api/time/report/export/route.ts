@@ -70,7 +70,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         ),
         tasks (
           id,
-          title
+          title,
+          is_private,
+          created_by,
+          assignee_id,
+          inbox_user_id
         )
       `)
       .gte('started_at', from)
@@ -156,14 +160,22 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const taskData = e.tasks as any
       const tags = taskTagsMap.get(e.task_id) || []
 
+      // Anonymizácia súkromných úloh iných používateľov
+      const isTaskPrivate = taskData?.is_private === true
+      const isTaskOwner =
+        taskData?.created_by === user.id ||
+        taskData?.assignee_id === user.id ||
+        taskData?.inbox_user_id === user.id ||
+        e.user_id === user.id
+
       const date = e.started_at.split('T')[0]
       const userName = userData?.nickname || userData?.full_name || ''
       const areaName = areaData?.name || ''
       const projectName = projectData?.name || ''
-      const taskTitle = taskData?.title || ''
-      const tagsString = tags.join(', ')
+      const taskTitle = isTaskPrivate && !isTaskOwner ? 'Súkromná úloha' : (taskData?.title || '')
+      const tagsString = isTaskPrivate && !isTaskOwner ? '' : tags.join(', ')
       const duration = formatDuration(e.duration_seconds || 0)
-      const description = e.description || ''
+      const description = isTaskPrivate && !isTaskOwner ? '' : (e.description || '')
 
       return [
         date,

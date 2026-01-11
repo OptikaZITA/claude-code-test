@@ -248,8 +248,8 @@ export const TaskQuickAdd = forwardRef<TaskQuickAddHandle, TaskQuickAddProps>(fu
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
   const weekDays = ['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne']
 
-  // Button variant - just render a button
-  if (variant === 'button') {
+  // Button variant - show button when inactive, form when active
+  if (variant === 'button' && !isActive) {
     return (
       <Button
         onClick={() => setIsActive(true)}
