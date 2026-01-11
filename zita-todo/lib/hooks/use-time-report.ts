@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 export interface TimeEntry {
   id: string
   date: string
+  startedAt: string  // Full timestamp for time display
   userId: string
   userName: string
   userNickname: string

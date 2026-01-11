@@ -26,6 +26,11 @@ interface TimeDashboardTableProps {
 function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600)
   const minutes = Math.floor((seconds % 3600) / 60)
+  const secs = seconds % 60
+
+  if (hours === 0 && minutes === 0) {
+    return `${secs}s`
+  }
 
   if (hours === 0) {
     return `${minutes}m`
@@ -178,7 +183,7 @@ function DetailedTable({
         <tbody>
           {entries.map(entry => {
             const canEdit = isAdmin || entry.userId === currentUserId
-            const startTime = entry.date ? format(parseISO(entry.date), 'HH:mm', { locale: sk }) : ''
+            const startTime = entry.startedAt ? format(parseISO(entry.startedAt), 'HH:mm', { locale: sk }) : ''
 
             return (
               <tr
@@ -277,14 +282,14 @@ export function TimeDashboardTable({
     organization_id: null,
     task_id: entry.taskId,
     user_id: entry.userId,
-    started_at: entry.date,
+    started_at: entry.startedAt,
     ended_at: null, // Will need to calculate from duration
     duration_seconds: entry.durationSeconds,
     note: null,
     description: entry.description,
     entry_type: 'task',
     deleted_at: null,
-    created_at: entry.date,
+    created_at: entry.startedAt,
   })
 
   return (

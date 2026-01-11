@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 interface TimeEntry {
   id: string
   date: string
+  startedAt: string  // Full timestamp for time display
   userId: string
   userName: string
   userNickname: string
@@ -179,6 +180,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<TimeReport
       return {
         id: e.id,
         date: e.started_at.split('T')[0],
+        startedAt: e.started_at,  // Full timestamp for time display
         userId: e.user_id,
         userName: userData?.full_name || '',
         userNickname: userData?.nickname || userData?.full_name || '',
