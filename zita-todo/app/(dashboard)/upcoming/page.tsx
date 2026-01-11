@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useRef } from 'react'
-import { CalendarDays, Filter, Plus } from 'lucide-react'
+import { CalendarDays, Plus } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { TaskList } from '@/components/tasks/task-list'
@@ -9,11 +9,12 @@ import { TaskQuickAdd, TaskQuickAddData, TaskQuickAddHandle } from '@/components
 import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { MiniCalendar } from '@/components/calendar/mini-calendar'
-import { TaskFiltersBar, ColleagueFilterBar, filterTasksByColleague } from '@/components/filters'
-import { TagFilterBar } from '@/components/tasks/tag-filter-bar'
+import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { useUpcomingTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
+import { useAreas } from '@/lib/hooks/use-areas'
+import { useTags } from '@/lib/hooks/use-tags'
 import { TaskWithRelations } from '@/types'
 import { format, parseISO, startOfDay, addDays, isSameDay } from 'date-fns'
 import { sk } from 'date-fns/locale'
@@ -25,11 +26,11 @@ export default function UpcomingPage() {
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const dateRefs = useRef<Map<string, HTMLDivElement>>(new Map())
-  const [showFilters, setShowFilters] = useState(false)
-  const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
+  const { filters, setFilter, clearFilters, clearFilter, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
-  const [selectedColleague, setSelectedColleague] = useState<string | null>(null)
   const inlineFormRef = useRef<TaskQuickAddHandle>(null)
+  const { areas } = useAreas()
+  const { tags: allTags } = useTags()
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -44,11 +45,6 @@ export default function UpcomingPage() {
     )
   }, [filteredTasks, selectedTag])
 
-  // Apply colleague filter (Strážci vesmíru)
-  const colleagueFilteredTasks = useMemo(() => {
-    return filterTasksByColleague(tagFilteredTasks, selectedColleague)
-  }, [tagFilteredTasks, selectedColleague])
-
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
 
@@ -56,7 +52,7 @@ export default function UpcomingPage() {
   const groupedTasks = useMemo(() => {
     const groups: Map<string, TaskWithRelations[]> = new Map()
 
-    colleagueFilteredTasks.forEach(task => {
+    tagFilteredTasks.forEach(task => {
       if (task.when_date) {
         const dateKey = startOfDay(parseISO(task.when_date)).toISOString()
         if (!groups.has(dateKey)) {
@@ -69,7 +65,7 @@ export default function UpcomingPage() {
     // Sort by date
     return Array.from(groups.entries())
       .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
-  }, [colleagueFilteredTasks])
+  }, [tagFilteredTasks])
 
   // Handle date selection from mini calendar
   const handleDateSelect = (date: Date) => {
@@ -195,31 +191,7 @@ export default function UpcomingPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <Header title="Nadchadzajuce">
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`p-2 rounded-[var(--radius-sm)] transition-colors ${
-            hasActiveFilters
-              ? 'bg-primary text-white'
-              : 'hover:bg-accent/50'
-          }`}
-          title="Filtre"
-        >
-          <Filter className="h-4 w-4" />
-        </button>
-      </Header>
-
-      {/* Filter Bar */}
-      {showFilters && (
-        <div className="px-6 py-3 border-b border-[var(--border)] bg-muted">
-          <TaskFiltersBar
-            filters={filters}
-            onFilterChange={setFilter}
-            onClearFilters={clearFilters}
-            hasActiveFilters={hasActiveFilters}
-          />
-        </div>
-      )}
+      <Header title="Nadchadzajuce" />
 
       <div className="flex-1 overflow-auto p-6">
         {/* Title row with button */}
@@ -239,7 +211,7 @@ export default function UpcomingPage() {
           <div className="lg:w-72 flex-shrink-0">
             <div className="lg:sticky lg:top-6">
               <MiniCalendar
-                tasks={colleagueFilteredTasks}
+                tasks={tagFilteredTasks}
                 selectedDate={selectedDate}
                 onDateSelect={handleDateSelect}
               />
@@ -252,7 +224,7 @@ export default function UpcomingPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Celkom úloh</span>
-                    <span className="font-medium text-foreground">{colleagueFilteredTasks.length}</span>
+                    <span className="font-medium text-foreground">{tagFilteredTasks.length}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Dni s úlohami</span>
@@ -265,19 +237,33 @@ export default function UpcomingPage() {
 
           {/* Tasks list */}
           <div className="flex-1 min-w-0">
-            {/* Tag Filter Bar */}
-            <TagFilterBar
-              tasks={filteredTasks}
-              selectedTag={selectedTag}
-              onSelectTag={setSelectedTag}
+            {/* Cascading Filter Bar - Desktop only */}
+            <CascadingFilterBar
+              tasks={tasks}
+              filters={filters}
+              onFilterChange={setFilter}
+              onClearFilters={clearFilters}
+              onClearFilter={clearFilter}
+              hasActiveFilters={hasActiveFilters}
+              areas={areas}
+              allTags={allTags}
+              className="mb-4"
             />
 
-            {/* Colleague Filter Bar (Strážci vesmíru) */}
-            <ColleagueFilterBar
-              tasks={tagFilteredTasks}
-              selectedColleague={selectedColleague}
-              onSelectColleague={setSelectedColleague}
-            />
+            {/* Unified Filter Bar - Mobile only */}
+            <div className="lg:hidden">
+              <UnifiedFilterBar
+                tasks={filteredTasks}
+                filters={filters}
+                onFilterChange={setFilter}
+                onClearFilters={clearFilters}
+                onClearFilter={clearFilter}
+                hasActiveFilters={hasActiveFilters}
+                selectedTag={selectedTag}
+                onSelectTag={setSelectedTag}
+                className="mb-4"
+              />
+            </div>
 
             {/* Inline Task Quick Add Form */}
             <TaskQuickAdd
@@ -314,12 +300,12 @@ export default function UpcomingPage() {
                   Naplánujte úlohy na konkrétny dátum
                 </p>
               </div>
-            ) : groupedTasks.length === 0 && (hasActiveFilters || selectedTag || selectedColleague) ? (
+            ) : groupedTasks.length === 0 && (hasActiveFilters || selectedTag) ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Filter className="mb-4 h-12 w-12 text-muted-foreground" />
+                <CalendarDays className="mb-4 h-12 w-12 text-muted-foreground" />
                 <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
                 <button
-                  onClick={() => { clearFilters(); setSelectedTag(null); setSelectedColleague(null); }}
+                  onClick={() => { clearFilters(); setSelectedTag(null); }}
                   className="text-primary hover:underline"
                 >
                   Zrušiť filtre

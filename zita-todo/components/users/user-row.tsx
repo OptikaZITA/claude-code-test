@@ -6,6 +6,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { User, UserRole, UserStatus, Area } from '@/types'
 import { cn } from '@/lib/utils/cn'
+import { getDisplayName, getFullDisplayName } from '@/lib/utils/user'
 
 interface UserRowProps {
   user: User
@@ -52,13 +53,15 @@ export function UserRow({
 }: UserRowProps) {
   const [menuOpen, setMenuOpen] = useState(false)
 
-  const displayName = user.nickname || user.full_name || user.email
+  // Admin view: show "nickname (full_name)" format
+  const displayName = getFullDisplayName(user)
+  const avatarName = getDisplayName(user)
 
   return (
     <div className="flex items-center gap-4 p-4 border-b border-[var(--border-primary)] hover:bg-[var(--bg-hover)] transition-colors">
       {/* Avatar & Name */}
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <Avatar src={user.avatar_url} name={displayName} size="md" />
+        <Avatar src={user.avatar_url} name={avatarName} size="md" />
         <div className="min-w-0">
           <p className="font-medium text-[var(--text-primary)] truncate">
             {displayName}

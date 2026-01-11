@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useRef } from 'react'
-import { Star, AlertCircle, Filter, Plus } from 'lucide-react'
+import { Star, AlertCircle, Plus } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { TaskList } from '@/components/tasks/task-list'
@@ -10,8 +10,7 @@ import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
-import { TaskFiltersBar, ColleagueFilterBar, filterTasksByColleague } from '@/components/filters'
-import { TagFilterBar } from '@/components/tasks/tag-filter-bar'
+import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { TimeSummaryCard } from '@/components/time-tracking/time-summary-card'
 import { NewTasksBanner } from '@/components/indicators'
 import { useTodayTasks, useTasks } from '@/lib/hooks/use-tasks'
@@ -19,6 +18,8 @@ import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useViewPreference } from '@/lib/hooks/use-view-preference'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { useNewTasks } from '@/lib/hooks/use-new-tasks'
+import { useAreas } from '@/lib/hooks/use-areas'
+import { useTags } from '@/lib/hooks/use-tags'
 import { TaskWithRelations, TaskStatus } from '@/types'
 import { isToday, isPast, parseISO } from 'date-fns'
 
@@ -27,16 +28,16 @@ export default function TodayPage() {
   const { createTask, updateTask, completeTask, softDelete, reorderTasks } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
   const { viewMode, setViewMode, isLoaded } = useViewPreference('today')
-  const [showFilters, setShowFilters] = useState(false)
-  const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
+  const { filters, setFilter, clearFilters, clearFilter, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
-  const [selectedColleague, setSelectedColleague] = useState<string | null>(null)
   const inlineFormRef = useRef<TaskQuickAddHandle>(null)
+  const { areas } = useAreas()
+  const { tags: allTags } = useTags()
 
   // New tasks tracking (zlta bodka + banner)
   const { newTasksCount, acknowledge, acknowledging, isTaskNew, refetch: refetchNewTasks } = useNewTasks()
 
-  // Apply filters to tasks
+  // Apply filters to tasks (includes sorting)
   const filteredTasks = useMemo(() => {
     return filterTasks(tasks, filters)
   }, [tasks, filters])
@@ -49,22 +50,17 @@ export default function TodayPage() {
     )
   }, [filteredTasks, selectedTag])
 
-  // Apply colleague filter (Strážci vesmíru)
-  const colleagueFilteredTasks = useMemo(() => {
-    return filterTasksByColleague(tagFilteredTasks, selectedColleague)
-  }, [tagFilteredTasks, selectedColleague])
-
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
 
-  // Separate overdue tasks from today's tasks (from colleague filtered)
-  const overdueTasks = colleagueFilteredTasks.filter(task => {
+  // Separate overdue tasks from today's tasks
+  const overdueTasks = tagFilteredTasks.filter(task => {
     if (!task.due_date) return false
     const dueDate = parseISO(task.due_date)
     return isPast(dueDate) && !isToday(dueDate)
   })
 
-  const todayTasks = colleagueFilteredTasks.filter(task => {
+  const todayTasks = tagFilteredTasks.filter(task => {
     if (task.when_type === 'today') return true
     if (task.when_type === 'scheduled' && task.when_date) {
       return isToday(parseISO(task.when_date))
@@ -209,36 +205,12 @@ export default function TodayPage() {
         showViewToggle
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-      >
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`p-2 rounded-[var(--radius-sm)] transition-colors ${
-            hasActiveFilters
-              ? 'bg-primary text-white'
-              : 'hover:bg-accent/50'
-          }`}
-          title="Filtre"
-        >
-          <Filter className="h-4 w-4" />
-        </button>
-      </Header>
-
-      {/* Filter Bar */}
-      {showFilters && (
-        <div className="px-6 py-3 border-b border-[var(--border)] bg-muted">
-          <TaskFiltersBar
-            filters={filters}
-            onFilterChange={setFilter}
-            onClearFilters={clearFilters}
-            hasActiveFilters={hasActiveFilters}
-          />
-        </div>
-      )}
+      />
 
       {viewMode === 'calendar' ? (
         <div className="flex-1 overflow-hidden">
           <CalendarView
-            tasks={colleagueFilteredTasks}
+            tasks={tagFilteredTasks}
             onTaskClick={setSelectedTask}
             onDateClick={handleCalendarDateClick}
             onTaskMove={handleCalendarTaskMove}
@@ -247,7 +219,7 @@ export default function TodayPage() {
       ) : viewMode === 'kanban' ? (
         <div className="flex-1 overflow-hidden">
           <KanbanBoard
-            tasks={colleagueFilteredTasks}
+            tasks={tagFilteredTasks}
             onTaskMove={handleKanbanTaskMove}
             onTaskClick={setSelectedTask}
             onQuickAdd={handleKanbanQuickAdd}
@@ -287,19 +259,33 @@ export default function TodayPage() {
             />
           )}
 
-          {/* Tag Filter Bar */}
-          <TagFilterBar
-            tasks={filteredTasks}
-            selectedTag={selectedTag}
-            onSelectTag={setSelectedTag}
+          {/* Cascading Filter Bar - Desktop only */}
+          <CascadingFilterBar
+            tasks={tasks}
+            filters={filters}
+            onFilterChange={setFilter}
+            onClearFilters={clearFilters}
+            onClearFilter={clearFilter}
+            hasActiveFilters={hasActiveFilters}
+            areas={areas}
+            allTags={allTags}
+            className="mb-4"
           />
 
-          {/* Colleague Filter Bar (Strážci vesmíru) */}
-          <ColleagueFilterBar
-            tasks={tagFilteredTasks}
-            selectedColleague={selectedColleague}
-            onSelectColleague={setSelectedColleague}
-          />
+          {/* Unified Filter Bar - Mobile only */}
+          <div className="lg:hidden">
+            <UnifiedFilterBar
+              tasks={filteredTasks}
+              filters={filters}
+              onFilterChange={setFilter}
+              onClearFilters={clearFilters}
+              onClearFilter={clearFilter}
+              hasActiveFilters={hasActiveFilters}
+              selectedTag={selectedTag}
+              onSelectTag={setSelectedTag}
+              className="mb-4"
+            />
+          </div>
 
           {/* Inline Task Quick Add Form */}
           <TaskQuickAdd
@@ -333,25 +319,25 @@ export default function TodayPage() {
           )}
 
           {/* Today's tasks */}
-          {colleagueFilteredTasks.length === 0 && tasks.length === 0 ? (
+          {tagFilteredTasks.length === 0 && tasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Star className="mb-4 h-12 w-12 text-muted-foreground" />
               <p className="mb-2 text-lg font-medium text-foreground">
-                Žiadne úlohy na dnes
+                Ziadne ulohy na dnes
               </p>
               <p className="mb-6 text-muted-foreground">
-                Pridajte úlohy alebo ich presuňte na dnes
+                Pridajte ulohy alebo ich presunete na dnes
               </p>
             </div>
-          ) : colleagueFilteredTasks.length === 0 && (hasActiveFilters || selectedTag || selectedColleague) ? (
+          ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag) ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Filter className="mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
+              <Star className="mb-4 h-12 w-12 text-muted-foreground" />
+              <p className="mb-2 text-lg font-medium text-foreground">Ziadne ulohy nezodpovedaju filtrom</p>
               <button
-                onClick={() => { clearFilters(); setSelectedTag(null); setSelectedColleague(null); }}
+                onClick={() => { clearFilters(); setSelectedTag(null); }}
                 className="text-primary hover:underline"
               >
-                Zrušiť filtre
+                Zrusit filtre
               </button>
             </div>
           ) : null}

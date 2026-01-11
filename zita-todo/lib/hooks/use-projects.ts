@@ -51,7 +51,7 @@ export function useProjectTasks(projectId: string) {
         .from('tasks')
         .select(`
           *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url)
+          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url)
         `)
         .eq('project_id', projectId)
         .is('archived_at', null)

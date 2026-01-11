@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import { TaskFilters, DEFAULT_TASK_FILTERS, TaskStatus, TaskPriority, DueDateFilter, WhenType, TaskWithRelations } from '@/types'
-import { isToday, isThisWeek, isThisMonth, isPast, parseISO } from 'date-fns'
+import { TaskFilters, DEFAULT_TASK_FILTERS, TaskStatus, TaskPriority, DueDateFilter, WhenType, TaskWithRelations, SortOption } from '@/types'
+import { isToday, isThisWeek, isThisMonth, isPast, parseISO, compareAsc, compareDesc } from 'date-fns'
 
 interface UseTaskFiltersResult {
   filters: TaskFilters
@@ -54,8 +54,10 @@ export function useTaskFilters(initialFilters?: Partial<TaskFilters>): UseTaskFi
     if (filters.priority !== null) count++
     if (filters.tagIds.length > 0) count++
     if (filters.projectId !== null) count++
+    if (filters.areaId !== null) count++
     if (filters.when !== null) count++
     if (filters.search && filters.search.length > 0) count++
+    if (filters.sortBy !== 'default') count++
 
     return {
       hasActiveFilters: count > 0,
@@ -119,7 +121,7 @@ export function getWhenLabel(when: WhenType): string {
 
 // Filter tasks based on active filters
 export function filterTasks(tasks: TaskWithRelations[], filters: TaskFilters): TaskWithRelations[] {
-  return tasks.filter(task => {
+  let filtered = tasks.filter(task => {
     // Status filter
     if (filters.status !== null && task.status !== filters.status) {
       return false
@@ -132,8 +134,13 @@ export function filterTasks(tasks: TaskWithRelations[], filters: TaskFilters): T
 
     // Assignee filter
     if (filters.assigneeIds.length > 0) {
-      if (!task.assignee_id || !filters.assigneeIds.includes(task.assignee_id)) {
-        return false
+      const assigneeId = filters.assigneeIds[0]
+      if (assigneeId === 'unassigned') {
+        if (task.assignee_id) return false
+      } else {
+        if (!task.assignee_id || !filters.assigneeIds.includes(task.assignee_id)) {
+          return false
+        }
       }
     }
 
@@ -148,6 +155,11 @@ export function filterTasks(tasks: TaskWithRelations[], filters: TaskFilters): T
 
     // Project filter
     if (filters.projectId !== null && task.project_id !== filters.projectId) {
+      return false
+    }
+
+    // Area filter (Oddelenie)
+    if (filters.areaId !== null && task.area_id !== filters.areaId) {
       return false
     }
 
@@ -198,5 +210,36 @@ export function filterTasks(tasks: TaskWithRelations[], filters: TaskFilters): T
     }
 
     return true
+  })
+
+  // Apply sorting
+  if (filters.sortBy && filters.sortBy !== 'default') {
+    filtered = sortTasks(filtered, filters.sortBy)
+  }
+
+  return filtered
+}
+
+// Sort tasks by deadline
+export function sortTasks(tasks: TaskWithRelations[], sortBy: SortOption): TaskWithRelations[] {
+  if (sortBy === 'default') return tasks
+
+  return [...tasks].sort((a, b) => {
+    const dateA = a.deadline || a.due_date
+    const dateB = b.deadline || b.due_date
+
+    // Tasks without dates go to the end
+    if (!dateA && !dateB) return 0
+    if (!dateA) return 1
+    if (!dateB) return -1
+
+    const parsedA = parseISO(dateA)
+    const parsedB = parseISO(dateB)
+
+    if (sortBy === 'deadline_asc') {
+      return compareAsc(parsedA, parsedB)
+    } else {
+      return compareDesc(parsedA, parsedB)
+    }
   })
 }

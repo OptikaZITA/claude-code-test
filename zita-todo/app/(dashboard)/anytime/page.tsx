@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useRef } from 'react'
-import { Clock, Filter, Plus } from 'lucide-react'
+import { Clock, Plus } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { TaskList } from '@/components/tasks/task-list'
@@ -10,12 +10,13 @@ import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
-import { TaskFiltersBar, ColleagueFilterBar, filterTasksByColleague } from '@/components/filters'
-import { TagFilterBar } from '@/components/tasks/tag-filter-bar'
+import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { useAnytimeTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useViewPreference } from '@/lib/hooks/use-view-preference'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
+import { useAreas } from '@/lib/hooks/use-areas'
+import { useTags } from '@/lib/hooks/use-tags'
 import { TaskWithRelations, TaskStatus } from '@/types'
 
 export default function AnytimePage() {
@@ -23,13 +24,13 @@ export default function AnytimePage() {
   const { createTask, updateTask, completeTask, softDelete, reorderTasks } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
   const { viewMode, setViewMode, isLoaded } = useViewPreference('anytime')
-  const [showFilters, setShowFilters] = useState(false)
-  const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
+  const { filters, setFilter, clearFilters, clearFilter, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
-  const [selectedColleague, setSelectedColleague] = useState<string | null>(null)
   const inlineFormRef = useRef<TaskQuickAddHandle>(null)
+  const { areas } = useAreas()
+  const { tags: allTags } = useTags()
 
-  // Apply filters to tasks
+  // Apply filters to tasks (includes sorting)
   const filteredTasks = useMemo(() => {
     return filterTasks(tasks, filters)
   }, [tasks, filters])
@@ -41,11 +42,6 @@ export default function AnytimePage() {
       task.tags?.some(tag => tag.id === selectedTag)
     )
   }, [filteredTasks, selectedTag])
-
-  // Apply colleague filter (Strážci vesmíru)
-  const colleagueFilteredTasks = useMemo(() => {
-    return filterTasksByColleague(tagFilteredTasks, selectedColleague)
-  }, [tagFilteredTasks, selectedColleague])
 
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
@@ -159,9 +155,9 @@ export default function AnytimePage() {
   if (loading || !isLoaded) {
     return (
       <div className="h-full">
-        <Header title="Kedykoľvek" />
+        <Header title="Kedykolvek" />
         <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       </div>
     )
@@ -170,40 +166,16 @@ export default function AnytimePage() {
   return (
     <div className="h-full flex flex-col">
       <Header
-        title="Kedykoľvek"
+        title="Kedykolvek"
         showViewToggle
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-      >
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`p-2 rounded-lg transition-colors ${
-            hasActiveFilters
-              ? 'bg-[var(--color-primary)] text-white'
-              : 'hover:bg-[var(--bg-hover)]'
-          }`}
-          title="Filtre"
-        >
-          <Filter className="h-4 w-4" />
-        </button>
-      </Header>
-
-      {/* Filter Bar */}
-      {showFilters && (
-        <div className="px-6 py-3 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
-          <TaskFiltersBar
-            filters={filters}
-            onFilterChange={setFilter}
-            onClearFilters={clearFilters}
-            hasActiveFilters={hasActiveFilters}
-          />
-        </div>
-      )}
+      />
 
       {viewMode === 'calendar' ? (
         <div className="flex-1 overflow-hidden">
           <CalendarView
-            tasks={colleagueFilteredTasks}
+            tasks={tagFilteredTasks}
             onTaskClick={setSelectedTask}
             onDateClick={handleCalendarDateClick}
             onTaskMove={handleCalendarTaskMove}
@@ -212,7 +184,7 @@ export default function AnytimePage() {
       ) : viewMode === 'kanban' ? (
         <div className="flex-1 overflow-hidden">
           <KanbanBoard
-            tasks={colleagueFilteredTasks}
+            tasks={tagFilteredTasks}
             onTaskMove={handleKanbanTaskMove}
             onTaskClick={setSelectedTask}
             onQuickAdd={handleKanbanQuickAdd}
@@ -222,7 +194,7 @@ export default function AnytimePage() {
         <div className="flex-1 overflow-auto p-6">
           {/* Title row with button */}
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-heading font-semibold text-foreground">Kedykoľvek</h2>
+            <h2 className="text-2xl font-heading font-semibold text-foreground">Kedykolvek</h2>
             <Button
               onClick={() => inlineFormRef.current?.activate()}
               className="bg-primary text-white hover:bg-primary/90 hidden lg:flex"
@@ -232,19 +204,33 @@ export default function AnytimePage() {
             </Button>
           </div>
 
-          {/* Tag Filter Bar */}
-          <TagFilterBar
-            tasks={filteredTasks}
-            selectedTag={selectedTag}
-            onSelectTag={setSelectedTag}
+          {/* Cascading Filter Bar - Desktop only */}
+          <CascadingFilterBar
+            tasks={tasks}
+            filters={filters}
+            onFilterChange={setFilter}
+            onClearFilters={clearFilters}
+            onClearFilter={clearFilter}
+            hasActiveFilters={hasActiveFilters}
+            areas={areas}
+            allTags={allTags}
+            className="mb-4"
           />
 
-          {/* Colleague Filter Bar (Strážci vesmíru) */}
-          <ColleagueFilterBar
-            tasks={tagFilteredTasks}
-            selectedColleague={selectedColleague}
-            onSelectColleague={setSelectedColleague}
-          />
+          {/* Unified Filter Bar - Mobile only */}
+          <div className="lg:hidden">
+            <UnifiedFilterBar
+              tasks={filteredTasks}
+              filters={filters}
+              onFilterChange={setFilter}
+              onClearFilters={clearFilters}
+              onClearFilter={clearFilter}
+              hasActiveFilters={hasActiveFilters}
+              selectedTag={selectedTag}
+              onSelectTag={setSelectedTag}
+              className="mb-4"
+            />
+          </div>
 
           {/* Inline Task Quick Add Form */}
           <TaskQuickAdd
@@ -254,31 +240,31 @@ export default function AnytimePage() {
             context={{ defaultWhenType: 'anytime' }}
           />
 
-          {colleagueFilteredTasks.length === 0 && tasks.length === 0 ? (
+          {tagFilteredTasks.length === 0 && tasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Clock className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
-              <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
-                Žiadne úlohy
+              <Clock className="mb-4 h-12 w-12 text-muted-foreground" />
+              <p className="mb-2 text-lg font-medium text-foreground">
+                Ziadne ulohy
               </p>
-              <p className="mb-6 text-[var(--text-secondary)]">
-                Úlohy ktoré môžete urobiť kedykoľvek
+              <p className="mb-6 text-muted-foreground">
+                Ulohy ktore mozete urobit kedykolvek
               </p>
             </div>
-          ) : colleagueFilteredTasks.length === 0 && (hasActiveFilters || selectedTag || selectedColleague) ? (
+          ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag) ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Filter className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
-              <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Žiadne úlohy nezodpovedajú filtrom</p>
+              <Clock className="mb-4 h-12 w-12 text-muted-foreground" />
+              <p className="mb-2 text-lg font-medium text-foreground">Ziadne ulohy nezodpovedaju filtrom</p>
               <button
-                onClick={() => { clearFilters(); setSelectedTag(null); setSelectedColleague(null); }}
-                className="text-[var(--color-primary)] hover:underline"
+                onClick={() => { clearFilters(); setSelectedTag(null); }}
+                className="text-primary hover:underline"
               >
-                Zrušiť filtre
+                Zrusit filtre
               </button>
             </div>
           ) : null}
 
           <TaskList
-            tasks={colleagueFilteredTasks}
+            tasks={tagFilteredTasks}
             onTaskClick={setSelectedTask}
             onTaskComplete={handleTaskComplete}
             onTaskUpdate={handleInlineTaskUpdate}

@@ -82,7 +82,7 @@ export function ProjectTaskList({
 
       {/* Tasks without heading */}
       {tasksWithoutHeading.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-1">
           {tasksWithoutHeading.map((task) => (
             <TaskItem
               key={task.id}
@@ -111,7 +111,7 @@ export function ProjectTaskList({
           >
             {/* Tasks in this heading */}
             {headingTasks.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {headingTasks.map((task) => (
                   <TaskItem
                     key={task.id}

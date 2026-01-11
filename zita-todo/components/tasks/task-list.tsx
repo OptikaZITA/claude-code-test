@@ -239,13 +239,13 @@ export function TaskList({
   }
 
   const taskList = (
-    <div className="space-y-2">
+    <div className="space-y-1">
       {tasks.map((task) => renderTaskItem(task))}
     </div>
   )
 
   return (
-    <div className="space-y-2 pl-6" ref={containerRef}>
+    <div className="space-y-1" ref={containerRef}>
       {showQuickAdd && <TaskQuickAdd onAdd={(taskData: TaskQuickAddData) => onQuickAdd(taskData.title)} />}
 
       {tasks.length === 0 ? (

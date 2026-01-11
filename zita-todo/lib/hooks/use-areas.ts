@@ -90,7 +90,7 @@ export function useAreaTasks(areaId: string) {
         .from('tasks')
         .select(`
           *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
+          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url),
           project:projects(id, name, color)
         `)
         .eq('area_id', areaId)
@@ -132,7 +132,7 @@ export function useAllAreaTasks(areaId: string) {
         .from('tasks')
         .select(`
           *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
+          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url),
           project:projects(id, name, color),
           area:areas(id, name, color),
           tags:task_tags(tag:tags(*))

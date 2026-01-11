@@ -6,6 +6,7 @@ import { User } from '@/types'
 import { Avatar } from '@/components/ui/avatar'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/cn'
+import { getDisplayName } from '@/lib/utils/user'
 
 interface AssigneeSelectorProps {
   value?: User | null
@@ -69,7 +70,8 @@ export function AssigneeSelector({
   }, [isOpen])
 
   const filteredUsers = users.filter((user) =>
-    (user.full_name || user.email).toLowerCase().includes(search.toLowerCase())
+    getDisplayName(user).toLowerCase().includes(search.toLowerCase()) ||
+    user.email.toLowerCase().includes(search.toLowerCase())
   )
 
   const handleSelect = (user: User | null) => {
@@ -92,14 +94,14 @@ export function AssigneeSelector({
         {value ? (
           <Avatar
             src={value.avatar_url}
-            name={value.full_name}
+            name={getDisplayName(value)}
             size="xs"
           />
         ) : (
           <UserIcon className="h-4 w-4" />
         )}
         <span className="flex-1 text-left truncate">
-          {value ? (value.full_name || value.email) : 'Nepriradené'}
+          {value ? getDisplayName(value) : 'Nepriradené'}
         </span>
         <ChevronDown className="h-4 w-4 text-[var(--text-secondary)]" />
       </button>
@@ -167,11 +169,11 @@ export function AssigneeSelector({
                   <div className="flex items-center gap-2">
                     <Avatar
                       src={user.avatar_url}
-                      name={user.full_name}
+                      name={getDisplayName(user)}
                       size="xs"
                     />
                     <span className="text-sm text-[var(--text-primary)]">
-                      {user.full_name || user.email}
+                      {getDisplayName(user)}
                     </span>
                   </div>
                   {value?.id === user.id && (

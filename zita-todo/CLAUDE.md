@@ -5,8 +5,8 @@
 ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zobrazením, sledovaním času a Toggl-style time trackingom. Určená pre ~20 členný tím s podporou osobnej aj tímovej produktivity.
 
 **Dátum vytvorenia**: 2. januára 2026
-**Posledná aktualizácia**: 10. januára 2026
-**Verzia špecifikácie**: 2.33 (Inline Form Position + Task Order)
+**Posledná aktualizácia**: 11. januára 2026
+**Verzia špecifikácie**: 2.34 (Cascading Filters + Nickname Everywhere)
 
 ---
 
@@ -1183,6 +1183,82 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 ---
 
 ## Changelog
+
+### v2.34 (11. januára 2026)
+**Cascading Filters + Nickname Everywhere:**
+
+Kompletná implementácia kaskádových filtrov pre desktop a unifikácia zobrazenia mena používateľa (nickname) v celej aplikácii.
+
+**Fáza 1 - Kaskádové filtre pre desktop:**
+- ✅ `components/filters/cascading-filter-bar.tsx` - Hlavný komponent s 7 kategóriami filtrov
+  - Status, Due Date, Priority, Sort, Assignee, Area, Tags
+  - Každý filter je dropdown s multi-select podporou
+  - Aktívne filtre zvýraznené modrou farbou
+- ✅ `components/filters/filter-dropdown.tsx` - Reusable dropdown komponent
+- ✅ `components/filters/filter-trigger-button.tsx` - Trigger button pre dropdown
+- ✅ `components/filters/filter-dropdown-panel.tsx` - Panel s možnosťami
+- ✅ `components/filters/active-filters-chips.tsx` - Chipy pre aktívne filtre
+- ✅ `components/filters/filter-chips.tsx` - Jednotlivé filter chipy
+- ✅ `lib/hooks/use-cascading-filters.ts` - Hook pre správu stavu filtrov
+
+**Fáza 2 - Mobilné filtre:**
+- ✅ `components/filters/unified-filter-bar.tsx` - Responzívny komponent
+  - Desktop: CascadingFilterBar
+  - Mobile: FilterBottomSheet trigger
+- ✅ `components/filters/filter-bottom-sheet.tsx` - Bottom sheet pre mobile
+
+**Fáza 3 - Integrácia na všetky stránky:**
+- ✅ `app/(dashboard)/today/page.tsx`
+- ✅ `app/(dashboard)/inbox/page.tsx`
+- ✅ `app/(dashboard)/inbox/team/page.tsx`
+- ✅ `app/(dashboard)/anytime/page.tsx`
+- ✅ `app/(dashboard)/upcoming/page.tsx`
+- ✅ `app/(dashboard)/logbook/page.tsx`
+- ✅ `app/(dashboard)/trash/page.tsx`
+- ✅ `app/(dashboard)/areas/[areaId]/page.tsx`
+- ✅ `app/(dashboard)/projects/[projectId]/page.tsx`
+
+**Fáza 4 - Nickname všade:**
+- ✅ `lib/utils/user.ts` - Nový helper modul
+  - `getDisplayName()` - Vracia nickname || full_name || fallback
+  - `getFullDisplayName()` - Vracia "nickname (full_name)" pre admin view
+- ✅ Aktualizované komponenty:
+  - `components/tasks/assignee-selector.tsx` - 4x použitie getDisplayName
+  - `components/tasks/task-item.tsx` - Avatar name
+  - `components/filters/colleague-filter-bar.tsx` - Avatar name
+  - `components/users/user-row.tsx` - getFullDisplayName pre admin
+
+**Fáza 5 - Supabase query fixes:**
+- ✅ Pridané `nickname` do všetkých assignee select queries:
+  - `lib/hooks/use-tasks.ts` - 7 occurrences
+  - `lib/hooks/use-projects.ts` - 1 occurrence
+  - `lib/hooks/use-areas.ts` - 2 occurrences
+
+**Nové súbory:**
+- `components/filters/cascading-filter-bar.tsx`
+- `components/filters/filter-dropdown.tsx`
+- `components/filters/filter-trigger-button.tsx`
+- `components/filters/filter-dropdown-panel.tsx`
+- `components/filters/active-filters-chips.tsx`
+- `components/filters/filter-chips.tsx`
+- `components/filters/unified-filter-bar.tsx`
+- `components/filters/filter-bottom-sheet.tsx`
+- `lib/hooks/use-cascading-filters.ts`
+- `lib/utils/user.ts`
+
+**Upravené súbory:**
+- Všetky dashboard stránky (9 súborov)
+- `components/tasks/assignee-selector.tsx`
+- `components/tasks/task-item.tsx`
+- `components/filters/colleague-filter-bar.tsx`
+- `components/users/user-row.tsx`
+- `lib/hooks/use-tasks.ts`
+- `lib/hooks/use-projects.ts`
+- `lib/hooks/use-areas.ts`
+- `components/filters/index.ts`
+- `types/index.ts`
+
+---
 
 ### v2.33 (10. januára 2026)
 **Inline Form Position + Task Order:**

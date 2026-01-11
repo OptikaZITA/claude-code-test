@@ -11,6 +11,7 @@ import { TaskItemExpanded } from '@/components/tasks/task-item-expanded'
 import { InlineTimeTracker } from '@/components/tasks/inline-time-tracker'
 import { TodayStarIndicator, NewTaskIndicator } from '@/components/indicators'
 import { cn } from '@/lib/utils/cn'
+import { getDisplayName } from '@/lib/utils/user'
 
 const SWIPE_THRESHOLD = 80 // pixels to trigger delete action
 const DELETE_BUTTON_WIDTH = 80 // width of delete button
@@ -226,7 +227,7 @@ export function TaskItem({
       {/* Task content (swipeable) */}
       <div
         className={cn(
-          'group flex items-start gap-2 rounded-[var(--radius-lg)] bg-card px-3 py-2 cursor-pointer relative',
+          'group rounded-[var(--radius-lg)] bg-card px-3 py-2 cursor-pointer relative',
           'transition-all duration-200',
           isCompleted && 'opacity-60',
           !isSwiping && 'transition-transform',
@@ -241,55 +242,55 @@ export function TaskItem({
         onTouchMove={isMobile && onDelete ? handleTouchMove : undefined}
         onTouchEnd={isMobile && onDelete ? handleTouchEnd : undefined}
       >
-        {/* Checkbox */}
-        <div onClick={(e) => e.stopPropagation()} className="shrink-0 pt-0.5 flex items-center gap-1">
-          {/* Zlta bodka pre novy task */}
-          <NewTaskIndicator isNew={isNew} className="mr-0.5" />
-          <Checkbox
-            checked={isCompleted}
-            onChange={(checked) => onComplete(checked)}
-          />
-        </div>
+        {/* DESKTOP LAYOUT */}
+        <div className="hidden md:flex items-center gap-2">
+          {/* Checkbox */}
+          <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+            <Checkbox
+              checked={isCompleted}
+              onChange={(checked) => onComplete(checked)}
+            />
+          </div>
 
-        {/* Priority flag - červená (high), žltá (low) - zobrazuje sa LEN pre definované priority */}
-        {task.priority && ['high', 'low'].includes(task.priority) && (
-          <Flag
-            className={cn(
-              'h-4 w-4 shrink-0 mt-0.5',
-              priorityFlagColors[task.priority]
-            )}
-            fill="currentColor"
-          />
-        )}
+          {/* Žltá bodka - za checkboxom */}
+          <NewTaskIndicator isNew={isNew} />
 
-        {/* Today star indicator - hviezdička pre tasky v "Dnes" (len na stránkach projektov/oddelení) */}
-        {showTodayStar && isTodayTask && (
-          <TodayStarIndicator isInToday={true} size="md" className="mt-0.5" />
-        )}
+          {/* Priority flag */}
+          {task.priority && ['high', 'low'].includes(task.priority) && (
+            <Flag
+              className={cn('h-4 w-4 shrink-0', priorityFlagColors[task.priority])}
+              fill="currentColor"
+            />
+          )}
 
-        {/* Task content - Things 3 style layout */}
-        <div className="flex-1 min-w-0">
-          {/* Row 1: Title + Notes icon + TAGS */}
-          <div className="flex items-center gap-2 flex-wrap">
+          {/* Today star */}
+          {showTodayStar && isTodayTask && (
+            <TodayStarIndicator isInToday={true} size="md" />
+          )}
+
+          {/* Title + Notes icon */}
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
             <span
               className={cn(
-                'text-sm font-medium text-foreground',
+                'text-sm font-medium text-foreground truncate',
                 isCompleted && 'line-through text-muted-foreground'
               )}
             >
               {task.title}
             </span>
             {task.notes && (
-              <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             )}
-            {/* Recurrence ikona */}
             {task.recurrence_rule && (
               <span title="Opakujúca sa úloha">
-                <Repeat className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                <Repeat className="h-3.5 w-3.5 text-primary shrink-0" />
               </span>
             )}
-            {/* Tags hneď za názvom */}
-            {task.tags?.map(tag => (
+          </div>
+
+          {/* Tags - inline on desktop */}
+          <div className="flex items-center gap-1 shrink-0">
+            {task.tags?.slice(0, 3).map(tag => (
               <span
                 key={tag.id}
                 className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground whitespace-nowrap"
@@ -297,30 +298,99 @@ export function TaskItem({
                 {tag.name}
               </span>
             ))}
+            {(task.tags?.length || 0) > 3 && (
+              <span className="text-xs text-muted-foreground">+{(task.tags?.length || 0) - 3}</span>
+            )}
           </div>
 
-          {/* Row 2: Area/Department name (gray, smaller) */}
-          {task.area && (
-            <span className="text-xs text-muted-foreground">
-              {task.area.name}
-            </span>
-          )}
-        </div>
-
-        {/* Right side: Time tracker, Deadline, Avatar */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Inline Time Tracker */}
+          {/* Time tracker */}
           <InlineTimeTracker taskId={task.id} />
 
-          {/* Deadline badge */}
+          {/* Deadline */}
           <DeadlineBadge value={task.deadline} />
 
+          {/* Avatar */}
           {task.assignee && (
             <Avatar
               src={task.assignee.avatar_url}
-              name={task.assignee.full_name}
+              name={getDisplayName(task.assignee)}
               size="sm"
             />
+          )}
+        </div>
+
+        {/* Area - desktop (below title) */}
+        {task.area && (
+          <div className="hidden md:block text-xs text-muted-foreground mt-0.5 ml-7">
+            {task.area.name}
+          </div>
+        )}
+
+        {/* MOBILE LAYOUT */}
+        <div className="md:hidden">
+          {/* Row 1: Checkbox + Title + Deadline */}
+          <div className="flex items-center gap-2">
+            {/* Checkbox */}
+            <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+              <Checkbox
+                checked={isCompleted}
+                onChange={(checked) => onComplete(checked)}
+              />
+            </div>
+
+            {/* Žltá bodka - za checkboxom */}
+            <NewTaskIndicator isNew={isNew} />
+
+            {/* Priority flag */}
+            {task.priority && ['high', 'low'].includes(task.priority) && (
+              <Flag
+                className={cn('h-4 w-4 shrink-0', priorityFlagColors[task.priority])}
+                fill="currentColor"
+              />
+            )}
+
+            {/* Today star */}
+            {showTodayStar && isTodayTask && (
+              <TodayStarIndicator isInToday={true} size="md" />
+            )}
+
+            {/* Title */}
+            <span
+              className={cn(
+                'text-sm font-medium text-foreground truncate flex-1',
+                isCompleted && 'line-through text-muted-foreground'
+              )}
+            >
+              {task.title}
+            </span>
+
+            {task.notes && (
+              <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            )}
+
+            {/* Deadline - mobile */}
+            <DeadlineBadge value={task.deadline} />
+          </div>
+
+          {/* Row 2: Tags (if any) */}
+          {task.tags && task.tags.length > 0 && (
+            <div className="flex items-center gap-1 mt-1 flex-wrap">
+              {task.tags.map(tag => (
+                <span
+                  key={tag.id}
+                  className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground"
+                >
+                  {tag.name}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Row 3: Area/Department */}
+          {task.area && (
+            <div className="text-xs text-muted-foreground mt-0.5">
+              {task.area.name}
+            </div>
           )}
         </div>
       </div>

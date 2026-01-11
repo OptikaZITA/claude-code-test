@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Layers, FolderKanban, Star, Filter, FolderPlus, Plus } from 'lucide-react'
+import { Layers, FolderKanban, Star, FolderPlus, Plus } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { TaskList } from '@/components/tasks/task-list'
@@ -11,14 +11,14 @@ import { TaskQuickAdd, TaskQuickAddData, TaskQuickAddHandle } from '@/components
 import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
-import { TaskFiltersBar, ColleagueFilterBar, filterTasksByColleague } from '@/components/filters'
-import { TagFilterBar } from '@/components/tasks/tag-filter-bar'
+import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { ProjectFormModal } from '@/components/projects/project-form-modal'
-import { useArea, useAreaProjects, useAllAreaTasks } from '@/lib/hooks/use-areas'
+import { useArea, useAreaProjects, useAllAreaTasks, useAreas } from '@/lib/hooks/use-areas'
 import { useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useViewPreference } from '@/lib/hooks/use-view-preference'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
+import { useTags } from '@/lib/hooks/use-tags'
 import { TaskWithRelations, Project, TaskStatus } from '@/types'
 import { cn } from '@/lib/utils/cn'
 import { sortTasksTodayFirst } from '@/lib/utils/task-sorting'
@@ -92,12 +92,12 @@ export default function AreaDetailPage() {
   const { tasks, loading: tasksLoading, refetch: refetchTasks } = useAllAreaTasks(areaId)
   const { createTask, updateTask, completeTask, softDelete } = useTasks()
   const { viewMode, setViewMode, isLoaded } = useViewPreference('area')
-  const [showFilters, setShowFilters] = useState(false)
-  const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
+  const { filters, setFilter, clearFilters, clearFilter, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
-  const [selectedColleague, setSelectedColleague] = useState<string | null>(null)
   const [showProjectModal, setShowProjectModal] = useState(false)
   const inlineFormRef = useRef<TaskQuickAddHandle>(null)
+  const { areas } = useAreas()
+  const { tags: allTags } = useTags()
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -112,11 +112,6 @@ export default function AreaDetailPage() {
     )
   }, [filteredTasks, selectedTag])
 
-  // Apply colleague filter (Strážci vesmíru)
-  const colleagueFilteredTasks = useMemo(() => {
-    return filterTasksByColleague(tagFilteredTasks, selectedColleague)
-  }, [tagFilteredTasks, selectedColleague])
-
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetchTasks)
 
@@ -125,7 +120,7 @@ export default function AreaDetailPage() {
     const projectTasksMap = new Map<string, TaskWithRelations[]>()
     const loose: TaskWithRelations[] = []
 
-    colleagueFilteredTasks.forEach(task => {
+    tagFilteredTasks.forEach(task => {
       if (task.project_id) {
         const existing = projectTasksMap.get(task.project_id) || []
         projectTasksMap.set(task.project_id, [...existing, task])
@@ -138,7 +133,7 @@ export default function AreaDetailPage() {
       projectTasks: projectTasksMap,
       looseTasks: sortTasksTodayFirst(loose)
     }
-  }, [colleagueFilteredTasks])
+  }, [tagFilteredTasks])
 
   // Active projects (must be before early returns)
   const activeProjects = useMemo(() => {
@@ -294,36 +289,12 @@ export default function AreaDetailPage() {
         showViewToggle
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-      >
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`p-2 rounded-lg transition-colors ${
-            hasActiveFilters
-              ? 'bg-[var(--color-primary)] text-white'
-              : 'hover:bg-[var(--bg-hover)]'
-          }`}
-          title="Filtre"
-        >
-          <Filter className="h-4 w-4" />
-        </button>
-      </Header>
-
-      {/* Filter Bar */}
-      {showFilters && (
-        <div className="px-6 py-3 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
-          <TaskFiltersBar
-            filters={filters}
-            onFilterChange={setFilter}
-            onClearFilters={clearFilters}
-            hasActiveFilters={hasActiveFilters}
-          />
-        </div>
-      )}
+      />
 
       {viewMode === 'calendar' ? (
         <div className="flex-1 overflow-hidden">
           <CalendarView
-            tasks={colleagueFilteredTasks}
+            tasks={tagFilteredTasks}
             onTaskClick={() => {}}
             onDateClick={handleCalendarDateClick}
             onTaskMove={handleCalendarTaskMove}
@@ -332,7 +303,7 @@ export default function AreaDetailPage() {
       ) : viewMode === 'kanban' ? (
         <div className="flex-1 overflow-hidden">
           <KanbanBoard
-            tasks={colleagueFilteredTasks}
+            tasks={tagFilteredTasks}
             onTaskMove={handleKanbanTaskMove}
             onTaskClick={() => {}}
             onQuickAdd={handleKanbanQuickAdd}
@@ -361,19 +332,34 @@ export default function AreaDetailPage() {
             </div>
           </div>
 
-          {/* Tag Filter Bar */}
-          <TagFilterBar
-            tasks={filteredTasks}
-            selectedTag={selectedTag}
-            onSelectTag={setSelectedTag}
+          {/* Cascading Filter Bar - Desktop only */}
+          <CascadingFilterBar
+            tasks={tasks}
+            filters={filters}
+            onFilterChange={setFilter}
+            onClearFilters={clearFilters}
+            onClearFilter={clearFilter}
+            hasActiveFilters={hasActiveFilters}
+            areas={areas}
+            allTags={allTags}
+            hideFilters={['area']}
+            className="mb-4"
           />
 
-          {/* Colleague Filter Bar (Strážci vesmíru) */}
-          <ColleagueFilterBar
-            tasks={tagFilteredTasks}
-            selectedColleague={selectedColleague}
-            onSelectColleague={setSelectedColleague}
-          />
+          {/* Unified Filter Bar - Mobile only */}
+          <div className="lg:hidden">
+            <UnifiedFilterBar
+              tasks={filteredTasks}
+              filters={filters}
+              onFilterChange={setFilter}
+              onClearFilters={clearFilters}
+              onClearFilter={clearFilter}
+              hasActiveFilters={hasActiveFilters}
+              selectedTag={selectedTag}
+              onSelectTag={setSelectedTag}
+              className="mb-4"
+            />
+          </div>
 
           {/* Inline Task Quick Add Form */}
           <TaskQuickAdd
@@ -439,16 +425,16 @@ export default function AreaDetailPage() {
           )}
 
           {/* Filter empty state */}
-          {colleagueFilteredTasks.length === 0 && tasks.length > 0 && (hasActiveFilters || selectedTag || selectedColleague) && (
+          {tagFilteredTasks.length === 0 && tasks.length > 0 && (hasActiveFilters || selectedTag) && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Filter className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
+              <FolderKanban className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
               <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
                 {selectedTag && selectedTagName
                   ? `Žiadne úlohy s tagom "${selectedTagName}"`
                   : 'Žiadne úlohy nezodpovedajú filtrom'}
               </p>
               <button
-                onClick={() => { clearFilters(); setSelectedTag(null); setSelectedColleague(null); }}
+                onClick={() => { clearFilters(); setSelectedTag(null); }}
                 className="text-[var(--color-primary)] hover:underline"
               >
                 Zrušiť filtre
@@ -457,7 +443,7 @@ export default function AreaDetailPage() {
           )}
 
           {/* Quick add for area when no loose tasks */}
-          {looseTasks.length === 0 && (projects.length > 0 || tasks.length > 0) && !hasActiveFilters && !selectedTag && !selectedColleague && (
+          {looseTasks.length === 0 && (projects.length > 0 || tasks.length > 0) && !hasActiveFilters && !selectedTag && (
             <div className="mt-6 pt-4 border-t border-[var(--border-primary)]">
               <TaskList
                 tasks={[]}

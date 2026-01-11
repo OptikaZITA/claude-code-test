@@ -1,14 +1,16 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { BookOpen, CheckCircle2, Filter } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { TaskItem } from '@/components/tasks/task-item'
-import { TaskFiltersBar, ColleagueFilterBar, filterTasksByColleague } from '@/components/filters'
+import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { useLogbookTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
+import { useAreas } from '@/lib/hooks/use-areas'
+import { useTags } from '@/lib/hooks/use-tags'
 import { TaskWithRelations } from '@/types'
 import { format, parseISO, startOfDay, isToday, isYesterday, isThisWeek, isThisMonth } from 'date-fns'
 import { sk } from 'date-fns/locale'
@@ -17,19 +19,23 @@ export default function LogbookPage() {
   const { tasks, loading, refetch } = useLogbookTasks()
   const { updateTask, completeTask } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
-  const [showFilters, setShowFilters] = useState(false)
-  const { filters, setFilter, clearFilters, hasActiveFilters } = useTaskFilters()
-  const [selectedColleague, setSelectedColleague] = useState<string | null>(null)
+  const { filters, setFilter, clearFilters, clearFilter, hasActiveFilters } = useTaskFilters()
+  const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  const { areas } = useAreas()
+  const { tags: allTags } = useTags()
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
     return filterTasks(tasks, filters)
   }, [tasks, filters])
 
-  // Apply colleague filter (Strážci vesmíru)
-  const colleagueFilteredTasks = useMemo(() => {
-    return filterTasksByColleague(filteredTasks, selectedColleague)
-  }, [filteredTasks, selectedColleague])
+  // Apply tag filter
+  const tagFilteredTasks = useMemo(() => {
+    if (!selectedTag) return filteredTasks
+    return filteredTasks.filter(task =>
+      task.tags?.some(tag => tag.id === selectedTag)
+    )
+  }, [filteredTasks, selectedTag])
 
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
@@ -50,7 +56,7 @@ export default function LogbookPage() {
       older: [],
     }
 
-    colleagueFilteredTasks.forEach(task => {
+    tagFilteredTasks.forEach(task => {
       if (!task.completed_at) {
         groups.older.push(task)
         return
@@ -72,7 +78,7 @@ export default function LogbookPage() {
     })
 
     return groups
-  }, [colleagueFilteredTasks])
+  }, [tagFilteredTasks])
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
     try {
@@ -129,42 +135,39 @@ export default function LogbookPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <Header title="Logbook">
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`p-2 rounded-[var(--radius-sm)] transition-colors ${
-            hasActiveFilters
-              ? 'bg-primary text-white'
-              : 'hover:bg-accent/50'
-          }`}
-          title="Filtre"
-        >
-          <Filter className="h-4 w-4" />
-        </button>
-      </Header>
+      <Header title="Logbook" />
 
-      {/* Filter Bar */}
-      {showFilters && (
-        <div className="px-6 py-3 border-b border-[var(--border)] bg-muted">
-          <TaskFiltersBar
+      <div className="flex-1 overflow-auto p-6">
+        {/* Cascading Filter Bar - Desktop only */}
+        <CascadingFilterBar
+          tasks={tasks}
+          filters={filters}
+          onFilterChange={setFilter}
+          onClearFilters={clearFilters}
+          onClearFilter={clearFilter}
+          hasActiveFilters={hasActiveFilters}
+          areas={areas}
+          allTags={allTags}
+          className="mb-4"
+        />
+
+        {/* Unified Filter Bar - Mobile only */}
+        <div className="lg:hidden">
+          <UnifiedFilterBar
+            tasks={filteredTasks}
             filters={filters}
             onFilterChange={setFilter}
             onClearFilters={clearFilters}
+            onClearFilter={clearFilter}
             hasActiveFilters={hasActiveFilters}
+            selectedTag={selectedTag}
+            onSelectTag={setSelectedTag}
+            className="mb-4"
           />
         </div>
-      )}
-
-      <div className="flex-1 overflow-auto p-6">
-        {/* Colleague Filter Bar (Strážci vesmíru) */}
-        <ColleagueFilterBar
-          tasks={filteredTasks}
-          selectedColleague={selectedColleague}
-          onSelectColleague={setSelectedColleague}
-        />
 
         {/* Tasks grouped by time period */}
-        {colleagueFilteredTasks.length === 0 && tasks.length === 0 ? (
+        {tagFilteredTasks.length === 0 && tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <CheckCircle2 className="mb-4 h-12 w-12 text-muted-foreground" />
             <p className="mb-2 text-lg font-medium text-foreground">
@@ -174,12 +177,12 @@ export default function LogbookPage() {
               Dokončené úlohy sa zobrazia tu
             </p>
           </div>
-        ) : colleagueFilteredTasks.length === 0 && (hasActiveFilters || selectedColleague) ? (
+        ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag) ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Filter className="mb-4 h-12 w-12 text-muted-foreground" />
+            <CheckCircle2 className="mb-4 h-12 w-12 text-muted-foreground" />
             <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
             <button
-              onClick={() => { clearFilters(); setSelectedColleague(null); }}
+              onClick={() => { clearFilters(); setSelectedTag(null); }}
               className="text-primary hover:underline"
             >
               Zrušiť filtre

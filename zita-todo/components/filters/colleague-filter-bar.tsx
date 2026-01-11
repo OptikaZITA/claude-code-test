@@ -95,7 +95,7 @@ export function ColleagueFilterBar({
         >
           <Avatar
             src={colleague.avatar_url}
-            name={colleague.full_name}
+            name={getDisplayName(colleague)}
             size="xs"
             className={cn(
               selectedColleague === colleague.id && 'ring-2 ring-white'

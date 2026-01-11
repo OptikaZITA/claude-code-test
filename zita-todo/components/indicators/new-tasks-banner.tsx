@@ -21,17 +21,17 @@ export function NewTasksBanner({
   if (count <= 0) return null
 
   const taskWord = count === 1
-    ? 'nova uloha'
+    ? 'nová úloha'
     : count < 5
-      ? 'nove ulohy'
-      : 'novych uloh'
+      ? 'nové úlohy'
+      : 'nových úloh'
 
   return (
     <div className="flex items-center justify-between gap-4 px-4 py-3 mb-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
       <div className="flex items-center gap-2">
         <Circle className="h-3 w-3 fill-amber-500 text-amber-500" />
         <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
-          Mate {count} {taskWord}
+          Máte {count} {taskWord}
         </span>
       </div>
       <Button

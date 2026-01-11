@@ -288,6 +288,7 @@ export const DEFAULT_KANBAN_COLUMNS: KanbanColumnConfig[] = [
 
 // Filter types
 export type DueDateFilter = 'today' | 'this_week' | 'this_month' | 'overdue' | 'no_date'
+export type SortOption = 'default' | 'deadline_asc' | 'deadline_desc'
 
 export interface TaskFilters {
   status: TaskStatus | null
@@ -296,8 +297,10 @@ export interface TaskFilters {
   priority: TaskPriority | null
   tagIds: string[]
   projectId: string | null
+  areaId: string | null  // Oddelenie filter
   when: WhenType | null
   search?: string
+  sortBy: SortOption
 }
 
 export const DEFAULT_TASK_FILTERS: TaskFilters = {
@@ -307,8 +310,10 @@ export const DEFAULT_TASK_FILTERS: TaskFilters = {
   priority: null,
   tagIds: [],
   projectId: null,
+  areaId: null,
   when: null,
   search: '',
+  sortBy: 'default',
 }
 
 // Integration types
