@@ -6,6 +6,7 @@ export interface TimeEntry {
   id: string
   date: string
   startedAt: string  // Full timestamp for time display
+  endedAt: string | null  // Full timestamp for end time
   userId: string
   userName: string
   userNickname: string

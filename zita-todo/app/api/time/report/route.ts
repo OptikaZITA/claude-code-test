@@ -5,6 +5,7 @@ interface TimeEntry {
   id: string
   date: string
   startedAt: string  // Full timestamp for time display
+  endedAt: string | null  // Full timestamp for end time
   userId: string
   userName: string
   userNickname: string
@@ -73,6 +74,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<TimeReport
       .select(`
         id,
         started_at,
+        ended_at,
         duration_seconds,
         description,
         user_id,
@@ -181,6 +183,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<TimeReport
         id: e.id,
         date: e.started_at.split('T')[0],
         startedAt: e.started_at,  // Full timestamp for time display
+        endedAt: e.ended_at,  // Full timestamp for end time
         userId: e.user_id,
         userName: userData?.full_name || '',
         userNickname: userData?.nickname || userData?.full_name || '',

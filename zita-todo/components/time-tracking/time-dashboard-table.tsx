@@ -184,6 +184,8 @@ function DetailedTable({
           {entries.map(entry => {
             const canEdit = isAdmin || entry.userId === currentUserId
             const startTime = entry.startedAt ? format(parseISO(entry.startedAt), 'HH:mm', { locale: sk }) : ''
+            const endTime = entry.endedAt ? format(parseISO(entry.endedAt), 'HH:mm', { locale: sk }) : ''
+            const timeRange = startTime && endTime ? `${startTime} – ${endTime}` : startTime || '-'
 
             return (
               <tr
@@ -203,7 +205,7 @@ function DetailedTable({
                   {entry.projectName || '-'}
                 </td>
                 <td className="py-3 px-4 text-sm text-[var(--text-secondary)]">
-                  {startTime}
+                  {timeRange}
                 </td>
                 <td className="py-3 px-4 text-sm font-medium text-[var(--text-primary)] text-right">
                   {formatDuration(entry.durationSeconds)}
@@ -283,7 +285,7 @@ export function TimeDashboardTable({
     task_id: entry.taskId,
     user_id: entry.userId,
     started_at: entry.startedAt,
-    ended_at: null, // Will need to calculate from duration
+    ended_at: entry.endedAt,
     duration_seconds: entry.durationSeconds,
     note: null,
     description: entry.description,
