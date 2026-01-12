@@ -374,8 +374,8 @@ export function useTodayTasks() {
         .is('archived_at', null)
         .is('deleted_at', null)
         .neq('status', 'done')
-        // DEFAULT: Len MOJE úlohy (assignee, creator, alebo owner)
-        .or(`assignee_id.eq.${user.id},created_by.eq.${user.id},user_id.eq.${user.id}`)
+        // DEFAULT: Len MOJE úlohy (creator alebo assignee)
+        .or(`created_by.eq.${user.id},assignee_id.eq.${user.id}`)
         .order('sort_order', { ascending: true })
 
       if (error) throw error
@@ -423,8 +423,8 @@ export function useUpcomingTasks() {
         .is('archived_at', null)
         .is('deleted_at', null)
         .neq('status', 'done')
-        // DEFAULT: Len MOJE úlohy (assignee, creator, alebo owner)
-        .or(`assignee_id.eq.${user.id},created_by.eq.${user.id},user_id.eq.${user.id}`)
+        // DEFAULT: Len MOJE úlohy (creator alebo assignee)
+        .or(`created_by.eq.${user.id},assignee_id.eq.${user.id}`)
         .order('when_date', { ascending: true })
 
       if (error) throw error
@@ -470,8 +470,8 @@ export function useAnytimeTasks() {
         .is('archived_at', null)
         .is('deleted_at', null)
         .neq('status', 'done')
-        // DEFAULT: Len MOJE úlohy (assignee, creator, alebo owner)
-        .or(`assignee_id.eq.${user.id},created_by.eq.${user.id},user_id.eq.${user.id}`)
+        // DEFAULT: Len MOJE úlohy (creator alebo assignee)
+        .or(`created_by.eq.${user.id},assignee_id.eq.${user.id}`)
         .order('sort_order', { ascending: true })
 
       if (error) throw error
@@ -516,8 +516,8 @@ export function useLogbookTasks() {
         .eq('status', 'done')
         .is('archived_at', null)
         .is('deleted_at', null)
-        // DEFAULT: Len MOJE úlohy (assignee, creator, alebo owner)
-        .or(`assignee_id.eq.${user.id},created_by.eq.${user.id},user_id.eq.${user.id}`)
+        // DEFAULT: Len MOJE úlohy (creator alebo assignee)
+        .or(`created_by.eq.${user.id},assignee_id.eq.${user.id}`)
         .order('completed_at', { ascending: false })
         .limit(100)
 

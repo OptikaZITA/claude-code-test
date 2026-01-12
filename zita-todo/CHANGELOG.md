@@ -4,6 +4,69 @@ História všetkých zmien v projekte.
 
 ---
 
+### v2.37 (12. januára 2026)
+**Global Search + My Tasks Filter Fix:**
+
+Implementácia globálneho vyhľadávania a oprava bugu s "Moje úlohy" filtrom.
+
+**Fáza 1 - Global Search:**
+
+**API Endpoint:**
+- ✅ `app/api/search/route.ts` - Vyhľadávací endpoint
+  - Vyhľadávanie v: tasks (title, notes), projects (name), areas (name), tags (name), users (full_name, nickname, email)
+  - ILIKE pre case-insensitive matching
+  - Paralelné queries cez `Promise.all`
+  - Minimum 2 znaky, limit 5 výsledkov per kategória
+
+**Frontend Hook:**
+- ✅ `lib/hooks/use-search.ts` - Hook pre vyhľadávanie
+  - Debounce 300ms
+  - TypeScript typy pre výsledky
+  - Loading a error state
+
+**UI Komponenty:**
+- ✅ `components/layout/global-search.tsx` - Hlavný search komponent
+  - Input s ikonou 🔍 a keyboard hint `[/]`
+  - Dropdown s výsledkami zoskupenými podľa typu (Úlohy, Projekty, Oddelenia, Tagy, Používatelia)
+  - Loading spinner a empty state
+- ✅ `components/layout/search-result-item.tsx` - Položka výsledku
+  - Ikony podľa typu
+  - Subtitle s area/project info
+  - Dátum pre úlohy
+
+**Keyboard navigácia:**
+| Klávesa | Akcia |
+|---------|-------|
+| `/` | Focus na search input (globálne) |
+| `↑` `↓` | Navigácia medzi výsledkami |
+| `Enter` | Otvoriť vybraný výsledok |
+| `Escape` | Zavrieť dropdown, vyčistiť |
+
+**Akcie pri kliknutí:**
+| Typ výsledku | Akcia |
+|--------------|-------|
+| Úloha | Custom event `search:select-task` |
+| Projekt | Navigácia na `/projects/[id]` |
+| Oddelenie | Navigácia na `/areas/[id]` |
+
+**Fáza 2 - Bug fix: "Moje úlohy" filter:**
+- ✅ Oprava neexistujúceho stĺpca `user_id` vo filtri
+- ✅ Zmenený filter z `.or(\`assignee_id.eq.${user.id},created_by.eq.${user.id},user_id.eq.${user.id}\`)`
+- ✅ Na: `.or(\`created_by.eq.${user.id},assignee_id.eq.${user.id}\`)`
+- ✅ Opravené hooks: `useTodayTasks`, `useUpcomingTasks`, `useAnytimeTasks`, `useLogbookTasks`
+
+**Nové súbory:**
+- `app/api/search/route.ts`
+- `lib/hooks/use-search.ts`
+- `components/layout/global-search.tsx`
+- `components/layout/search-result-item.tsx`
+
+**Upravené súbory:**
+- `components/layout/header.tsx` - Integrácia GlobalSearch
+- `lib/hooks/use-tasks.ts` - Oprava filtra
+
+---
+
 ### v2.36 (12. januára 2026)
 **Private Tasks + My Tasks Filter:**
 
