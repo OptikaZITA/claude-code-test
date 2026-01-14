@@ -190,6 +190,9 @@ export function useUsersManagement(): UseUsersManagementResult {
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + 7)
 
+    // Generate unique token for invitation link
+    const token = crypto.randomUUID()
+
     // Get current user as inviter and their organization
     const { data: { user: currentUser } } = await supabase.auth.getUser()
 
@@ -212,6 +215,7 @@ export function useUsersManagement(): UseUsersManagementResult {
         position: data.position || null,
         role: data.role,
         departments: data.departments,
+        token: token,
         expires_at: expiresAt.toISOString(),
         invited_by: currentUser?.id || null,
         organization_id: organizationId,
