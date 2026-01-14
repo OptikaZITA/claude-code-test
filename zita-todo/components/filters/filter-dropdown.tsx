@@ -42,21 +42,9 @@ export function FilterDropdown({
     ? Array.isArray(value) && value.length > 0
     : value !== null
 
-  // Get display label
-  const getDisplayLabel = (): string => {
-    if (!isActive) return label
-
-    if (multiSelect && Array.isArray(value)) {
-      if (value.length === 1) {
-        const option = options.find(o => o.value === value[0])
-        return option?.label || label
-      }
-      return `${value.length}`
-    }
-
-    const option = options.find(o => o.value === value)
-    return option?.label || label
-  }
+  // Button text sa NEMENÍ - vždy len label kategórie
+  // Len farba (sivá/modrá) indikuje aktívny filter
+  // Aktívne filtre sa zobrazujú v riadku chips pod buttonmi
 
   // Handle click outside
   useEffect(() => {
@@ -129,7 +117,7 @@ export function FilterDropdown({
           isOpen && !isActive && 'border-primary'
         )}
       >
-        <span>{getDisplayLabel()}</span>
+        <span>{label}</span>
         <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', isOpen && 'rotate-180')} />
       </button>
 

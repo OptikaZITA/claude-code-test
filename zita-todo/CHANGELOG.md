@@ -4,6 +4,66 @@ História všetkých zmien v projekte.
 
 ---
 
+### v2.38 (14. januára 2026)
+**Strážcovia vesmíru Filter Refactor:**
+
+Kompletný refaktoring assignee filtra "Strážcovia vesmíru" s novým UX správaním.
+
+**Hlavné zmeny:**
+
+**1. Filter logika zjednodušená:**
+- ✅ Odstránená mätúca možnosť "Moje úlohy"
+- ✅ Filter teraz filtruje LEN podľa `assignee_id` (nie `created_by OR assignee_id`)
+- ✅ Default = aktuálny používateľ (`user.id`)
+
+**2. Button text sa NEMENÍ:**
+- ✅ Button vždy zobrazuje len "Strážcovia vesmíru ▼"
+- ✅ Len FARBA indikuje aktívny filter (sivá = default, modrá = aktívny)
+- ✅ Aktívne filtre sa zobrazujú v riadku chips pod buttonmi
+
+**3. Výber seba = aktívny filter:**
+- ✅ Keď používateľ vyberie sám seba, filter je AKTÍVNY (modrý button, chip)
+- ✅ Chip zobrazuje "(ja)" - napr. "Dano (ja) ✕"
+- ✅ Reset filtrov → späť na default (sivý button, žiadny chip)
+
+**4. Auto-assign pri vytvorení úlohy:**
+- ✅ Dnes/Inbox/Kedykoľvek → `assignee_id = user.id`
+- ✅ Tímový Inbox → `assignee_id = NULL`
+
+**Výsledné správanie:**
+| Stav | Button | Chip |
+|------|--------|------|
+| Default (nič nevybraté) | Sivý | Žiadny |
+| Vybratie seba | Modrý | "Dano (ja) ✕" |
+| Vybratie kolegu | Modrý | "Optika ✕" |
+| Vybratie "Všetci" | Modrý | "Všetci ✕" |
+| Vybratie "Nepriradené" | Modrý | "Nepriradené ✕" |
+
+**Filter query:**
+| Výber | Query |
+|-------|-------|
+| Default | `assignee_id = user.id` |
+| Konkrétny user | `assignee_id = selected_id` |
+| Všetci | Žiadny filter |
+| Nepriradené | `assignee_id IS NULL` |
+
+**Upravené súbory:**
+- `lib/hooks/use-tasks.ts` - Nová filter logika, auto-assign
+- `lib/hooks/use-cascading-filters.ts` - Odstránená "Moje úlohy"
+- `components/filters/filter-dropdown.tsx` - Button text sa nemení
+- `components/filters/cascading-filter-bar.tsx` - Nové UX správanie
+- `app/(dashboard)/today/page.tsx` - Nový state typ
+- `app/(dashboard)/anytime/page.tsx` - Nový state typ
+- `app/(dashboard)/upcoming/page.tsx` - Nový state typ
+- `app/(dashboard)/logbook/page.tsx` - Nový state typ
+
+**Ďalšie opravy v tejto verzii:**
+- ✅ Global Search - oprava tmavého dropdown v light mode (`bg-card text-foreground`)
+- ✅ Notifikácie - nový systém notifikácií s bell ikonou v headeri
+- ✅ Quick Time Modal - modál pre pridanie času pri dokončení úlohy
+
+---
+
 ### v2.37 (12. januára 2026)
 **Global Search + My Tasks Filter Fix:**
 

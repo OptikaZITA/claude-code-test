@@ -45,7 +45,7 @@ export function TimerIndicator() {
         )}
       >
         <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-        <span className="font-mono text-sm font-medium text-success">
+        <span className="font-mono text-sm font-medium text-success tabular-nums">
           {formatDurationShort(elapsedSeconds)}
         </span>
       </button>
@@ -86,7 +86,7 @@ export function TimerIndicator() {
 
               {/* Timer display */}
               <div className="text-center py-4 bg-muted rounded-[var(--radius-md)] mb-3">
-                <p className="text-3xl font-mono font-bold text-foreground">
+                <p className="text-3xl font-mono font-bold text-foreground tabular-nums">
                   {formatDurationShort(elapsedSeconds)}
                 </p>
                 {startedAt && (
@@ -149,7 +149,7 @@ export function TimerIndicatorCompact() {
       )}
     >
       <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-      <span className="font-mono text-success">{formatDurationShort(elapsedSeconds)}</span>
+      <span className="font-mono text-success tabular-nums">{formatDurationShort(elapsedSeconds)}</span>
     </button>
   )
 }

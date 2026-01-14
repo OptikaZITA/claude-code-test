@@ -6,10 +6,14 @@ import { createClient } from '@/lib/supabase/client'
 interface UseNewTasksResult {
   newTasksCount: number
   lastAcknowledged: string | null
+  countsByArea: Record<string, number>
+  countsByProject: Record<string, number>
   loading: boolean
   acknowledging: boolean
   acknowledge: () => Promise<void>
   isTaskNew: (addedToTodayAt: string | null) => boolean
+  getAreaNewCount: (areaId: string) => number
+  getProjectNewCount: (projectId: string) => number
   refetch: () => Promise<void>
 }
 
@@ -20,6 +24,8 @@ interface UseNewTasksResult {
 export function useNewTasks(): UseNewTasksResult {
   const [newTasksCount, setNewTasksCount] = useState(0)
   const [lastAcknowledged, setLastAcknowledged] = useState<string | null>(null)
+  const [countsByArea, setCountsByArea] = useState<Record<string, number>>({})
+  const [countsByProject, setCountsByProject] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [acknowledging, setAcknowledging] = useState(false)
 
@@ -30,6 +36,8 @@ export function useNewTasks(): UseNewTasksResult {
         const data = await response.json()
         setNewTasksCount(data.count)
         setLastAcknowledged(data.last_acknowledged)
+        setCountsByArea(data.counts_by_area || {})
+        setCountsByProject(data.counts_by_project || {})
       }
     } catch (error) {
       console.error('Error fetching new tasks count:', error)
@@ -52,6 +60,8 @@ export function useNewTasks(): UseNewTasksResult {
         const data = await response.json()
         setNewTasksCount(0)
         setLastAcknowledged(data.acknowledged_at)
+        setCountsByArea({})
+        setCountsByProject({})
       }
     } catch (error) {
       console.error('Error acknowledging tasks:', error)
@@ -66,20 +76,33 @@ export function useNewTasks(): UseNewTasksResult {
     return new Date(addedToTodayAt) > new Date(lastAcknowledged)
   }, [lastAcknowledged])
 
+  const getAreaNewCount = useCallback((areaId: string): number => {
+    return countsByArea[areaId] || 0
+  }, [countsByArea])
+
+  const getProjectNewCount = useCallback((projectId: string): number => {
+    return countsByProject[projectId] || 0
+  }, [countsByProject])
+
   return {
     newTasksCount,
     lastAcknowledged,
+    countsByArea,
+    countsByProject,
     loading,
     acknowledging,
     acknowledge,
     isTaskNew,
+    getAreaNewCount,
+    getProjectNewCount,
     refetch: fetchNewTasksCount,
   }
 }
 
 /**
- * Hook pre sledovanie ci task patri do "Dnes"
- * Pouziva sa pre hviezdicku v projektoch/oddeleniach
+ * @deprecated Použite useNewTasks() namiesto tohto hooku.
+ * Tento hook počíta VŠETKY úlohy v "Dnes", nie len NOVÉ úlohy.
+ * Pre správnu signalizáciu nových úloh použite useNewTasks().getAreaNewCount() a .getProjectNewCount()
  */
 export function useTodayTasksCounts() {
   const [projectCounts, setProjectCounts] = useState<Record<string, number>>({})

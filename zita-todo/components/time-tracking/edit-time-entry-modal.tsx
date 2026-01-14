@@ -10,6 +10,8 @@ import { TimeEntry, TaskWithRelations } from '@/types'
 import { useUpdateTimeEntry, useCreateTimeEntry } from '@/lib/hooks/use-time-entries'
 import { cn } from '@/lib/utils/cn'
 
+type TimeInputMode = 'duration' | 'range'
+
 interface EditTimeEntryModalProps {
   isOpen: boolean
   onClose: () => void
@@ -17,6 +19,7 @@ interface EditTimeEntryModalProps {
   tasks: TaskWithRelations[]
   preselectedTaskId?: string
   onSuccess?: () => void
+  defaultMode?: TimeInputMode
 }
 
 function formatDurationFromSeconds(seconds: number): string {
@@ -41,19 +44,79 @@ export function EditTimeEntryModal({
   tasks,
   preselectedTaskId,
   onSuccess,
+  defaultMode = 'duration',
 }: EditTimeEntryModalProps) {
   const isEditMode = !!entry
   const { updateTimeEntry, loading: updateLoading } = useUpdateTimeEntry()
   const { createTimeEntry, loading: createLoading } = useCreateTimeEntry()
 
   // Form state
+  const [mode, setMode] = useState<TimeInputMode>(defaultMode)
   const [taskId, setTaskId] = useState<string>('')
   const [description, setDescription] = useState<string>('')
+
+  // Duration mode state
+  const [durationHours, setDurationHours] = useState<string>('0')
+  const [durationMinutes, setDurationMinutes] = useState<string>('0')
+  const [durationDate, setDurationDate] = useState<string>('')
+
+  // Range mode state
   const [startDate, setStartDate] = useState<string>('')
   const [startTime, setStartTime] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
   const [endTime, setEndTime] = useState<string>('')
+
   const [error, setError] = useState<string | null>(null)
+
+  // Duration mode handlers with automatic rollover
+  const handleDurationHoursChange = (value: string) => {
+    const num = parseInt(value) || 0
+    // Minimum 0, maximum 99 hours
+    if (num < 0) {
+      setDurationHours('0')
+    } else if (num > 99) {
+      setDurationHours('99')
+    } else {
+      setDurationHours(String(num))
+    }
+  }
+
+  const handleDurationMinutesChange = (value: string) => {
+    const num = parseInt(value)
+    const currentHours = parseInt(durationHours) || 0
+
+    // Handle NaN (empty input)
+    if (isNaN(num)) {
+      setDurationMinutes('0')
+      return
+    }
+
+    // Minutes exceed 59 - rollover to hours
+    if (num > 59) {
+      const extraHours = Math.floor(num / 60)
+      const remainingMinutes = num % 60
+      setDurationHours(String(Math.min(currentHours + extraHours, 99)))
+      setDurationMinutes(String(remainingMinutes))
+    }
+    // Minutes go below 0 - borrow from hours
+    else if (num < 0) {
+      if (currentHours > 0) {
+        // Borrow from hours: -1 min with 1+ hours = 59 min, hours-1
+        const borrowHours = Math.ceil(Math.abs(num) / 60)
+        const newHours = Math.max(0, currentHours - borrowHours)
+        const newMinutes = (60 + (num % 60)) % 60
+        setDurationHours(String(newHours))
+        setDurationMinutes(String(newMinutes))
+      } else {
+        // Can't go below 0h 0m
+        setDurationMinutes('0')
+      }
+    }
+    // Normal range
+    else {
+      setDurationMinutes(String(num))
+    }
+  }
 
   // Initialize form when modal opens
   useEffect(() => {
@@ -64,6 +127,8 @@ export function EditTimeEntryModal({
         setDescription(entry.description || entry.note || '')
 
         const startedAt = parseISO(entry.started_at)
+
+        // Set range mode values
         setStartDate(format(startedAt, 'yyyy-MM-dd'))
         setStartTime(format(startedAt, 'HH:mm'))
 
@@ -71,42 +136,73 @@ export function EditTimeEntryModal({
           const endedAt = parseISO(entry.ended_at)
           setEndDate(format(endedAt, 'yyyy-MM-dd'))
           setEndTime(format(endedAt, 'HH:mm'))
+
+          // Calculate duration for duration mode
+          const durationSec = entry.duration_seconds || Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000)
+          setDurationHours(String(Math.floor(durationSec / 3600)))
+          setDurationMinutes(String(Math.floor((durationSec % 3600) / 60)))
+          setDurationDate(format(startedAt, 'yyyy-MM-dd'))
+
+          // If we have precise times, default to range mode
+          setMode('range')
+        } else if (entry.duration_seconds) {
+          // Only duration available - use duration mode
+          setDurationHours(String(Math.floor(entry.duration_seconds / 3600)))
+          setDurationMinutes(String(Math.floor((entry.duration_seconds % 3600) / 60)))
+          setDurationDate(format(startedAt, 'yyyy-MM-dd'))
+
+          const endedAt = new Date(startedAt.getTime() + entry.duration_seconds * 1000)
+          setEndDate(format(endedAt, 'yyyy-MM-dd'))
+          setEndTime(format(endedAt, 'HH:mm'))
+
+          setMode('duration')
         } else {
-          // Calculate end time from duration if available
-          if (entry.duration_seconds) {
-            const endedAt = new Date(startedAt.getTime() + entry.duration_seconds * 1000)
-            setEndDate(format(endedAt, 'yyyy-MM-dd'))
-            setEndTime(format(endedAt, 'HH:mm'))
-          } else {
-            setEndDate(format(startedAt, 'yyyy-MM-dd'))
-            setEndTime(format(new Date(), 'HH:mm'))
-          }
+          setEndDate(format(startedAt, 'yyyy-MM-dd'))
+          setEndTime(format(new Date(), 'HH:mm'))
+          setDurationDate(format(startedAt, 'yyyy-MM-dd'))
+          setDurationHours('0')
+          setDurationMinutes('0')
+          setMode('range')
         }
       } else {
         // Create mode - set defaults
         setTaskId(preselectedTaskId || (entry?.task_id || ''))
         setDescription('')
+        setMode(defaultMode)
+
         const now = new Date()
+        const todayStr = format(now, 'yyyy-MM-dd')
+
+        // Duration mode defaults
+        setDurationHours('0')
+        setDurationMinutes('30')
+        setDurationDate(todayStr)
+
+        // Range mode defaults
         const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
-        setStartDate(format(now, 'yyyy-MM-dd'))
+        setStartDate(todayStr)
         setStartTime(format(oneHourAgo, 'HH:mm'))
-        setEndDate(format(now, 'yyyy-MM-dd'))
+        setEndDate(todayStr)
         setEndTime(format(now, 'HH:mm'))
       }
       setError(null)
     }
-  }, [isOpen, entry, preselectedTaskId])
+  }, [isOpen, entry, preselectedTaskId, defaultMode])
 
-  // Calculate duration
+  // Calculate duration based on mode
   const calculatedDuration = useMemo(() => {
-    if (!startDate || !startTime || !endDate || !endTime) return 0
-
-    const start = new Date(`${startDate}T${startTime}`)
-    const end = new Date(`${endDate}T${endTime}`)
-    const diffMs = end.getTime() - start.getTime()
-
-    return diffMs > 0 ? Math.floor(diffMs / 1000) : 0
-  }, [startDate, startTime, endDate, endTime])
+    if (mode === 'duration') {
+      const hours = parseInt(durationHours) || 0
+      const minutes = parseInt(durationMinutes) || 0
+      return hours * 3600 + minutes * 60
+    } else {
+      if (!startDate || !startTime || !endDate || !endTime) return 0
+      const start = new Date(`${startDate}T${startTime}`)
+      const end = new Date(`${endDate}T${endTime}`)
+      const diffMs = end.getTime() - start.getTime()
+      return diffMs > 0 ? Math.floor(diffMs / 1000) : 0
+    }
+  }, [mode, durationHours, durationMinutes, startDate, startTime, endDate, endTime])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -118,13 +214,25 @@ export function EditTimeEntryModal({
       return
     }
 
-    if (calculatedDuration <= 0) {
-      setError('Koniec musí byť po začiatku')
+    if (calculatedDuration < 60) {
+      setError('Minimálne trvanie je 1 minúta')
       return
     }
 
-    const started_at = new Date(`${startDate}T${startTime}`).toISOString()
-    const stopped_at = new Date(`${endDate}T${endTime}`).toISOString()
+    let started_at: string
+    let stopped_at: string
+
+    if (mode === 'duration') {
+      // Duration mode - create timestamps from date + duration
+      // Set start at beginning of the day, end based on duration
+      const baseDate = new Date(`${durationDate}T12:00:00`)
+      started_at = baseDate.toISOString()
+      stopped_at = new Date(baseDate.getTime() + calculatedDuration * 1000).toISOString()
+    } else {
+      // Range mode - use exact times
+      started_at = new Date(`${startDate}T${startTime}`).toISOString()
+      stopped_at = new Date(`${endDate}T${endTime}`).toISOString()
+    }
 
     try {
       if (isEditMode && entry) {
@@ -197,51 +305,125 @@ export function EditTimeEntryModal({
           />
         </div>
 
-        {/* Time inputs */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Start */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-[var(--text-primary)]">
-              Začiatok
-            </label>
-            <Input
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-            />
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
-
-          {/* End */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-[var(--text-primary)]">
-              Koniec
-            </label>
-            <Input
-              type="time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-            />
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
+        {/* Mode toggle */}
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+            Ako chceš zadať čas?
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setMode('duration')}
+              className={cn(
+                'flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-colors',
+                mode === 'duration'
+                  ? 'bg-primary text-white border-primary'
+                  : 'bg-background text-foreground border-[var(--border)] hover:bg-accent'
+              )}
+            >
+              Trvanie
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('range')}
+              className={cn(
+                'flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-colors',
+                mode === 'range'
+                  ? 'bg-primary text-white border-primary'
+                  : 'bg-background text-foreground border-[var(--border)] hover:bg-accent'
+              )}
+            >
+              Rozsah
+            </button>
           </div>
         </div>
+
+        {/* Duration mode inputs */}
+        {mode === 'duration' && (
+          <div className="space-y-3 p-4 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-primary)]">
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                Trvalo to:
+              </label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min="0"
+                  max="99"
+                  value={durationHours}
+                  onChange={(e) => handleDurationHoursChange(e.target.value)}
+                  className="w-20 text-center"
+                />
+                <span className="text-sm text-[var(--text-secondary)]">hod</span>
+                <Input
+                  type="number"
+                  value={durationMinutes}
+                  onChange={(e) => handleDurationMinutesChange(e.target.value)}
+                  className="w-20 text-center"
+                />
+                <span className="text-sm text-[var(--text-secondary)]">min</span>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                Dátum:
+              </label>
+              <Input
+                type="date"
+                value={durationDate}
+                onChange={(e) => setDurationDate(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Range mode inputs */}
+        {mode === 'range' && (
+          <div className="grid grid-cols-2 gap-4 p-4 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-primary)]">
+            {/* Start */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-[var(--text-primary)]">
+                Začiatok
+              </label>
+              <Input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+
+            {/* End */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-[var(--text-primary)]">
+                Koniec
+              </label>
+              <Input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+              />
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Duration display */}
         <div className="p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-primary)]">
           <span className="text-sm text-[var(--text-secondary)]">Trvanie: </span>
           <span className={cn(
             'text-sm font-medium',
-            calculatedDuration > 0 ? 'text-[var(--text-primary)]' : 'text-red-500'
+            calculatedDuration >= 60 ? 'text-[var(--text-primary)]' : 'text-red-500'
           )}>
-            {calculatedDuration > 0 ? formatDurationFromSeconds(calculatedDuration) : 'Neplatný čas'}
+            {calculatedDuration >= 60 ? formatDurationFromSeconds(calculatedDuration) : 'Minimálne 1 minúta'}
           </span>
         </div>
 
@@ -265,7 +447,7 @@ export function EditTimeEntryModal({
           <Button
             type="submit"
             variant="primary"
-            disabled={loading || calculatedDuration <= 0}
+            disabled={loading || calculatedDuration < 60}
           >
             {loading ? 'Ukladám...' : isEditMode ? 'Uložiť' : 'Pridať'}
           </Button>

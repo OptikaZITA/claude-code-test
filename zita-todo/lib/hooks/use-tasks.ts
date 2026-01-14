@@ -105,11 +105,19 @@ export function useTasks() {
     const minSortOrder = minOrderData?.sort_order ?? 0
     const newSortOrder = minSortOrder - 1
 
+    // Auto-assign: Tímový Inbox → null, ostatné → current user (ak nie je špecifikované)
+    const autoAssigneeId = task.assignee_id !== undefined
+      ? task.assignee_id
+      : task.inbox_type === 'team'
+        ? null
+        : user.id
+
     const { data, error } = await supabase
       .from('tasks')
       .insert({
         ...task,
         created_by: user.id,
+        assignee_id: autoAssigneeId,
         inbox_user_id: task.inbox_type === 'personal' ? user.id : null,
         when_type: whenType,
         is_inbox: task.is_inbox !== undefined ? task.is_inbox : (!task.project_id && !task.area_id),
@@ -341,8 +349,15 @@ export function useInboxTasks(type: 'personal' | 'team') {
   return { tasks, loading, error, refetch: fetchTasks }
 }
 
-// Today view - tasks for today (default: MOJE úlohy)
-export function useTodayTasks() {
+// Typ pre assignee filter (Strážcovia vesmíru)
+// 'all' = všetky úlohy v organizácii (žiadny assignee filter)
+// 'unassigned' = úlohy bez priradeného používateľa
+// UUID = úlohy konkrétneho používateľa (default = prihlásený user)
+export type AssigneeFilter = 'all' | 'unassigned' | string
+
+// Today view - tasks for today
+// assigneeFilter: user.id (default), 'all', 'unassigned', alebo konkrétny UUID
+export function useTodayTasks(assigneeFilter?: AssigneeFilter) {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -354,14 +369,16 @@ export function useTodayTasks() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
+      // Default = prihlásený používateľ
+      const effectiveFilter = assigneeFilter || user.id
+
       const today = new Date().toISOString().split('T')[0]
 
       // Get tasks that are:
       // 1. when_type = 'today'
       // 2. when_type = 'scheduled' AND when_date = today
       // 3. Overdue tasks (due_date < today AND status != done)
-      // AND belong to me (assignee, creator, or owner)
-      const { data, error } = await supabase
+      let query = supabase
         .from('tasks')
         .select(`
           *,
@@ -374,9 +391,19 @@ export function useTodayTasks() {
         .is('archived_at', null)
         .is('deleted_at', null)
         .neq('status', 'done')
-        // DEFAULT: Len MOJE úlohy (creator alebo assignee)
-        .or(`created_by.eq.${user.id},assignee_id.eq.${user.id}`)
-        .order('sort_order', { ascending: true })
+
+      // Aplikuj filter podľa assignee_id
+      if (effectiveFilter === 'all') {
+        // Všetky úlohy v organizácii - žiadny assignee filter, RLS zabezpečí organizáciu
+      } else if (effectiveFilter === 'unassigned') {
+        // Nepriradené úlohy
+        query = query.is('assignee_id', null)
+      } else {
+        // Konkrétny používateľ (UUID) - default je prihlásený user
+        query = query.eq('assignee_id', effectiveFilter)
+      }
+
+      const { data, error } = await query.order('sort_order', { ascending: true })
 
       if (error) throw error
       setTasks(transformTasks(data || []))
@@ -385,7 +412,7 @@ export function useTodayTasks() {
     } finally {
       setLoading(false)
     }
-  }, [supabase])
+  }, [supabase, assigneeFilter])
 
   useEffect(() => {
     fetchTasks()
@@ -394,8 +421,9 @@ export function useTodayTasks() {
   return { tasks, loading, error, refetch: fetchTasks }
 }
 
-// Upcoming view - scheduled tasks in the future (default: MOJE úlohy)
-export function useUpcomingTasks() {
+// Upcoming view - scheduled tasks in the future
+// assigneeFilter: user.id (default), 'all', 'unassigned', alebo konkrétny UUID
+export function useUpcomingTasks(assigneeFilter?: AssigneeFilter) {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -407,9 +435,12 @@ export function useUpcomingTasks() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
+      // Default = prihlásený používateľ
+      const effectiveFilter = assigneeFilter || user.id
+
       const today = new Date().toISOString().split('T')[0]
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('tasks')
         .select(`
           *,
@@ -423,9 +454,17 @@ export function useUpcomingTasks() {
         .is('archived_at', null)
         .is('deleted_at', null)
         .neq('status', 'done')
-        // DEFAULT: Len MOJE úlohy (creator alebo assignee)
-        .or(`created_by.eq.${user.id},assignee_id.eq.${user.id}`)
-        .order('when_date', { ascending: true })
+
+      // Aplikuj filter podľa assignee_id
+      if (effectiveFilter === 'all') {
+        // Všetky úlohy v organizácii
+      } else if (effectiveFilter === 'unassigned') {
+        query = query.is('assignee_id', null)
+      } else {
+        query = query.eq('assignee_id', effectiveFilter)
+      }
+
+      const { data, error } = await query.order('when_date', { ascending: true })
 
       if (error) throw error
       setTasks(transformTasks(data || []))
@@ -434,7 +473,7 @@ export function useUpcomingTasks() {
     } finally {
       setLoading(false)
     }
-  }, [supabase])
+  }, [supabase, assigneeFilter])
 
   useEffect(() => {
     fetchTasks()
@@ -443,8 +482,9 @@ export function useUpcomingTasks() {
   return { tasks, loading, error, refetch: fetchTasks }
 }
 
-// Anytime view - tasks without specific time (default: MOJE úlohy)
-export function useAnytimeTasks() {
+// Anytime view - tasks without specific time
+// assigneeFilter: user.id (default), 'all', 'unassigned', alebo konkrétny UUID
+export function useAnytimeTasks(assigneeFilter?: AssigneeFilter) {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -456,8 +496,11 @@ export function useAnytimeTasks() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
+      // Default = prihlásený používateľ
+      const effectiveFilter = assigneeFilter || user.id
+
       // Include both anytime and someday tasks (merged)
-      const { data, error } = await supabase
+      let query = supabase
         .from('tasks')
         .select(`
           *,
@@ -470,9 +513,17 @@ export function useAnytimeTasks() {
         .is('archived_at', null)
         .is('deleted_at', null)
         .neq('status', 'done')
-        // DEFAULT: Len MOJE úlohy (creator alebo assignee)
-        .or(`created_by.eq.${user.id},assignee_id.eq.${user.id}`)
-        .order('sort_order', { ascending: true })
+
+      // Aplikuj filter podľa assignee_id
+      if (effectiveFilter === 'all') {
+        // Všetky úlohy v organizácii
+      } else if (effectiveFilter === 'unassigned') {
+        query = query.is('assignee_id', null)
+      } else {
+        query = query.eq('assignee_id', effectiveFilter)
+      }
+
+      const { data, error } = await query.order('sort_order', { ascending: true })
 
       if (error) throw error
       // Apply today-first sorting
@@ -482,7 +533,7 @@ export function useAnytimeTasks() {
     } finally {
       setLoading(false)
     }
-  }, [supabase])
+  }, [supabase, assigneeFilter])
 
   useEffect(() => {
     fetchTasks()
@@ -491,8 +542,9 @@ export function useAnytimeTasks() {
   return { tasks, loading, error, refetch: fetchTasks }
 }
 
-// Logbook view - completed tasks (default: MOJE úlohy)
-export function useLogbookTasks() {
+// Logbook view - completed tasks
+// assigneeFilter: user.id (default), 'all', 'unassigned', alebo konkrétny UUID
+export function useLogbookTasks(assigneeFilter?: AssigneeFilter) {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -504,7 +556,10 @@ export function useLogbookTasks() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      const { data, error } = await supabase
+      // Default = prihlásený používateľ
+      const effectiveFilter = assigneeFilter || user.id
+
+      let query = supabase
         .from('tasks')
         .select(`
           *,
@@ -516,8 +571,17 @@ export function useLogbookTasks() {
         .eq('status', 'done')
         .is('archived_at', null)
         .is('deleted_at', null)
-        // DEFAULT: Len MOJE úlohy (creator alebo assignee)
-        .or(`created_by.eq.${user.id},assignee_id.eq.${user.id}`)
+
+      // Aplikuj filter podľa assignee_id
+      if (effectiveFilter === 'all') {
+        // Všetky úlohy v organizácii
+      } else if (effectiveFilter === 'unassigned') {
+        query = query.is('assignee_id', null)
+      } else {
+        query = query.eq('assignee_id', effectiveFilter)
+      }
+
+      const { data, error } = await query
         .order('completed_at', { ascending: false })
         .limit(100)
 
@@ -528,7 +592,7 @@ export function useLogbookTasks() {
     } finally {
       setLoading(false)
     }
-  }, [supabase])
+  }, [supabase, assigneeFilter])
 
   useEffect(() => {
     fetchTasks()

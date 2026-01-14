@@ -7,6 +7,7 @@ import { TaskDetail } from '@/components/tasks/task-detail'
 import { TaskItem } from '@/components/tasks/task-item'
 import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { useLogbookTasks, useTasks } from '@/lib/hooks/use-tasks'
+import { useCurrentUser } from '@/lib/hooks/use-user-departments'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { useAreas } from '@/lib/hooks/use-areas'
@@ -16,7 +17,10 @@ import { format, parseISO, startOfDay, isToday, isYesterday, isThisWeek, isThisM
 import { sk } from 'date-fns/locale'
 
 export default function LogbookPage() {
-  const { tasks, loading, refetch } = useLogbookTasks()
+  const { user } = useCurrentUser()
+  // Database-level assignee filter - undefined (default = current user), 'all', 'unassigned', or UUID
+  const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>(undefined)
+  const { tasks, loading, refetch } = useLogbookTasks(dbAssigneeFilter)
   const { updateTask, completeTask } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
   const { filters, setFilter, clearFilters, clearFilter, hasActiveFilters } = useTaskFilters()
@@ -149,6 +153,9 @@ export default function LogbookPage() {
           areas={areas}
           allTags={allTags}
           className="mb-4"
+          dbAssigneeFilter={dbAssigneeFilter}
+          onDbAssigneeChange={setDbAssigneeFilter}
+          currentUserId={user?.id}
         />
 
         {/* Unified Filter Bar - Mobile only */}

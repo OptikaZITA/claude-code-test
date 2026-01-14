@@ -31,6 +31,12 @@ interface CascadingFilterBarProps {
   className?: string
   /** Hide specific filter categories */
   hideFilters?: Array<'assignee' | 'status' | 'area' | 'priority' | 'dueDate' | 'tags' | 'sort'>
+  /** Callback for database-level assignee filter change ('all' | 'unassigned' | user_id | undefined) */
+  onDbAssigneeChange?: (value: string | undefined) => void
+  /** Current database-level assignee filter (undefined = default = current user) */
+  dbAssigneeFilter?: string
+  /** Current user ID - for marking "(ja)" in dropdown */
+  currentUserId?: string
 }
 
 export function CascadingFilterBar({
@@ -44,6 +50,9 @@ export function CascadingFilterBar({
   allTags = [],
   className,
   hideFilters = [],
+  onDbAssigneeChange,
+  dbAssigneeFilter,
+  currentUserId,
 }: CascadingFilterBarProps) {
   // Get cascading filter options
   const options = useCascadingFilters(tasks, filters, areas, allTags)
@@ -51,18 +60,36 @@ export function CascadingFilterBar({
   // Build active filters for chips
   const activeFilters = useMemo(() => {
     const chips: Array<{
-      key: keyof TaskFilters
+      key: keyof TaskFilters | 'dbAssignee'
       label: string
       value: unknown
     }> = []
 
-    if (filters.assigneeIds.length > 0) {
-      const id = filters.assigneeIds[0]
-      const option = options.assignees.find(a => a.value === id)
+    // Database-level assignee filter
+    // undefined = default (moje úlohy, sivý button, žiadny chip)
+    // 'all' | 'unassigned' | userId = aktívny filter (modrý button, chip)
+    if (dbAssigneeFilter === 'all') {
       chips.push({
-        key: 'assigneeIds',
-        label: option?.label || id,
-        value: filters.assigneeIds,
+        key: 'dbAssignee',
+        label: 'Všetci',
+        value: 'all',
+      })
+    } else if (dbAssigneeFilter === 'unassigned') {
+      chips.push({
+        key: 'dbAssignee',
+        label: 'Nepriradené',
+        value: 'unassigned',
+      })
+    } else if (dbAssigneeFilter) {
+      // Konkrétny používateľ (vrátane seba) - aktívny filter
+      const option = options.assignees.find(a => a.value === dbAssigneeFilter)
+      const label = option?.label || dbAssigneeFilter
+      // Ak je to ja, pridaj "(ja)" do chipu
+      const chipLabel = dbAssigneeFilter === currentUserId ? `${label} (ja)` : label
+      chips.push({
+        key: 'dbAssignee',
+        label: chipLabel,
+        value: dbAssigneeFilter,
       })
     }
 
@@ -123,13 +150,28 @@ export function CascadingFilterBar({
     }
 
     return chips
-  }, [filters, options])
+  }, [filters, options, dbAssigneeFilter, currentUserId])
+
+  // Handler pre zrušenie filtra - podporuje aj dbAssignee
+  const handleClearFilter = (key: keyof TaskFilters | string) => {
+    if (key === 'dbAssignee') {
+      // Reset na default (aktuálny používateľ)
+      onDbAssigneeChange?.(undefined)
+    } else {
+      onClearFilter(key as keyof TaskFilters)
+    }
+  }
+
+  // Či sú aktívne filtre vrátane dbAssigneeFilter
+  // Filter je aktívny ak niečo vybraté (vrátane seba) - undefined = default, žiadny filter
+  const hasDbAssigneeFilter = dbAssigneeFilter !== undefined
+  const hasAnyActiveFilters = hasActiveFilters || hasDbAssigneeFilter
 
   return (
     <div className={cn('space-y-2', className)}>
       {/* Filter dropdowns row - DESKTOP ONLY */}
       <div className="hidden lg:flex items-center gap-2 flex-wrap py-2">
-        {/* Strážci vesmíru (Assignees) */}
+        {/* Strážci vesmíru (Assignees) - Database-level filter */}
         {!hideFilters.includes('assignee') && (
           <FilterDropdown
             label="Strážci vesmíru"
@@ -139,12 +181,18 @@ export function CascadingFilterBar({
               count: a.count,
               avatarUrl: a.avatarUrl,
             }))}
-            value={filters.assigneeIds.length > 0 ? filters.assigneeIds[0] : null}
+            value={dbAssigneeFilter || currentUserId || null}
             onChange={(value) => {
+              // Špeciálne hodnoty: 'all', 'unassigned', alebo UUID
               if (value === null) {
-                onFilterChange('assigneeIds', [])
+                // "Všetci" - ukáž všetky úlohy v organizácii
+                onDbAssigneeChange?.('all')
+              } else if (value === 'unassigned') {
+                // "Nepriradené" - ukáž úlohy bez assignee
+                onDbAssigneeChange?.('unassigned')
               } else {
-                onFilterChange('assigneeIds', [value as string])
+                // Konkrétny používateľ (vrátane seba) - aktívny filter
+                onDbAssigneeChange?.(value as string)
               }
             }}
             allLabel="Všetci"
@@ -255,12 +303,15 @@ export function CascadingFilterBar({
       </div>
 
       {/* Active filter chips - DESKTOP ONLY */}
-      {hasActiveFilters && activeFilters.length > 0 && (
+      {hasAnyActiveFilters && activeFilters.length > 0 && (
         <div className="hidden lg:block">
           <FilterChips
             filters={activeFilters}
-            onClearFilter={onClearFilter}
-            onClearAll={onClearFilters}
+            onClearFilter={handleClearFilter}
+            onClearAll={() => {
+              onClearFilters()
+              onDbAssigneeChange?.(undefined)
+            }}
           />
         </div>
       )}

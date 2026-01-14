@@ -11,6 +11,7 @@ import { TaskDetail } from '@/components/tasks/task-detail'
 import { MiniCalendar } from '@/components/calendar/mini-calendar'
 import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { useUpcomingTasks, useTasks } from '@/lib/hooks/use-tasks'
+import { useCurrentUser } from '@/lib/hooks/use-user-departments'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { useAreas } from '@/lib/hooks/use-areas'
@@ -21,7 +22,10 @@ import { sk } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
 
 export default function UpcomingPage() {
-  const { tasks, loading, refetch } = useUpcomingTasks()
+  const { user } = useCurrentUser()
+  // Database-level assignee filter - undefined (default = current user), 'all', 'unassigned', or UUID
+  const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>(undefined)
+  const { tasks, loading, refetch } = useUpcomingTasks(dbAssigneeFilter)
   const { createTask, updateTask, completeTask, softDelete, reorderTasks } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -248,6 +252,9 @@ export default function UpcomingPage() {
               areas={areas}
               allTags={allTags}
               className="mb-4"
+              dbAssigneeFilter={dbAssigneeFilter}
+              onDbAssigneeChange={setDbAssigneeFilter}
+              currentUserId={user?.id}
             />
 
             {/* Unified Filter Bar - Mobile only */}

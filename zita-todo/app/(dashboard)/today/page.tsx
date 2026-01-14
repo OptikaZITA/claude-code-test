@@ -13,7 +13,10 @@ import { CalendarView } from '@/components/calendar/calendar-view'
 import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { TimeSummaryCard } from '@/components/time-tracking/time-summary-card'
 import { NewTasksBanner } from '@/components/indicators'
+import { QuickTimeModal } from '@/components/time-tracking/quick-time-modal'
 import { useTodayTasks, useTasks } from '@/lib/hooks/use-tasks'
+import { useCurrentUser } from '@/lib/hooks/use-user-departments'
+import { useTaskHasTime } from '@/lib/hooks/use-task-has-time'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useViewPreference } from '@/lib/hooks/use-view-preference'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
@@ -24,7 +27,10 @@ import { TaskWithRelations, TaskStatus } from '@/types'
 import { isToday, isPast, parseISO } from 'date-fns'
 
 export default function TodayPage() {
-  const { tasks, loading, refetch } = useTodayTasks()
+  const { user } = useCurrentUser()
+  // Database-level assignee filter - undefined (default = current user), 'all', 'unassigned', or UUID
+  const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>(undefined)
+  const { tasks, loading, refetch } = useTodayTasks(dbAssigneeFilter)
   const { createTask, updateTask, completeTask, softDelete, reorderTasks } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
   const { viewMode, setViewMode, isLoaded } = useViewPreference('today')
@@ -33,6 +39,10 @@ export default function TodayPage() {
   const inlineFormRef = useRef<TaskQuickAddHandle>(null)
   const { areas } = useAreas()
   const { tags: allTags } = useTags()
+  const { checkTaskHasTime } = useTaskHasTime()
+
+  // State for QuickTimeModal
+  const [pendingCompleteTask, setPendingCompleteTask] = useState<TaskWithRelations | null>(null)
 
   // New tasks tracking (zlta bodka + banner)
   const { newTasksCount, acknowledge, acknowledging, isTaskNew, refetch: refetchNewTasks } = useNewTasks()
@@ -106,12 +116,51 @@ export default function TodayPage() {
   }
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
+    // If uncompleting a task, just do it directly
+    if (!completed) {
+      try {
+        await completeTask(taskId, completed)
+        refetch()
+      } catch (error) {
+        console.error('Error completing task:', error)
+      }
+      return
+    }
+
+    // Find the task
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) {
+      console.error('Task not found:', taskId)
+      return
+    }
+
+    // Check if task has any time entries
+    const hasTime = await checkTaskHasTime(taskId)
+
+    if (hasTime) {
+      // Task has time entries - complete directly
+      try {
+        await completeTask(taskId, completed)
+        refetch()
+      } catch (error) {
+        console.error('Error completing task:', error)
+      }
+    } else {
+      // No time entries - show QuickTimeModal
+      setPendingCompleteTask(task)
+    }
+  }
+
+  // Handler for completing task after QuickTimeModal
+  const handleQuickTimeComplete = async () => {
+    if (!pendingCompleteTask) return
     try {
-      await completeTask(taskId, completed)
+      await completeTask(pendingCompleteTask.id, true)
       refetch()
     } catch (error) {
       console.error('Error completing task:', error)
     }
+    setPendingCompleteTask(null)
   }
 
   const handleTaskUpdate = async (updates: Partial<TaskWithRelations>) => {
@@ -270,6 +319,9 @@ export default function TodayPage() {
             areas={areas}
             allTags={allTags}
             className="mb-4"
+            dbAssigneeFilter={dbAssigneeFilter}
+            onDbAssigneeChange={setDbAssigneeFilter}
+            currentUserId={user?.id}
           />
 
           {/* Unified Filter Bar - Mobile only */}
@@ -319,25 +371,25 @@ export default function TodayPage() {
           )}
 
           {/* Today's tasks */}
-          {tagFilteredTasks.length === 0 && tasks.length === 0 ? (
+          {tagFilteredTasks.length === 0 && tasks.length === 0 && dbAssigneeFilter === undefined ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Star className="mb-4 h-12 w-12 text-muted-foreground" />
               <p className="mb-2 text-lg font-medium text-foreground">
-                Ziadne ulohy na dnes
+                Žiadne úlohy na dnes
               </p>
               <p className="mb-6 text-muted-foreground">
-                Pridajte ulohy alebo ich presunete na dnes
+                Pridajte úlohy alebo ich presuňte na dnes
               </p>
             </div>
-          ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag) ? (
+          ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag || dbAssigneeFilter !== undefined) ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Star className="mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="mb-2 text-lg font-medium text-foreground">Ziadne ulohy nezodpovedaju filtrom</p>
+              <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
               <button
-                onClick={() => { clearFilters(); setSelectedTag(null); }}
+                onClick={() => { clearFilters(); setSelectedTag(null); setDbAssigneeFilter(undefined); }}
                 className="text-primary hover:underline"
               >
-                Zrusit filtre
+                Zrušiť filtre
               </button>
             </div>
           ) : null}
@@ -370,6 +422,17 @@ export default function TodayPage() {
           isOpen={!!selectedTask}
           onClose={() => setSelectedTask(null)}
           onUpdate={handleTaskUpdate}
+        />
+      )}
+
+      {/* Quick Time Modal - shown when completing task without time entries */}
+      {pendingCompleteTask && (
+        <QuickTimeModal
+          isOpen={!!pendingCompleteTask}
+          onClose={() => setPendingCompleteTask(null)}
+          taskId={pendingCompleteTask.id}
+          taskTitle={pendingCompleteTask.title}
+          onComplete={handleQuickTimeComplete}
         />
       )}
     </div>

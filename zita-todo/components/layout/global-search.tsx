@@ -149,34 +149,31 @@ export function GlobalSearch() {
             if (query.length >= 2) setIsOpen(true)
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Hľadať..."
-          className="w-64 pl-9 pr-16 bg-background"
+          placeholder="Hľadať úlohy, projekty..."
+          className="w-64 pl-9 pr-8 bg-background"
         />
         {query && (
           <button
             onClick={clearSearch}
-            className="absolute right-8 top-1/2 -translate-y-1/2 p-1 hover:bg-accent rounded"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-accent rounded"
           >
             <X className="h-3 w-3 text-muted-foreground" />
           </button>
         )}
-        <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded pointer-events-none">
-          /
-        </kbd>
       </div>
 
       {/* Dropdown Results */}
       {showDropdown && (
         <div
           ref={dropdownRef}
-          className="absolute top-full right-0 mt-2 w-96 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-[70vh] overflow-auto"
+          className="absolute top-full left-0 mt-2 w-full min-w-[350px] max-w-[400px] bg-card text-foreground border border-border rounded-lg shadow-xl z-[100] max-h-[70vh] overflow-auto"
         >
           {isLoading ? (
-            <div className="p-6 flex items-center justify-center">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <div className="p-4 flex items-center justify-center">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
           ) : !hasResults ? (
-            <div className="p-6 text-center text-muted-foreground">
+            <div className="p-4 text-center text-muted-foreground text-[13px]">
               Žiadne výsledky pre "{query}"
             </div>
           ) : (
@@ -184,7 +181,7 @@ export function GlobalSearch() {
               {/* Tasks Section */}
               {results.tasks.length > 0 && (
                 <div className="px-2 pb-2">
-                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 py-1.5">
+                  <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-1.5">
                     Úlohy
                   </div>
                   {results.tasks.map((task, i) => {
@@ -205,7 +202,7 @@ export function GlobalSearch() {
               {/* Projects Section */}
               {results.projects.length > 0 && (
                 <div className="px-2 pb-2">
-                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 py-1.5">
+                  <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-1.5">
                     Projekty
                   </div>
                   {results.projects.map((project, i) => {
@@ -226,7 +223,7 @@ export function GlobalSearch() {
               {/* Areas Section */}
               {results.areas.length > 0 && (
                 <div className="px-2 pb-2">
-                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 py-1.5">
+                  <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-1.5">
                     Oddelenia
                   </div>
                   {results.areas.map((area, i) => {
@@ -247,7 +244,7 @@ export function GlobalSearch() {
               {/* Tags Section */}
               {results.tags.length > 0 && (
                 <div className="px-2 pb-2">
-                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 py-1.5">
+                  <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-1.5">
                     Tagy
                   </div>
                   {results.tags.map((tag, i) => {
@@ -268,7 +265,7 @@ export function GlobalSearch() {
               {/* Users Section */}
               {results.users.length > 0 && (
                 <div className="px-2 pb-2">
-                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 py-1.5">
+                  <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-1.5">
                     Používatelia
                   </div>
                   {results.users.map((user, i) => {
@@ -287,7 +284,7 @@ export function GlobalSearch() {
               )}
 
               {/* Footer hint */}
-              <div className="border-t border-border px-3 py-2 text-xs text-muted-foreground flex items-center justify-between">
+              <div className="border-t border-border px-3 py-2 text-[11px] text-muted-foreground flex items-center justify-between">
                 <span>↑↓ navigácia</span>
                 <span>Enter výber</span>
                 <span>Esc zavrieť</span>

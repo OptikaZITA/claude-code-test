@@ -13,7 +13,9 @@ import { CalendarView } from '@/components/calendar/calendar-view'
 import { ExportMenu } from '@/components/export/export-menu'
 import { ErrorDisplay } from '@/components/layout/error-display'
 import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
+import { QuickTimeModal } from '@/components/time-tracking/quick-time-modal'
 import { useInboxTasks, useTasks } from '@/lib/hooks/use-tasks'
+import { useTaskHasTime } from '@/lib/hooks/use-task-has-time'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useViewPreference } from '@/lib/hooks/use-view-preference'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
@@ -31,6 +33,10 @@ export default function InboxPage() {
   const inlineFormRef = useRef<TaskQuickAddHandle>(null)
   const { areas } = useAreas()
   const { tags: allTags } = useTags()
+  const { checkTaskHasTime } = useTaskHasTime()
+
+  // State for QuickTimeModal
+  const [pendingCompleteTask, setPendingCompleteTask] = useState<TaskWithRelations | null>(null)
 
   // Apply filters to tasks (includes sorting)
   const filteredTasks = useMemo(() => {
@@ -75,12 +81,51 @@ export default function InboxPage() {
   }
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
+    // If uncompleting a task, just do it directly
+    if (!completed) {
+      try {
+        await completeTask(taskId, completed)
+        refetch()
+      } catch (error) {
+        console.error('Error completing task:', error)
+      }
+      return
+    }
+
+    // Find the task
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) {
+      console.error('Task not found:', taskId)
+      return
+    }
+
+    // Check if task has any time entries
+    const hasTime = await checkTaskHasTime(taskId)
+
+    if (hasTime) {
+      // Task has time entries - complete directly
+      try {
+        await completeTask(taskId, completed)
+        refetch()
+      } catch (error) {
+        console.error('Error completing task:', error)
+      }
+    } else {
+      // No time entries - show QuickTimeModal
+      setPendingCompleteTask(task)
+    }
+  }
+
+  // Handler for completing task after QuickTimeModal
+  const handleQuickTimeComplete = async () => {
+    if (!pendingCompleteTask) return
     try {
-      await completeTask(taskId, completed)
+      await completeTask(pendingCompleteTask.id, true)
       refetch()
     } catch (error) {
       console.error('Error completing task:', error)
     }
+    setPendingCompleteTask(null)
   }
 
   const handleInlineTaskUpdate = async (taskId: string, updates: Partial<TaskWithRelations>) => {
@@ -260,20 +305,20 @@ export default function InboxPage() {
           {tagFilteredTasks.length === 0 && tasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Inbox className="mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="mb-2 text-lg font-medium text-foreground">Vas inbox je prazdny</p>
+              <p className="mb-2 text-lg font-medium text-foreground">Váš inbox je prázdny</p>
               <p className="mb-6 text-muted-foreground">
-                Pridajte ulohy pomocou formulara vyssie
+                Pridajte úlohy pomocou formulára vyššie
               </p>
             </div>
           ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag) ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Inbox className="mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="mb-2 text-lg font-medium text-foreground">Ziadne ulohy nezodpovedaju filtrom</p>
+              <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
               <button
                 onClick={() => { clearFilters(); setSelectedTag(null); }}
                 className="text-primary hover:underline"
               >
-                Zrusit filtre
+                Zrušiť filtre
               </button>
             </div>
           ) : null}
@@ -305,6 +350,17 @@ export default function InboxPage() {
           isOpen={!!selectedTask}
           onClose={() => setSelectedTask(null)}
           onUpdate={handleTaskUpdate}
+        />
+      )}
+
+      {/* Quick Time Modal - shown when completing task without time entries */}
+      {pendingCompleteTask && (
+        <QuickTimeModal
+          isOpen={!!pendingCompleteTask}
+          onClose={() => setPendingCompleteTask(null)}
+          taskId={pendingCompleteTask.id}
+          taskTitle={pendingCompleteTask.title}
+          onComplete={handleQuickTimeComplete}
         />
       )}
     </div>

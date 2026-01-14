@@ -19,6 +19,7 @@ import {
   Trash2,
   Eye,
   Timer,
+  Bell,
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -29,7 +30,7 @@ import { SidebarDropItem, SidebarDropProject, SidebarDropArea } from '@/componen
 import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
 import { useTaskCounts } from '@/lib/hooks/use-task-counts'
 import { useUserDepartments } from '@/lib/hooks/use-user-departments'
-import { useTodayTasksCounts } from '@/lib/hooks/use-new-tasks'
+import { useNewTasks } from '@/lib/hooks/use-new-tasks'
 import { UserRole, canSeeAllDepartments } from '@/types'
 
 interface Area {
@@ -79,7 +80,8 @@ export function Sidebar({
 
   // No longer using document listener - using overlay instead
   const { myDepartments, otherDepartments, canSeeAll } = useUserDepartments()
-  const { getProjectTodayCount, getAreaTodayCount } = useTodayTasksCounts()
+  // NOVÉ: Používame useNewTasks pre správne počítanie NOVÝCH úloh (nie všetkých)
+  const { getProjectNewCount, getAreaNewCount } = useNewTasks()
 
   const toggleArea = (areaId: string) => {
     const newExpanded = new Set(expandedAreas)
@@ -204,6 +206,19 @@ export function Sidebar({
             label="Kôš"
             onClick={onNavigate}
           />
+          <Link
+            href="/notifications"
+            onClick={onNavigate}
+            className={cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+              isActive('/notifications')
+                ? 'bg-accent text-foreground font-medium'
+                : 'text-foreground hover:bg-accent/50'
+            )}
+          >
+            <Bell className="h-[18px] w-[18px] text-primary" />
+            <span>Notifikácie</span>
+          </Link>
         </div>
 
         <div className="my-3 h-px bg-[var(--border)]" />
@@ -246,7 +261,7 @@ export function Sidebar({
             onToggle={() => toggleArea(area.id)}
             onCreateProject={() => onCreateProject(area.id)}
             onNavigate={onNavigate}
-            todayTasksCount={getAreaTodayCount(area.id)}
+            todayTasksCount={getAreaNewCount(area.id)}
           >
             {area.projects.map((project) => (
               <SidebarDropProject
@@ -257,7 +272,7 @@ export function Sidebar({
                 icon={<FolderKanban className="h-4 w-4" />}
                 label={project.name}
                 onClick={onNavigate}
-                todayTasksCount={getProjectTodayCount(project.id)}
+                todayTasksCount={getProjectNewCount(project.id)}
               />
             ))}
             <button
@@ -297,7 +312,7 @@ export function Sidebar({
                 onToggle={() => toggleArea(area.id)}
                 onCreateProject={() => onCreateProject(area.id)}
                 onNavigate={onNavigate}
-                todayTasksCount={getAreaTodayCount(area.id)}
+                todayTasksCount={getAreaNewCount(area.id)}
               >
                 {area.projects.map((project) => (
                   <SidebarDropProject
@@ -308,7 +323,7 @@ export function Sidebar({
                     icon={<FolderKanban className="h-4 w-4" />}
                     label={project.name}
                     onClick={onNavigate}
-                    todayTasksCount={getProjectTodayCount(project.id)}
+                    todayTasksCount={getProjectNewCount(project.id)}
                   />
                 ))}
               </SidebarDropArea>

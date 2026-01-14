@@ -13,8 +13,10 @@ import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
 import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { ProjectFormModal } from '@/components/projects/project-form-modal'
+import { QuickTimeModal } from '@/components/time-tracking/quick-time-modal'
 import { useArea, useAreaProjects, useAllAreaTasks, useAreas } from '@/lib/hooks/use-areas'
 import { useTasks } from '@/lib/hooks/use-tasks'
+import { useTaskHasTime } from '@/lib/hooks/use-task-has-time'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useViewPreference } from '@/lib/hooks/use-view-preference'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
@@ -98,6 +100,10 @@ export default function AreaDetailPage() {
   const inlineFormRef = useRef<TaskQuickAddHandle>(null)
   const { areas } = useAreas()
   const { tags: allTags } = useTags()
+  const { checkTaskHasTime } = useTaskHasTime()
+
+  // State for QuickTimeModal
+  const [pendingCompleteTask, setPendingCompleteTask] = useState<TaskWithRelations | null>(null)
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -195,12 +201,51 @@ export default function AreaDetailPage() {
   }
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
+    // If uncompleting a task, just do it directly
+    if (!completed) {
+      try {
+        await completeTask(taskId, completed)
+        refetchTasks()
+      } catch (error) {
+        console.error('Error completing task:', error)
+      }
+      return
+    }
+
+    // Find the task
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) {
+      console.error('Task not found:', taskId)
+      return
+    }
+
+    // Check if task has any time entries
+    const hasTime = await checkTaskHasTime(taskId)
+
+    if (hasTime) {
+      // Task has time entries - complete directly
+      try {
+        await completeTask(taskId, completed)
+        refetchTasks()
+      } catch (error) {
+        console.error('Error completing task:', error)
+      }
+    } else {
+      // No time entries - show QuickTimeModal
+      setPendingCompleteTask(task)
+    }
+  }
+
+  // Handler for completing task after QuickTimeModal
+  const handleQuickTimeComplete = async () => {
+    if (!pendingCompleteTask) return
     try {
-      await completeTask(taskId, completed)
+      await completeTask(pendingCompleteTask.id, true)
       refetchTasks()
     } catch (error) {
       console.error('Error completing task:', error)
     }
+    setPendingCompleteTask(null)
   }
 
   const handleTaskUpdate = async (taskId: string, updates: Partial<TaskWithRelations>) => {
@@ -475,6 +520,17 @@ export default function AreaDetailPage() {
         }}
         preselectedAreaId={areaId}
       />
+
+      {/* Quick Time Modal - shown when completing task without time entries */}
+      {pendingCompleteTask && (
+        <QuickTimeModal
+          isOpen={!!pendingCompleteTask}
+          onClose={() => setPendingCompleteTask(null)}
+          taskId={pendingCompleteTask.id}
+          taskTitle={pendingCompleteTask.title}
+          onComplete={handleQuickTimeComplete}
+        />
+      )}
     </div>
   )
 }

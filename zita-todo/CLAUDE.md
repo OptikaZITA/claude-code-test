@@ -5,8 +5,8 @@
 ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zobrazením, sledovaním času a Toggl-style time trackingom. Určená pre ~20 členný tím s podporou osobnej aj tímovej produktivity.
 
 **Dátum vytvorenia**: 2. januára 2026
-**Posledná aktualizácia**: 12. januára 2026
-**Verzia špecifikácie**: 2.37 (Global Search + My Tasks Filter Fix)
+**Posledná aktualizácia**: 14. januára 2026
+**Verzia špecifikácie**: 2.38 (Strážcovia vesmíru Filter Refactor)
 
 ---
 

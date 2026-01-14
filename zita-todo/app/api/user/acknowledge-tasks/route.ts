@@ -27,12 +27,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<Acknowled
       .single()
 
     // Count tasks that will be acknowledged
+    // Filter: MOJE úlohy (created_by alebo assignee_id)
     let countQuery = supabase
       .from('tasks')
       .select('id', { count: 'exact', head: true })
       .eq('when_type', 'today')
       .is('deleted_at', null)
       .not('status', 'in', '("done","canceled")')
+      .or(`created_by.eq.${user.id},assignee_id.eq.${user.id}`)
 
     // Filter by added_to_today_at > last_acknowledged if exists
     if (settings?.last_acknowledged) {
@@ -72,7 +74,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<Acknowled
 }
 
 // GET endpoint to retrieve new tasks count
-export async function GET(request: NextRequest): Promise<NextResponse<{ count: number; last_acknowledged: string | null } | { error: string }>> {
+export async function GET(request: NextRequest): Promise<NextResponse<{
+  count: number
+  last_acknowledged: string | null
+  counts_by_area: Record<string, number>
+  counts_by_project: Record<string, number>
+} | { error: string }>> {
   try {
     const supabase = await createClient()
 
@@ -89,24 +96,46 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ count: n
       .eq('user_id', user.id)
       .single()
 
-    // Count new tasks
-    let countQuery = supabase
+    // Fetch new tasks with area_id and project_id for grouping
+    // Filter: MOJE úlohy (created_by alebo assignee_id)
+    let tasksQuery = supabase
       .from('tasks')
-      .select('id', { count: 'exact', head: true })
+      .select('id, area_id, project_id')
       .eq('when_type', 'today')
       .is('deleted_at', null)
       .not('status', 'in', '("done","canceled")')
       .not('added_to_today_at', 'is', null)
+      .or(`created_by.eq.${user.id},assignee_id.eq.${user.id}`)
 
     if (settings?.last_acknowledged) {
-      countQuery = countQuery.gt('added_to_today_at', settings.last_acknowledged)
+      tasksQuery = tasksQuery.gt('added_to_today_at', settings.last_acknowledged)
     }
 
-    const { count } = await countQuery
+    const { data: tasks, error: tasksError } = await tasksQuery
+
+    if (tasksError) {
+      console.error('Error fetching new tasks:', tasksError)
+      return NextResponse.json({ error: 'Chyba pri načítaní úloh' }, { status: 500 })
+    }
+
+    // Group by area_id and project_id
+    const countsByArea: Record<string, number> = {}
+    const countsByProject: Record<string, number> = {}
+
+    tasks?.forEach(task => {
+      if (task.area_id) {
+        countsByArea[task.area_id] = (countsByArea[task.area_id] || 0) + 1
+      }
+      if (task.project_id) {
+        countsByProject[task.project_id] = (countsByProject[task.project_id] || 0) + 1
+      }
+    })
 
     return NextResponse.json({
-      count: count || 0,
+      count: tasks?.length || 0,
       last_acknowledged: settings?.last_acknowledged || null,
+      counts_by_area: countsByArea,
+      counts_by_project: countsByProject,
     })
   } catch (error) {
     console.error('Error getting new tasks count:', error)

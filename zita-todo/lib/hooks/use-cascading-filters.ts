@@ -160,7 +160,8 @@ export function useCascadingFilters(
       }
     })
 
-    const assignees: AssigneeOption[] = Array.from(assigneeMap.entries())
+    // Jednotliví používatelia z úloh - zoradení abecedne
+    const userAssignees: AssigneeOption[] = Array.from(assigneeMap.entries())
       .map(([id, { user, count }]) => ({
         value: id,
         label: user.nickname || user.full_name || user.email || 'Neznámy',
@@ -170,6 +171,13 @@ export function useCascadingFilters(
       .filter(a => a.count > 0)
       .sort((a, b) => a.label.localeCompare(b.label, 'sk'))
 
+    // "Strážcovia vesmíru" dropdown:
+    // 1. Zoznam používateľov (prihlásený user je označený "(ja)")
+    // 2. Nepriradené (ak existujú)
+    // Default = prihlásený používateľ (nastavuje sa v komponente, nie tu)
+    const assignees: AssigneeOption[] = [...userAssignees]
+
+    // Pridaj "Nepriradené" ak existujú úlohy bez assignee
     if (unassignedCount > 0) {
       assignees.push({
         value: 'unassigned',

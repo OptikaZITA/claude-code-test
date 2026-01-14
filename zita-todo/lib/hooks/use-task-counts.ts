@@ -62,24 +62,29 @@ export function useTaskCounts() {
           .neq('status', 'done'),
 
         // Today count (when_type = today OR when_date = today)
+        // MOJE úlohy: created_by alebo assignee_id = user.id
         supabase
           .from('tasks')
           .select('id', { count: 'exact', head: true })
           .or(`when_type.eq.today,and(when_type.eq.scheduled,when_date.eq.${today})`)
           .is('archived_at', null)
           .is('deleted_at', null)
-          .neq('status', 'done'),
+          .neq('status', 'done')
+          .or(`created_by.eq.${user.id},assignee_id.eq.${user.id}`),
 
         // Today deadline count (deadline = today)
+        // MOJE úlohy: created_by alebo assignee_id = user.id
         supabase
           .from('tasks')
           .select('id', { count: 'exact', head: true })
           .eq('deadline', today)
           .is('archived_at', null)
           .is('deleted_at', null)
-          .neq('status', 'done'),
+          .neq('status', 'done')
+          .or(`created_by.eq.${user.id},assignee_id.eq.${user.id}`),
 
         // Upcoming count
+        // MOJE úlohy: created_by alebo assignee_id = user.id
         supabase
           .from('tasks')
           .select('id', { count: 'exact', head: true })
@@ -87,16 +92,19 @@ export function useTaskCounts() {
           .gt('when_date', today)
           .is('archived_at', null)
           .is('deleted_at', null)
-          .neq('status', 'done'),
+          .neq('status', 'done')
+          .or(`created_by.eq.${user.id},assignee_id.eq.${user.id}`),
 
         // Anytime count (includes former someday tasks)
+        // MOJE úlohy: created_by alebo assignee_id = user.id
         supabase
           .from('tasks')
           .select('id', { count: 'exact', head: true })
           .in('when_type', ['anytime', 'someday'])
           .is('archived_at', null)
           .is('deleted_at', null)
-          .neq('status', 'done'),
+          .neq('status', 'done')
+          .or(`created_by.eq.${user.id},assignee_id.eq.${user.id}`),
       ])
 
       setCounts({

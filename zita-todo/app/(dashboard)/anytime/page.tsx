@@ -11,7 +11,10 @@ import { TaskDetail } from '@/components/tasks/task-detail'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { CalendarView } from '@/components/calendar/calendar-view'
 import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
+import { QuickTimeModal } from '@/components/time-tracking/quick-time-modal'
 import { useAnytimeTasks, useTasks } from '@/lib/hooks/use-tasks'
+import { useCurrentUser } from '@/lib/hooks/use-user-departments'
+import { useTaskHasTime } from '@/lib/hooks/use-task-has-time'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useViewPreference } from '@/lib/hooks/use-view-preference'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
@@ -20,7 +23,10 @@ import { useTags } from '@/lib/hooks/use-tags'
 import { TaskWithRelations, TaskStatus } from '@/types'
 
 export default function AnytimePage() {
-  const { tasks, loading, refetch } = useAnytimeTasks()
+  const { user } = useCurrentUser()
+  // Database-level assignee filter - undefined (default = current user), 'all', 'unassigned', or UUID
+  const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>(undefined)
+  const { tasks, loading, refetch } = useAnytimeTasks(dbAssigneeFilter)
   const { createTask, updateTask, completeTask, softDelete, reorderTasks } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
   const { viewMode, setViewMode, isLoaded } = useViewPreference('anytime')
@@ -29,6 +35,10 @@ export default function AnytimePage() {
   const inlineFormRef = useRef<TaskQuickAddHandle>(null)
   const { areas } = useAreas()
   const { tags: allTags } = useTags()
+  const { checkTaskHasTime } = useTaskHasTime()
+
+  // State for QuickTimeModal
+  const [pendingCompleteTask, setPendingCompleteTask] = useState<TaskWithRelations | null>(null)
 
   // Apply filters to tasks (includes sorting)
   const filteredTasks = useMemo(() => {
@@ -71,12 +81,51 @@ export default function AnytimePage() {
   }
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
+    // If uncompleting a task, just do it directly
+    if (!completed) {
+      try {
+        await completeTask(taskId, completed)
+        refetch()
+      } catch (error) {
+        console.error('Error completing task:', error)
+      }
+      return
+    }
+
+    // Find the task
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) {
+      console.error('Task not found:', taskId)
+      return
+    }
+
+    // Check if task has any time entries
+    const hasTime = await checkTaskHasTime(taskId)
+
+    if (hasTime) {
+      // Task has time entries - complete directly
+      try {
+        await completeTask(taskId, completed)
+        refetch()
+      } catch (error) {
+        console.error('Error completing task:', error)
+      }
+    } else {
+      // No time entries - show QuickTimeModal
+      setPendingCompleteTask(task)
+    }
+  }
+
+  // Handler for completing task after QuickTimeModal
+  const handleQuickTimeComplete = async () => {
+    if (!pendingCompleteTask) return
     try {
-      await completeTask(taskId, completed)
+      await completeTask(pendingCompleteTask.id, true)
       refetch()
     } catch (error) {
       console.error('Error completing task:', error)
     }
+    setPendingCompleteTask(null)
   }
 
   const handleTaskUpdate = async (updates: Partial<TaskWithRelations>) => {
@@ -215,6 +264,9 @@ export default function AnytimePage() {
             areas={areas}
             allTags={allTags}
             className="mb-4"
+            dbAssigneeFilter={dbAssigneeFilter}
+            onDbAssigneeChange={setDbAssigneeFilter}
+            currentUserId={user?.id}
           />
 
           {/* Unified Filter Bar - Mobile only */}
@@ -290,6 +342,17 @@ export default function AnytimePage() {
           isOpen={!!selectedTask}
           onClose={() => setSelectedTask(null)}
           onUpdate={handleTaskUpdate}
+        />
+      )}
+
+      {/* Quick Time Modal - shown when completing task without time entries */}
+      {pendingCompleteTask && (
+        <QuickTimeModal
+          isOpen={!!pendingCompleteTask}
+          onClose={() => setPendingCompleteTask(null)}
+          taskId={pendingCompleteTask.id}
+          taskTitle={pendingCompleteTask.title}
+          onComplete={handleQuickTimeComplete}
         />
       )}
     </div>

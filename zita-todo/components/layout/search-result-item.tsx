@@ -123,17 +123,17 @@ export function SearchResultItem({ type, item, isSelected, onClick }: SearchResu
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           {getColorDot()}
-          <span className="font-medium truncate">{getTitle()}</span>
+          <span className="text-[14px] font-normal truncate">{getTitle()}</span>
         </div>
         {getSubtitle() && (
-          <span className="text-xs text-muted-foreground truncate block">
+          <span className="text-[12px] text-muted-foreground truncate block">
             {getSubtitle()}
           </span>
         )}
       </div>
 
       {date && (
-        <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-1">
+        <span className="text-[12px] text-muted-foreground shrink-0 flex items-center gap-1">
           <Calendar className="h-3 w-3" />
           {date}
         </span>

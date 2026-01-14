@@ -4,15 +4,16 @@ import { X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { TaskFilters } from '@/types'
 
-interface FilterChip {
-  key: keyof TaskFilters
+// Rozšírený typ pre podporu custom kľúčov ako 'dbAssignee'
+export interface FilterChip {
+  key: keyof TaskFilters | string
   label: string
   value: unknown
 }
 
 interface FilterChipsProps {
   filters: FilterChip[]
-  onClearFilter: (key: keyof TaskFilters) => void
+  onClearFilter: (key: keyof TaskFilters | string) => void
   onClearAll: () => void
   className?: string
 }
