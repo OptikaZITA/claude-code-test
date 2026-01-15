@@ -206,37 +206,24 @@ export function useUsersManagement(): UseUsersManagementResult {
       organizationId = userData?.organization_id
     }
 
-    const insertData = {
-      email: data.email,
-      full_name: data.full_name,
-      nickname: data.nickname,
-      position: data.position || null,
-      role: data.role,
-      departments: data.departments,
-      token: token,
-      expires_at: expiresAt.toISOString(),
-      invited_by: currentUser?.id || null,
-      organization_id: organizationId,
-    }
-
-    console.log('Creating invitation with data:', insertData)
-
     const { data: invitation, error } = await supabase
       .from('invitations')
-      .insert(insertData)
+      .insert({
+        email: data.email,
+        full_name: data.full_name,
+        nickname: data.nickname,
+        position: data.position || null,
+        role: data.role,
+        departments: data.departments,
+        token: token,
+        expires_at: expiresAt.toISOString(),
+        invited_by: currentUser?.id || null,
+        organization_id: organizationId,
+      })
       .select()
       .single()
 
-    if (error) {
-      console.error('Invitation creation error:', error)
-      console.error('Error details:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-      })
-      throw error
-    }
+    if (error) throw error
 
     await fetchData()
     return invitation
