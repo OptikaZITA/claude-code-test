@@ -4,6 +4,82 @@ História všetkých zmien v projekte.
 
 ---
 
+### v2.39 (16. januára 2026)
+**Slack Auto-Task Integration:**
+
+Automatické vytváranie úloh zo Slack správ v nakonfigurovaných kanáloch.
+
+**Hlavné funkcie:**
+
+**1. Automatické vytváranie taskov:**
+- ✅ Každá nová správa v nakonfigurovanom kanáli automaticky vytvorí task
+- ✅ Bot ignoruje svoje vlastné správy (anti-loop)
+- ✅ Parsovanie titulku z prvého riadku správy
+- ✅ Poznámky obsahujú celý text + permalink + meno autora
+- ✅ Automatický deadline podľa konfigurácie kanála
+
+**2. Reakcie pre zmenu statusu:**
+- ✅ ✅ (white_check_mark) → Done
+- ✅ 🔄 (arrows_counterclockwise) → In Progress
+- ✅ 👀 (eyes) → Review
+- ✅ ⏸️ (double_vertical_bar) → Backlog
+- ✅ Odstránenie reakcie vráti task do Todo
+
+**3. Konfigurácia kanálov:**
+- ✅ `slack_channel_configs` - nastavenie pre každý kanál
+- ✅ Možnosť priradiť default area, project, assignee, priority
+- ✅ Konfigurovateľný počet dní pre deadline
+
+**4. Slack reply s linkom:**
+- ✅ Bot odpovedá v threade s linkom na task
+- ✅ Automatická detekcia VERCEL_URL pre správne linky
+- ✅ Fallback na NEXT_PUBLIC_APP_URL
+
+**5. Prevencia duplicít:**
+- ✅ Race condition handling s rollback mechanizmom
+- ✅ Unique constraint na `slack_channel_id + slack_message_ts`
+- ✅ Ak link insert zlyhá, task sa automaticky vymaže
+
+**Nové API endpointy:**
+- `/api/slack/events` - Webhook pre Slack Events API
+- `/api/slack/oauth` - OAuth flow pre pripojenie workspace
+- `/api/slack/interaction` - Shortcuts a interaktívne akcie
+- `/api/slack/notify` - Manuálne notifikácie
+
+**Nové DB tabuľky:**
+- `slack_workspace_connections` - Pripojené Slack workspaces
+- `slack_channel_configs` - Konfigurácia kanálov
+- `slack_task_links` - Prepojenie správ s taskami
+- `slack_notification_logs` - Logy notifikácií
+
+**Nová stránka:**
+- `/tasks/[taskId]` - Detail tasku s linkom na Slack správu
+
+**Nové súbory:**
+- `app/api/slack/events/route.ts`
+- `app/api/slack/oauth/route.ts`
+- `app/api/slack/oauth/callback/route.ts`
+- `app/api/slack/interaction/route.ts`
+- `app/api/slack/notify/route.ts`
+- `app/api/cron/slack-notifications/route.ts`
+- `app/(dashboard)/tasks/[taskId]/page.tsx`
+- `lib/slack.ts` - SlackClient utility trieda
+
+**Upravené súbory:**
+- `types/index.ts` - SlackEventPayload, source fields v Task
+- `components/tasks/task-item-expanded.tsx` - bg-card namiesto bg-accent/50
+
+**Environment variables:**
+```
+SLACK_CLIENT_ID=xxx
+SLACK_CLIENT_SECRET=xxx
+SLACK_SIGNING_SECRET=xxx
+SUPABASE_SERVICE_ROLE_KEY=xxx
+NEXT_PUBLIC_APP_URL=https://your-app.vercel.app (optional on Vercel)
+```
+
+---
+
 ### v2.38 (14. januára 2026)
 **Strážcovia vesmíru Filter Refactor:**
 

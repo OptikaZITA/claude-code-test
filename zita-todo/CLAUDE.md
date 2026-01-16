@@ -5,8 +5,8 @@
 ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zobrazením, sledovaním času a Toggl-style time trackingom. Určená pre ~20 členný tím s podporou osobnej aj tímovej produktivity.
 
 **Dátum vytvorenia**: 2. januára 2026
-**Posledná aktualizácia**: 14. januára 2026
-**Verzia špecifikácie**: 2.38 (Strážcovia vesmíru Filter Refactor)
+**Posledná aktualizácia**: 16. januára 2026
+**Verzia špecifikácie**: 2.39 (Slack Auto-Task Integration)
 
 ---
 
@@ -251,6 +251,73 @@ created_at (timestamptz)
 updated_at (timestamptz)
 ```
 
+#### SLACK_WORKSPACE_CONNECTIONS ⭐ NOVÁ v2.39
+```sql
+id (uuid PK)
+organization_id (uuid FK → organizations NOT NULL)
+slack_team_id (text NOT NULL UNIQUE)
+slack_team_name (text)
+slack_bot_token (text NOT NULL)  -- encrypted
+slack_bot_user_id (text)
+is_active (boolean DEFAULT true)
+connected_by (uuid FK → users)
+connected_at (timestamptz DEFAULT now())
+created_at (timestamptz DEFAULT now())
+updated_at (timestamptz DEFAULT now())
+```
+
+#### SLACK_CHANNEL_CONFIGS ⭐ NOVÁ v2.39
+```sql
+id (uuid PK)
+organization_id (uuid FK → organizations NOT NULL)
+slack_channel_id (text NOT NULL)
+slack_channel_name (text NOT NULL)
+area_id (uuid FK → areas)
+project_id (uuid FK → projects)
+default_assignee_id (uuid FK → users)
+default_deadline_days (integer DEFAULT 7)
+default_priority (text: 'high' | 'low')
+use_ai_parsing (boolean DEFAULT false)
+ai_prompt_template (text)
+is_active (boolean DEFAULT true)
+created_at (timestamptz DEFAULT now())
+updated_at (timestamptz DEFAULT now())
+UNIQUE(organization_id, slack_channel_id)
+```
+
+#### SLACK_TASK_LINKS ⭐ NOVÁ v2.39
+```sql
+id (uuid PK)
+task_id (uuid FK → tasks NOT NULL)
+slack_channel_id (text NOT NULL)
+slack_message_ts (text NOT NULL)
+slack_thread_ts (text)
+slack_team_id (text)
+slack_user_id (text)
+slack_user_name (text)
+slack_permalink (text)
+original_text (text)
+last_synced_at (timestamptz DEFAULT now())
+last_zita_status (text)
+last_slack_emoji (text)
+created_at (timestamptz DEFAULT now())
+UNIQUE(slack_channel_id, slack_message_ts)
+```
+
+#### SLACK_NOTIFICATION_LOGS ⭐ NOVÁ v2.39
+```sql
+id (uuid PK)
+notification_type (text NOT NULL)  -- 'task_created' | 'status_changed' | 'deadline_warning' | 'overdue'
+task_id (uuid FK → tasks)
+slack_channel_id (text)
+slack_user_id (text)
+message_text (text)
+success (boolean NOT NULL)
+error_message (text)
+slack_response (jsonb)
+created_at (timestamptz DEFAULT now())
+```
+
 ### RLS Politiky
 
 Všetky tabuľky používajú Row Level Security. Kľúčová helper funkcia:
@@ -350,6 +417,39 @@ PUT /api/tasks/:id/kanban
   Body: { status: "in_progress", sort_order?: number }
   → Updates status a sort_order (v2.7+ používa status namiesto kanban_column)
 ```
+
+### Slack Integration Endpoints (v2.39)
+
+```
+POST /api/slack/events
+  → Webhook pre Slack Events API
+  → Automaticky vytvára tasky z nových správ
+  → Mení status taskov podľa reakcií (emoji)
+
+GET/POST /api/slack/oauth
+  → OAuth flow pre pripojenie Slack workspace
+
+GET /api/slack/oauth/callback
+  → Callback po úspešnom OAuth
+
+POST /api/slack/interaction
+  → Shortcuts a interaktívne akcie zo Slacku
+
+POST /api/slack/notify
+  → Manuálne odoslanie notifikácie do Slacku
+
+POST /api/cron/slack-notifications
+  → Cron job pre deadline warnings a overdue notifikácie
+```
+
+**Slack Emoji → Status mapovanie:**
+| Emoji | Status |
+|-------|--------|
+| ✅ white_check_mark | done |
+| 🔄 arrows_counterclockwise | in_progress |
+| 👀 eyes | review |
+| ⏸️ double_vertical_bar | backlog |
+| 📋 clipboard | todo |
 
 ---
 
@@ -640,9 +740,11 @@ zita-todo/
 │   │   │   └── [projectId]/
 │   │   │       ├── page.tsx
 │   │   │       └── kanban/page.tsx
-│   │   └── settings/
+│   │   ├── settings/
 │   │       ├── page.tsx
 │   │       └── users/page.tsx        # NOVÉ v2.8 - Správa používateľov
+│   │   └── tasks/
+│   │       └── [taskId]/page.tsx     # NOVÉ v2.39 - Detail tasku (Slack linky)
 │   ├── (auth)/
 │   │   ├── login/page.tsx
 │   │   ├── signup/page.tsx
@@ -655,11 +757,19 @@ zita-todo/
 │   │   ├── tags/route.ts
 │   │   ├── invitations/
 │   │   │   └── accept/route.ts       # NOVÉ v2.8 - API pre prijatie pozvánky
-│   │   └── time/
+│   │   ├── time/
 │   │       ├── start/route.ts
 │   │       ├── stop/route.ts
 │   │       ├── current/route.ts
 │   │       └── totals/route.ts
+│   │   ├── slack/                        # NOVÉ v2.39
+│   │   │   ├── events/route.ts           # Webhook pre Slack Events API
+│   │   │   ├── oauth/route.ts            # OAuth flow
+│   │   │   ├── oauth/callback/route.ts   # OAuth callback
+│   │   │   ├── interaction/route.ts      # Shortcuts a akcie
+│   │   │   └── notify/route.ts           # Manuálne notifikácie
+│   │   └── cron/
+│   │       └── slack-notifications/route.ts  # Cron job
 │   ├── layout.tsx
 │   ├── page.tsx
 │   └── globals.css
@@ -790,6 +900,7 @@ zita-todo/
 │   │   ├── server.ts
 │   │   ├── admin.ts                  # NOVÉ v2.8 - Admin client for API routes
 │   │   └── types.ts
+│   ├── slack.ts                      # NOVÉ v2.39 - SlackClient utility trieda
 │   └── utils/
 │       ├── cn.ts
 │       ├── date.ts
@@ -1024,6 +1135,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
 
 # Pre MCP (development only)
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...
+
+# Slack Integration (v2.39)
+SLACK_CLIENT_ID=xxx
+SLACK_CLIENT_SECRET=xxx
+SLACK_SIGNING_SECRET=xxx
+
+# App URL (optional on Vercel - uses VERCEL_URL as fallback)
+NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
 ```
 
 ---
