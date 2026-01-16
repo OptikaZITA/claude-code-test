@@ -225,7 +225,9 @@ async function handleNewMessage(
     }
 
     // Reply in thread with task link
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    // Use NEXT_PUBLIC_APP_URL, or VERCEL_URL on Vercel, or localhost as fallback
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
     const taskUrl = `${appUrl}/tasks/${task.id}`
     try {
       await slackClient.postMessage(
