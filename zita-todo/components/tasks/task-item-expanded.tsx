@@ -136,8 +136,8 @@ export function TaskItemExpanded({
   return (
     <div
       className={cn(
-        'rounded-[var(--radius-lg)] border border-[var(--border)] p-4 shadow-md transition-all',
-        'bg-accent/50',
+        'rounded-[var(--radius-lg)] border border-[var(--border)] p-4 transition-all',
+        'bg-card',
         isCompleted && 'opacity-60'
       )}
       onClick={(e) => e.stopPropagation()}
