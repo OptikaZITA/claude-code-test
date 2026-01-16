@@ -151,6 +151,10 @@ export interface Task {
   added_to_today_at: string | null  // Timestamp kedy bol task pridany do Dnes (pre zltu bodku)
   checklist_items: ChecklistItem[]
   recurrence_rule: RecurrenceRule | null
+  // Source tracking (Slack integration)
+  source: 'manual' | 'slack' | 'email' | 'api'
+  source_url: string | null
+  source_metadata: Record<string, unknown> | null
   created_at: string
   updated_at: string
 }
