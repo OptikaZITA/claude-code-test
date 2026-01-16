@@ -125,7 +125,7 @@ async function handleNewMessage(
       return
     }
 
-    // Check if message already has a linked task
+    // Check if message already has a linked task (first check)
     const { data: existingLink } = await supabase
       .from('slack_task_links')
       .select('task_id')
@@ -195,8 +195,8 @@ async function handleNewMessage(
       return
     }
 
-    // Create slack_task_link
-    await supabase.from('slack_task_links').insert({
+    // Try to create slack_task_link - this will fail on duplicate due to unique constraint
+    const { error: linkError } = await supabase.from('slack_task_links').insert({
       task_id: task.id,
       slack_channel_id: channelId,
       slack_message_ts: messageTs,
@@ -209,6 +209,13 @@ async function handleNewMessage(
       last_zita_status: 'todo',
       last_slack_emoji: statusToEmoji('todo'),
     })
+
+    // If link insert failed (duplicate), delete the task we just created and exit
+    if (linkError) {
+      console.log(`Duplicate message detected (${channelId}:${messageTs}), rolling back task creation`)
+      await supabase.from('tasks').delete().eq('id', task.id)
+      return
+    }
 
     // Add reaction to the original message
     try {
