@@ -356,3 +356,127 @@ export interface UserIntegrations {
   slack?: SlackIntegration
   email?: EmailIntegration
 }
+
+// =====================================================
+// Slack Integration Types (New)
+// =====================================================
+
+// Task source
+export type TaskSource = 'manual' | 'slack' | 'email' | 'api'
+
+// Slack Channel Config
+export interface SlackChannelConfig {
+  id: string
+  organization_id: string
+  slack_channel_id: string
+  slack_channel_name: string
+  area_id: string | null
+  project_id: string | null
+  default_assignee_id: string | null
+  default_deadline_days: number
+  default_priority: TaskPriority
+  use_ai_parsing: boolean
+  ai_prompt_template: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+// Slack Task Link
+export interface SlackTaskLink {
+  id: string
+  task_id: string
+  slack_channel_id: string
+  slack_message_ts: string
+  slack_thread_ts: string | null
+  slack_team_id: string | null
+  slack_user_id: string | null
+  slack_user_name: string | null
+  slack_permalink: string | null
+  original_text: string | null
+  last_synced_at: string
+  last_zita_status: string | null
+  last_slack_emoji: string | null
+  created_at: string
+}
+
+// Slack Workspace Connection
+export interface SlackWorkspaceConnection {
+  id: string
+  organization_id: string
+  slack_team_id: string
+  slack_team_name: string | null
+  slack_bot_token: string
+  slack_bot_user_id: string | null
+  is_active: boolean
+  connected_by: string | null
+  connected_at: string
+  created_at: string
+  updated_at: string
+}
+
+// Slack Notification Log
+export interface SlackNotificationLog {
+  id: string
+  notification_type: string
+  task_id: string | null
+  slack_channel_id: string | null
+  slack_user_id: string | null
+  message_text: string | null
+  success: boolean
+  error_message: string | null
+  slack_response: Record<string, unknown> | null
+  created_at: string
+}
+
+// Slack API Payloads
+export interface SlackInteractionPayload {
+  type: 'shortcut' | 'message_action' | 'view_submission'
+  callback_id: string
+  trigger_id: string
+  user: {
+    id: string
+    username: string
+    name: string
+  }
+  channel?: {
+    id: string
+    name: string
+  }
+  message?: {
+    ts: string
+    text: string
+    user: string
+    permalink?: string
+  }
+  team: {
+    id: string
+    domain: string
+  }
+}
+
+export interface SlackEventPayload {
+  type: 'url_verification' | 'event_callback'
+  challenge?: string
+  event?: {
+    type: 'message' | 'reaction_added' | 'reaction_removed'
+    // Common fields
+    user: string
+    channel: string
+    ts: string
+    // Message event fields
+    text?: string
+    subtype?: string // 'bot_message', 'message_changed', 'message_deleted', etc.
+    bot_id?: string // Present if message is from a bot
+    // Reaction event fields
+    reaction?: string
+    item?: {
+      type: 'message'
+      channel: string
+      ts: string
+    }
+  }
+  team_id: string
+}
+
+export type SlackNotificationType = 'task_created' | 'status_changed' | 'deadline_warning' | 'overdue' | 'no_activity'
