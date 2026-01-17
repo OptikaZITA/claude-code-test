@@ -24,7 +24,7 @@ import { useTags } from '@/lib/hooks/use-tags'
 import { TaskWithRelations, TaskStatus } from '@/types'
 
 export default function InboxPage() {
-  const { tasks, loading, error, refetch } = useInboxTasks('personal')
+  const { tasks, loading, error, refetch } = useInboxTasks()
   const { createTask, updateTask, completeTask, softDelete, reorderTasks } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
   const { viewMode, setViewMode, isLoaded } = useViewPreference('inbox')
@@ -56,19 +56,14 @@ export default function InboxPage() {
 
   const handleQuickAdd = async (taskData: TaskQuickAddData) => {
     try {
-      const { data: { user } } = await (await import('@/lib/supabase/client')).createClient().auth.getUser()
+      // Inbox task: no project, no deadline (will be auto-assigned to current user)
       await createTask({
         title: taskData.title,
         notes: taskData.notes,
-        when_type: taskData.when_type || 'inbox',
-        when_date: taskData.when_date,
         area_id: taskData.area_id,
-        project_id: taskData.project_id,
+        project_id: null, // Inbox = no project
         assignee_id: taskData.assignee_id,
-        deadline: taskData.deadline,
-        inbox_type: 'personal',
-        inbox_user_id: user?.id,
-        is_inbox: true,
+        deadline: null, // Inbox = no deadline
       })
       refetch()
     } catch (error) {
@@ -172,7 +167,6 @@ export default function InboxPage() {
       const updates: Partial<TaskWithRelations> = { status: newStatus }
       if (newStatus === 'done') {
         updates.completed_at = new Date().toISOString()
-        updates.when_type = null
       }
       await updateTask(taskId, updates)
       refetch()
@@ -299,7 +293,6 @@ export default function InboxPage() {
             ref={inlineFormRef}
             variant="inline"
             onAdd={handleQuickAdd}
-            context={{ defaultWhenType: 'inbox' }}
           />
 
           {tagFilteredTasks.length === 0 && tasks.length === 0 ? (
@@ -338,7 +331,6 @@ export default function InboxPage() {
           {/* Mobile FAB + Bottom Sheet */}
           <TaskQuickAddMobile
             onAdd={handleQuickAdd}
-            context={{ defaultWhenType: 'inbox' }}
           />
         </div>
       )}

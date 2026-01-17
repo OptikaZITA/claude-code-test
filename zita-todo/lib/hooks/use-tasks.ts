@@ -299,7 +299,9 @@ export function useTasks() {
   }
 }
 
-export function useInboxTasks(type: 'personal' | 'team') {
+// Inbox view - tasks without project and without deadline
+// New simplified logic: assignee = current user, no project, no deadline
+export function useInboxTasks() {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -311,7 +313,7 @@ export function useInboxTasks(type: 'personal' | 'team') {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      let query = supabase
+      const { data, error } = await supabase
         .from('tasks')
         .select(`
           *,
@@ -320,18 +322,14 @@ export function useInboxTasks(type: 'personal' | 'team') {
           area:areas(id, name, color),
           tags:task_tags(tag:tags(id, name, color))
         `)
-        .eq('inbox_type', type)
-        .eq('when_type', 'inbox')
+        .eq('assignee_id', user.id)
+        .is('project_id', null)
+        .is('deadline', null)
         .is('archived_at', null)
         .is('deleted_at', null)
         .neq('status', 'done')
-        .order('created_at', { ascending: false })
-
-      if (type === 'personal') {
-        query = query.eq('inbox_user_id', user.id)
-      }
-
-      const { data, error } = await query
+        .neq('status', 'canceled')
+        .order('sort_order', { ascending: true })
 
       if (error) throw error
       setTasks(transformTasks(data || []))
@@ -340,7 +338,7 @@ export function useInboxTasks(type: 'personal' | 'team') {
     } finally {
       setLoading(false)
     }
-  }, [supabase, type])
+  }, [supabase])
 
   useEffect(() => {
     fetchTasks()
@@ -355,7 +353,8 @@ export function useInboxTasks(type: 'personal' | 'team') {
 // UUID = úlohy konkrétneho používateľa (default = prihlásený user)
 export type AssigneeFilter = 'all' | 'unassigned' | string
 
-// Today view - tasks for today
+// Today view - tasks with deadline = today
+// New simplified logic: deadline = today (includes overdue)
 // assigneeFilter: user.id (default), 'all', 'unassigned', alebo konkrétny UUID
 export function useTodayTasks(assigneeFilter?: AssigneeFilter) {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
@@ -374,10 +373,7 @@ export function useTodayTasks(assigneeFilter?: AssigneeFilter) {
 
       const today = new Date().toISOString().split('T')[0]
 
-      // Get tasks that are:
-      // 1. when_type = 'today'
-      // 2. when_type = 'scheduled' AND when_date = today
-      // 3. Overdue tasks (due_date < today AND status != done)
+      // Get tasks with deadline = today OR overdue (deadline < today)
       let query = supabase
         .from('tasks')
         .select(`
@@ -387,10 +383,11 @@ export function useTodayTasks(assigneeFilter?: AssigneeFilter) {
           area:areas(id, name, color),
           tags:task_tags(tag:tags(id, name, color))
         `)
-        .or(`when_type.eq.today,and(when_type.eq.scheduled,when_date.eq.${today}),and(due_date.lt.${today},status.neq.done)`)
+        .lte('deadline', today)
         .is('archived_at', null)
         .is('deleted_at', null)
         .neq('status', 'done')
+        .neq('status', 'canceled')
 
       // Aplikuj filter podľa assignee_id
       if (effectiveFilter === 'all') {
@@ -403,7 +400,7 @@ export function useTodayTasks(assigneeFilter?: AssigneeFilter) {
         query = query.eq('assignee_id', effectiveFilter)
       }
 
-      const { data, error } = await query.order('sort_order', { ascending: true })
+      const { data, error } = await query.order('deadline', { ascending: true })
 
       if (error) throw error
       setTasks(transformTasks(data || []))
@@ -421,7 +418,8 @@ export function useTodayTasks(assigneeFilter?: AssigneeFilter) {
   return { tasks, loading, error, refetch: fetchTasks }
 }
 
-// Upcoming view - scheduled tasks in the future
+// Upcoming view - tasks with deadline > today
+// New simplified logic: deadline in the future
 // assigneeFilter: user.id (default), 'all', 'unassigned', alebo konkrétny UUID
 export function useUpcomingTasks(assigneeFilter?: AssigneeFilter) {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
@@ -440,6 +438,7 @@ export function useUpcomingTasks(assigneeFilter?: AssigneeFilter) {
 
       const today = new Date().toISOString().split('T')[0]
 
+      // Get tasks with deadline > today
       let query = supabase
         .from('tasks')
         .select(`
@@ -449,11 +448,11 @@ export function useUpcomingTasks(assigneeFilter?: AssigneeFilter) {
           area:areas(id, name, color),
           tags:task_tags(tag:tags(id, name, color))
         `)
-        .eq('when_type', 'scheduled')
-        .gte('when_date', today)
+        .gt('deadline', today)
         .is('archived_at', null)
         .is('deleted_at', null)
         .neq('status', 'done')
+        .neq('status', 'canceled')
 
       // Aplikuj filter podľa assignee_id
       if (effectiveFilter === 'all') {
@@ -464,7 +463,7 @@ export function useUpcomingTasks(assigneeFilter?: AssigneeFilter) {
         query = query.eq('assignee_id', effectiveFilter)
       }
 
-      const { data, error } = await query.order('when_date', { ascending: true })
+      const { data, error } = await query.order('deadline', { ascending: true })
 
       if (error) throw error
       setTasks(transformTasks(data || []))

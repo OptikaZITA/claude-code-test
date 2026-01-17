@@ -24,7 +24,7 @@ import { useNewTasks } from '@/lib/hooks/use-new-tasks'
 import { useAreas } from '@/lib/hooks/use-areas'
 import { useTags } from '@/lib/hooks/use-tags'
 import { TaskWithRelations, TaskStatus } from '@/types'
-import { isToday, isPast, parseISO } from 'date-fns'
+import { isToday, isPast, parseISO, format } from 'date-fns'
 
 export default function TodayPage() {
   const { user } = useCurrentUser()
@@ -63,19 +63,17 @@ export default function TodayPage() {
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
 
-  // Separate overdue tasks from today's tasks
+  // Separate overdue tasks from today's tasks based on deadline
+  const today = new Date().toISOString().split('T')[0]
+
   const overdueTasks = tagFilteredTasks.filter(task => {
-    if (!task.due_date) return false
-    const dueDate = parseISO(task.due_date)
-    return isPast(dueDate) && !isToday(dueDate)
+    if (!task.deadline) return false
+    return task.deadline < today
   })
 
   const todayTasks = tagFilteredTasks.filter(task => {
-    if (task.when_type === 'today') return true
-    if (task.when_type === 'scheduled' && task.when_date) {
-      return isToday(parseISO(task.when_date))
-    }
-    return false
+    if (!task.deadline) return false
+    return task.deadline === today
   })
 
   // Calculate time summary from all today's tasks (including overdue)
@@ -91,19 +89,16 @@ export default function TodayPage() {
 
   const handleQuickAdd = async (taskData: TaskQuickAddData) => {
     try {
+      // Today task: deadline = today
+      const todayDate = format(new Date(), 'yyyy-MM-dd')
       await createTask({
         title: taskData.title,
         notes: taskData.notes,
-        when_type: taskData.when_type || 'today',
-        when_date: taskData.when_date,
         area_id: taskData.area_id,
         project_id: taskData.project_id,
         assignee_id: taskData.assignee_id,
-        deadline: taskData.deadline,
-        is_inbox: false,
-        inbox_type: 'personal',
+        deadline: taskData.deadline || todayDate, // Default to today
       })
-      // TODO: Handle tag_ids - would need to add tags after task creation
       refetch()
     } catch (error) {
       console.error('Error creating task:', error)
@@ -207,7 +202,6 @@ export default function TodayPage() {
       const updates: Partial<TaskWithRelations> = { status: newStatus }
       if (newStatus === 'done') {
         updates.completed_at = new Date().toISOString()
-        updates.when_type = null
       }
       await updateTask(taskId, updates)
       refetch()
@@ -344,7 +338,6 @@ export default function TodayPage() {
             ref={inlineFormRef}
             variant="inline"
             onAdd={handleQuickAdd}
-            context={{ defaultWhenType: 'today' }}
           />
 
           {/* Overdue section */}
@@ -410,7 +403,6 @@ export default function TodayPage() {
           {/* Mobile FAB + Bottom Sheet */}
           <TaskQuickAddMobile
             onAdd={handleQuickAdd}
-            context={{ defaultWhenType: 'today' }}
           />
         </div>
       )}

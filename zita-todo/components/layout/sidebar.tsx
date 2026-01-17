@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   Inbox,
-  Users,
   FolderKanban,
   ChevronDown,
   ChevronRight,
@@ -14,7 +13,6 @@ import {
   LogOut,
   Star,
   CalendarDays,
-  Clock,
   BookOpen,
   Trash2,
   Eye,
@@ -127,67 +125,34 @@ export function Sidebar({
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
-        {/* Inbox Section */}
+        {/* Main Views */}
         <div className="mb-2">
           <SidebarDropItem
             href="/inbox"
             isActive={isActive('/inbox')}
-            dropTarget={{ type: 'when', value: 'inbox' }}
+            dropTarget={{ type: 'inbox' }}
             icon={<Inbox className="h-[18px] w-[18px]" />}
             label="Inbox"
             count={counts.inbox}
             onClick={onNavigate}
           />
-          <Link
-            href="/inbox/team"
-            onClick={onNavigate}
-            className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-              isActive('/inbox/team')
-                ? 'bg-accent text-foreground font-medium'
-                : 'text-foreground hover:bg-accent/50'
-            )}
-          >
-            <Users className="h-[18px] w-[18px]" />
-            <span className="flex-1">Tímový Inbox</span>
-            {counts.teamInbox > 0 && (
-              <span className="min-w-[20px] h-5 flex items-center justify-center rounded-full px-1.5 text-xs font-medium bg-muted text-muted-foreground">
-                {counts.teamInbox > 99 ? '99+' : counts.teamInbox}
-              </span>
-            )}
-          </Link>
-        </div>
-
-        <div className="my-3 h-px bg-[var(--border)]" />
-
-        {/* Things 3 Views - Droppable */}
-        <div className="mb-2">
           <SidebarDropItem
             href="/today"
             isActive={isActive('/today')}
-            dropTarget={{ type: 'when', value: 'today' }}
+            dropTarget={{ type: 'today' }}
             icon={<Star className="h-[18px] w-[18px] text-secondary fill-secondary" />}
             label="Dnes"
-            count={counts.todayDeadline > 0 ? counts.todayDeadline : counts.today}
-            isDeadline={counts.todayDeadline > 0}
+            count={counts.today}
+            isDeadline={counts.today > 0}
             onClick={onNavigate}
           />
           <SidebarDropItem
             href="/upcoming"
             isActive={isActive('/upcoming')}
-            dropTarget={{ type: 'when', value: 'scheduled' }}
+            dropTarget={{ type: 'upcoming' }}
             icon={<CalendarDays className="h-[18px] w-[18px] text-success" />}
             label="Nadchádzajúce"
             count={counts.upcoming}
-            onClick={onNavigate}
-          />
-          <SidebarDropItem
-            href="/anytime"
-            isActive={isActive('/anytime')}
-            dropTarget={{ type: 'when', value: 'anytime' }}
-            icon={<Clock className="h-[18px] w-[18px] text-primary" />}
-            label="Kedykoľvek"
-            count={counts.anytime}
             onClick={onNavigate}
           />
           <Link

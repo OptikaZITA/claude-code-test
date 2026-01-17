@@ -2,12 +2,11 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Tag, FolderOpen, Layers, Flag, User, X, Trash2, Clock, Repeat, Lock, LockOpen } from 'lucide-react'
-import { TaskWithRelations, WhenType, RecurrenceRule, TaskPriority } from '@/types'
+import { TaskWithRelations, RecurrenceRule, TaskPriority } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar } from '@/components/ui/avatar'
 import { TagChipList } from '@/components/tags'
 import { cn } from '@/lib/utils/cn'
-import { InlineWhenPicker } from './inline-when-picker'
 import { InlineDeadlinePicker } from './inline-deadline-picker'
 import { InlineTagSelector } from './inline-tag-selector'
 import { InlineLocationSelector } from './inline-location-selector'
@@ -101,11 +100,6 @@ export function TaskItemExpanded({
     }
   }
 
-  // When picker change
-  const handleWhenChange = (whenType: WhenType, whenDate?: string | null) => {
-    onUpdate({ when_type: whenType, when_date: whenDate })
-  }
-
   // Deadline change
   const handleDeadlineChange = (deadline: string | null) => {
     onUpdate({ deadline })
@@ -181,18 +175,9 @@ export function TaskItemExpanded({
         />
       </div>
 
-      {/* Row 3: When badge + Toolbar */}
-      <div className="mt-4 pl-8 flex items-center justify-between gap-4">
-        {/* When badge (left side) */}
-        <div className="flex items-center gap-2">
-          <InlineWhenPicker
-            value={task.when_type}
-            whenDate={task.when_date}
-            onChange={handleWhenChange}
-          />
-        </div>
-
-        {/* Toolbar icons (right side) */}
+      {/* Row 3: Toolbar */}
+      <div className="mt-4 pl-8 flex items-center justify-end">
+        {/* Toolbar icons */}
         <div className="flex items-center gap-1">
           {/* Time Tracker */}
           <InlineTimeTracker taskId={task.id} />

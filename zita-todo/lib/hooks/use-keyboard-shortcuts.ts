@@ -74,27 +74,9 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
       category: 'navigation',
     },
     {
-      key: 'a',
-      description: 'Kedykoľvek (Anytime)',
-      action: () => router.push('/anytime'),
-      category: 'navigation',
-    },
-    {
       key: 'l',
       description: 'Logbook',
       action: () => router.push('/logbook'),
-      category: 'navigation',
-    },
-    {
-      key: 'c',
-      description: 'Kalendár',
-      action: () => router.push('/calendar'),
-      category: 'navigation',
-    },
-    {
-      key: 't',
-      description: 'Tímový Inbox',
-      action: () => router.push('/inbox/team'),
       category: 'navigation',
     },
     // Task actions (when task is expanded)

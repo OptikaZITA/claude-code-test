@@ -52,13 +52,13 @@ export default function UpcomingPage() {
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
 
-  // Group tasks by date
+  // Group tasks by deadline date
   const groupedTasks = useMemo(() => {
     const groups: Map<string, TaskWithRelations[]> = new Map()
 
     tagFilteredTasks.forEach(task => {
-      if (task.when_date) {
-        const dateKey = startOfDay(parseISO(task.when_date)).toISOString()
+      if (task.deadline) {
+        const dateKey = startOfDay(parseISO(task.deadline)).toISOString()
         if (!groups.has(dateKey)) {
           groups.set(dateKey, [])
         }
@@ -91,27 +91,23 @@ export default function UpcomingPage() {
 
   const handleQuickAdd = async (taskData: TaskQuickAddData) => {
     try {
-      // If when_date is provided use it, otherwise use selectedDate or tomorrow
-      let whenDate = taskData.when_date
-      if (!whenDate) {
+      // Use deadline from task data, selectedDate, or default to tomorrow
+      let deadline = taskData.deadline
+      if (!deadline) {
         if (selectedDate) {
-          whenDate = format(selectedDate, 'yyyy-MM-dd')
+          deadline = format(selectedDate, 'yyyy-MM-dd')
         } else {
-          whenDate = format(addDays(new Date(), 1), 'yyyy-MM-dd') // Default to tomorrow
+          deadline = format(addDays(new Date(), 1), 'yyyy-MM-dd') // Default to tomorrow
         }
       }
 
       await createTask({
         title: taskData.title,
         notes: taskData.notes,
-        when_type: taskData.when_type || 'scheduled',
-        when_date: whenDate,
         area_id: taskData.area_id,
         project_id: taskData.project_id,
         assignee_id: taskData.assignee_id,
-        deadline: taskData.deadline,
-        is_inbox: false,
-        inbox_type: 'personal',
+        deadline: deadline,
       })
       refetch()
     } catch (error) {
@@ -277,7 +273,6 @@ export default function UpcomingPage() {
               ref={inlineFormRef}
               variant="inline"
               onAdd={handleQuickAdd}
-              context={{ defaultWhenType: 'scheduled' }}
             />
 
             {/* Selected date indicator */}
@@ -357,7 +352,6 @@ export default function UpcomingPage() {
             {/* Mobile FAB + Bottom Sheet */}
             <TaskQuickAddMobile
               onAdd={handleQuickAdd}
-              context={{ defaultWhenType: 'scheduled' }}
             />
           </div>
         </div>
