@@ -99,15 +99,19 @@ export function useAvatarUpload(options: UseAvatarUploadOptions = {}): UseAvatar
 
       setProgress(85)
 
-      // Update users table
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ avatar_url: urlWithCacheBust })
-        .eq('id', userId)
+      // Update users table via API route (bypasses RLS for admin editing other users)
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ avatar_url: urlWithCacheBust }),
+      })
 
-      if (updateError) {
-        console.error('Update error:', updateError)
-        throw new Error('Nepodarilo sa aktualizovať profil')
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('Update error:', errorData)
+        throw new Error(errorData.error || 'Nepodarilo sa aktualizovať profil')
       }
 
       setProgress(100)
@@ -139,15 +143,19 @@ export function useAvatarUpload(options: UseAvatarUploadOptions = {}): UseAvatar
         // Don't throw - file might not exist
       }
 
-      // Update users table
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ avatar_url: null })
-        .eq('id', userId)
+      // Update users table via API route (bypasses RLS for admin editing other users)
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ avatar_url: null }),
+      })
 
-      if (updateError) {
-        console.error('Update error:', updateError)
-        throw new Error('Nepodarilo sa aktualizovať profil')
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('Update error:', errorData)
+        throw new Error(errorData.error || 'Nepodarilo sa aktualizovať profil')
       }
 
       options.onSuccess?.('')

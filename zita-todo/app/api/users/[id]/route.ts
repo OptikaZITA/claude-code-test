@@ -36,7 +36,7 @@ export async function PATCH(
     }
 
     // Validate update data
-    const { full_name, nickname, position, role, status } = body
+    const { full_name, nickname, position, role, status, avatar_url } = body
     const updateData: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     }
@@ -46,6 +46,7 @@ export async function PATCH(
     if (position !== undefined) updateData.position = position
     if (role !== undefined) updateData.role = role
     if (status !== undefined) updateData.status = status
+    if (avatar_url !== undefined) updateData.avatar_url = avatar_url
 
     // Use admin client to bypass RLS
     const adminClient = createAdminClient()
