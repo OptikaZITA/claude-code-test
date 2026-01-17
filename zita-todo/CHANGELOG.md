@@ -4,6 +4,54 @@ História všetkých zmien v projekte.
 
 ---
 
+### v2.41 (18. januára 2026)
+**Calendar Phase 3 - Time Blocking:**
+
+Implementácia plánovania času na prácu s drag & drop funkcionalitou.
+
+**Hlavné funkcie:**
+
+**1. Týždenná časová mriežka:**
+- ✅ Zobrazenie pracovných hodín 07:00 - 19:00
+- ✅ Drag & drop presúvanie úloh medzi časovými slotmi
+- ✅ Zobrazenie naplánovaných úloh s farebným kódovaním podľa statusu
+- ✅ Detekcia konfliktov medzi úlohami a Google Calendar eventmi
+- ✅ Integrácia s Google Calendar eventmi
+
+**2. Panel nenaplánovaných úloh:**
+- ✅ Sekcie: Po termíne, Dnes, Nadchádzajúce, Bez termínu
+- ✅ Vyhľadávanie v úlohách
+- ✅ Drag & drop na časovú mriežku
+- ✅ Tlačidlo pre manuálne naplánovanie
+
+**3. Modálne okno pre plánovanie:**
+- ✅ Výber dátumu s kalendárom
+- ✅ Výber začiatku a konca v 15-minútových intervaloch
+- ✅ Zobrazenie trvania
+- ✅ Možnosť zrušiť existujúce naplánovanie
+
+**4. Integrácia do Task Detail:**
+- ✅ Sekcia "Čas práce" pre zobrazenie/úpravu naplánovaného času
+- ✅ Tlačidlo "Naplánovať čas na prácu" pre nenaplánované úlohy
+
+**Nové databázové polia:**
+- `tasks.scheduled_start` (timestamptz) - začiatok naplánovaného času
+- `tasks.scheduled_end` (timestamptz) - koniec naplánovaného času
+
+**Nové súbory:**
+- `lib/hooks/use-time-blocks.ts` - Hooky pre time blocking (useTimeBlocks, useUnscheduledTasks, useTimeBlockActions)
+- `components/calendar/time-block-item.tsx` - Komponenta pre zobrazenie naplánovanej úlohy
+- `components/calendar/week-time-grid.tsx` - Týždenná časová mriežka s drag & drop
+- `components/calendar/unscheduled-tasks-panel.tsx` - Panel nenaplánovaných úloh
+- `components/calendar/schedule-task-modal.tsx` - Modálne okno pre plánovanie
+
+**Upravené súbory:**
+- `types/index.ts` - Pridané scheduled_start a scheduled_end do Task interface
+- `components/calendar/full-calendar-view.tsx` - Pridaný "Plánovanie" view mode
+- `components/tasks/task-detail.tsx` - Pridaná sekcia pre plánovanie času
+
+---
+
 ### v2.40 (17. januára 2026)
 **Google Calendar Event Detail Panel:**
 

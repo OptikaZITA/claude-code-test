@@ -5,8 +5,8 @@
 ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zobrazením, sledovaním času a Toggl-style time trackingom. Určená pre ~20 členný tím s podporou osobnej aj tímovej produktivity.
 
 **Dátum vytvorenia**: 2. januára 2026
-**Posledná aktualizácia**: 17. januára 2026
-**Verzia špecifikácie**: 2.40 (Google Calendar Event Detail Panel)
+**Posledná aktualizácia**: 18. januára 2026
+**Verzia špecifikácie**: 2.41 (Time Blocking - Calendar Phase 3)
 
 ---
 
@@ -140,6 +140,10 @@ deleted_at (timestamptz, nullable)  -- NOVÉ v2.4
 
 -- Signalization
 added_to_today_at (timestamptz, nullable)  -- NOVÉ v2.22: Kedy bol task pridaný do "Dnes"
+
+-- Time Blocking (v2.41)
+scheduled_start (timestamptz, nullable)  -- NOVÉ v2.41: Začiatok naplánovaného času na prácu
+scheduled_end (timestamptz, nullable)    -- NOVÉ v2.41: Koniec naplánovaného času na prácu
 
 created_at (timestamptz)
 updated_at (timestamptz)
@@ -779,7 +783,12 @@ zita-todo/
 │   │   ├── calendar-view.tsx
 │   │   ├── calendar-day.tsx
 │   │   ├── mini-calendar.tsx             # NOVÉ v2.3 - Mini kalendár s indikátormi
-│   │   └── google-event-detail.tsx       # NOVÉ v2.40 - Detail panel pre Google Calendar eventy
+│   │   ├── google-event-detail.tsx       # NOVÉ v2.40 - Detail panel pre Google Calendar eventy
+│   │   ├── full-calendar-view.tsx        # Hlavný kalendár s view modes
+│   │   ├── week-time-grid.tsx            # NOVÉ v2.41 - Týždenná časová mriežka
+│   │   ├── time-block-item.tsx           # NOVÉ v2.41 - Komponenta pre time block
+│   │   ├── unscheduled-tasks-panel.tsx   # NOVÉ v2.41 - Panel nenaplánovaných úloh
+│   │   └── schedule-task-modal.tsx       # NOVÉ v2.41 - Modal pre plánovanie
 │   ├── export/
 │   │   └── export-menu.tsx
 │   ├── headings/                      # NOVÉ
@@ -887,6 +896,7 @@ zita-todo/
 │   │   ├── use-time-filters.ts       # URL-based filter management
 │   │   ├── use-cascading-time-filters.ts # NOVÉ v2.16 - Kaskádové filtre pre Časovač
 │   │   ├── use-task-time-total.ts    # NOVÉ v2.13 - Total time per task
+│   │   ├── use-time-blocks.ts        # NOVÉ v2.41 - Time blocking hooks (useTimeBlocks, useUnscheduledTasks, useTimeBlockActions)
 │   │   ├── use-organization.ts
 │   │   ├── use-realtime.ts
 │   │   ├── use-realtime-tasks.ts
@@ -1281,6 +1291,17 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
   - [x] Podpora viacdňových a celodenných eventov
   - [x] Tlačidlo "Otvoriť v Google" pre otvorenie v Google Calendar
 - [x] **Klikateľné eventy** - Month view aj Week view podporujú klik na Google eventy
+
+### Funkcie v2.41 - VŠETKY DOKONČENÉ ✅
+- [x] **Time Blocking (Calendar Phase 3)** - Plánovanie času na prácu s drag & drop
+  - [x] `week-time-grid.tsx` - Týždenná časová mriežka 07:00-19:00
+  - [x] `time-block-item.tsx` - Komponenta pre naplánované úlohy
+  - [x] `unscheduled-tasks-panel.tsx` - Panel nenaplánovaných úloh
+  - [x] `schedule-task-modal.tsx` - Modal pre manuálne plánovanie
+  - [x] `use-time-blocks.ts` - Hooky pre time blocking
+  - [x] Drag & drop presúvanie úloh medzi časovými slotmi
+  - [x] Detekcia konfliktov s Google Calendar eventmi
+  - [x] Integrácia do Task Detail ("Čas práce" sekcia)
 
 ---
 
