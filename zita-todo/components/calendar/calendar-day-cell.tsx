@@ -17,6 +17,7 @@ interface CalendarDayCellProps {
   onClick: () => void
   onTaskClick: (task: TaskWithRelations) => void
   onTaskMove?: (taskId: string, newDate: Date) => void
+  onGoogleEventClick?: (event: GoogleCalendarEvent) => void
   maxVisibleTasks?: number
 }
 
@@ -30,6 +31,7 @@ export function CalendarDayCell({
   onClick,
   onTaskClick,
   onTaskMove,
+  onGoogleEventClick,
   maxVisibleTasks = 3,
 }: CalendarDayCellProps) {
   const dayNumber = format(date, 'd')
@@ -101,7 +103,13 @@ export function CalendarDayCell({
       <div className="space-y-1">
         {/* Google events first */}
         {visibleGoogleEvents.map((event) => (
-          <GoogleCalendarEventDot key={event.id} event={event} />
+          <GoogleCalendarEventDot
+            key={event.id}
+            event={event}
+            onClick={onGoogleEventClick ? () => {
+              onGoogleEventClick(event)
+            } : undefined}
+          />
         ))}
 
         {/* ZITA tasks */}
@@ -124,7 +132,7 @@ export function CalendarDayCell({
             }}
             className="w-full text-left px-1.5 py-0.5 text-xs text-[var(--text-secondary)] hover:text-[var(--color-primary)] transition-colors"
           >
-            +{hiddenCount} dalsich
+            +{hiddenCount} ďalších
           </button>
         )}
       </div>

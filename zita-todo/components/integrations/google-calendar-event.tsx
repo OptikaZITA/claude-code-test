@@ -9,11 +9,13 @@ import { cn } from '@/lib/utils/cn'
 interface GoogleCalendarEventItemProps {
   event: GoogleCalendarEvent
   compact?: boolean
+  onClick?: () => void
 }
 
 export function GoogleCalendarEventItem({
   event,
   compact = false,
+  onClick,
 }: GoogleCalendarEventItemProps) {
   const isAllDay = !event.start.dateTime && !!event.start.date
 
@@ -27,15 +29,23 @@ export function GoogleCalendarEventItem({
 
   const time = formatTime()
 
+  const handleClick = (e: React.MouseEvent) => {
+    if (onClick) {
+      e.preventDefault()
+      onClick()
+    }
+  }
+
   // Week view - show time + name clearly
   if (!compact) {
     return (
       <a
-        href={event.htmlLink}
-        target="_blank"
-        rel="noopener noreferrer"
+        href={onClick ? undefined : event.htmlLink}
+        target={onClick ? undefined : '_blank'}
+        rel={onClick ? undefined : 'noopener noreferrer'}
+        onClick={handleClick}
         className={cn(
-          'group flex items-start gap-2 rounded-lg transition-colors',
+          'group flex items-start gap-2 rounded-lg transition-colors cursor-pointer',
           'bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800',
           'border border-gray-200 dark:border-gray-700',
           'px-3 py-2'
@@ -61,7 +71,9 @@ export function GoogleCalendarEventItem({
           </p>
         </div>
 
-        <ExternalLink className="flex-shrink-0 h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5" />
+        {!onClick && (
+          <ExternalLink className="flex-shrink-0 h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5" />
+        )}
       </a>
     )
   }
@@ -69,11 +81,12 @@ export function GoogleCalendarEventItem({
   // Compact view (month view) - minimal display
   return (
     <a
-      href={event.htmlLink}
-      target="_blank"
-      rel="noopener noreferrer"
+      href={onClick ? undefined : event.htmlLink}
+      target={onClick ? undefined : '_blank'}
+      rel={onClick ? undefined : 'noopener noreferrer'}
+      onClick={handleClick}
       className={cn(
-        'group flex items-center gap-2 rounded-lg transition-colors',
+        'group flex items-center gap-2 rounded-lg transition-colors cursor-pointer',
         'bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800',
         'border border-gray-200 dark:border-gray-700',
         'px-2 py-1'
@@ -85,19 +98,36 @@ export function GoogleCalendarEventItem({
         {event.summary || '(Bez názvu)'}
       </span>
 
-      <ExternalLink className="flex-shrink-0 h-2.5 w-2.5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+      {!onClick && (
+        <ExternalLink className="flex-shrink-0 h-2.5 w-2.5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+      )}
     </a>
   )
 }
 
 // Compact version for month view cells
-export function GoogleCalendarEventDot({ event }: { event: GoogleCalendarEvent }) {
+export function GoogleCalendarEventDot({
+  event,
+  onClick,
+}: {
+  event: GoogleCalendarEvent
+  onClick?: () => void
+}) {
+  const handleClick = (e: React.MouseEvent) => {
+    if (onClick) {
+      e.preventDefault()
+      e.stopPropagation()
+      onClick()
+    }
+  }
+
   return (
     <a
-      href={event.htmlLink}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+      href={onClick ? undefined : event.htmlLink}
+      target={onClick ? undefined : '_blank'}
+      rel={onClick ? undefined : 'noopener noreferrer'}
+      onClick={handleClick}
+      className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
       title={event.summary || '(Bez názvu)'}
     >
       <Calendar className="h-3 w-3 text-gray-400" />

@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { MonthView } from './month-view'
 import { WeekView } from './week-view'
 import { CalendarSummary } from './calendar-summary'
+import { GoogleEventDetail } from './google-event-detail'
 import { cn } from '@/lib/utils/cn'
 import { useGoogleCalendarEvents, useGoogleCalendarConnection } from '@/lib/hooks/use-google-calendar'
 import { GoogleCalendarEvent } from '@/app/api/google/events/route'
@@ -39,6 +40,7 @@ export function FullCalendarView({
   const [currentDate, setCurrentDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<CalendarViewMode>('month')
   const [isMobile, setIsMobile] = useState(false)
+  const [selectedGoogleEvent, setSelectedGoogleEvent] = useState<GoogleCalendarEvent | null>(null)
 
   // Google Calendar integration
   const { connected: googleConnected } = useGoogleCalendarConnection()
@@ -110,6 +112,11 @@ export function FullCalendarView({
     const formattedDate = format(newDate, 'yyyy-MM-dd')
     onDateChange(taskId, newDate)
   }, [onDateChange])
+
+  // Handle Google event click - show detail in sidebar
+  const handleGoogleEventClick = useCallback((event: GoogleCalendarEvent) => {
+    setSelectedGoogleEvent(event)
+  }, [])
 
   // Header title based on view mode
   const headerTitle = useMemo(() => {
@@ -214,6 +221,7 @@ export function FullCalendarView({
               onDayClick={handleDayClick}
               onTaskClick={onTaskClick}
               onTaskMove={handleTaskMove}
+              onGoogleEventClick={handleGoogleEventClick}
             />
           ) : (
             <WeekView
@@ -222,6 +230,7 @@ export function FullCalendarView({
               googleEvents={googleEvents}
               onTaskClick={onTaskClick}
               onTaskMove={handleTaskMove}
+              onGoogleEventClick={handleGoogleEventClick}
             />
           )}
         </div>
@@ -229,40 +238,49 @@ export function FullCalendarView({
 
       {/* Summary sidebar - hidden on mobile */}
       <div className="hidden lg:block w-64 border-l border-[var(--border-primary)] p-4 bg-[var(--bg-primary)]">
-        <CalendarSummary tasks={tasks} />
+        {selectedGoogleEvent ? (
+          <GoogleEventDetail
+            event={selectedGoogleEvent}
+            onClose={() => setSelectedGoogleEvent(null)}
+          />
+        ) : (
+          <>
+            <CalendarSummary tasks={tasks} />
 
-        {/* Legend */}
-        <div className="mt-6 p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-primary)]">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">
-            Legenda
-          </h3>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="h-2.5 w-2.5 rounded-full bg-red-500" />
-              <span className="text-xs text-[var(--text-secondary)]">Po termíne</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-              <span className="text-xs text-[var(--text-secondary)]">Dnes</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-2.5 w-2.5 rounded-full bg-blue-500" />
-              <span className="text-xs text-[var(--text-secondary)]">V budúcnosti</span>
-            </div>
-            {googleConnected && (
-              <div className="flex items-center gap-2">
-                <Calendar className="h-2.5 w-2.5 text-gray-400" />
-                <span className="text-xs text-[var(--text-secondary)]">Google Calendar</span>
+            {/* Legend */}
+            <div className="mt-6 p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-primary)]">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">
+                Legenda
+              </h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-2.5 w-2.5 rounded-full bg-red-500" />
+                  <span className="text-xs text-[var(--text-secondary)]">Po termíne</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                  <span className="text-xs text-[var(--text-secondary)]">Dnes</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+                  <span className="text-xs text-[var(--text-secondary)]">V budúcnosti</span>
+                </div>
+                {googleConnected && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-2.5 w-2.5 text-gray-400" />
+                    <span className="text-xs text-[var(--text-secondary)]">Google Calendar</span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
 
-        {/* Tip */}
-        <div className="mt-4 text-xs text-[var(--text-secondary)]">
-          <p className="mb-1">💡 Tip:</p>
-          <p>Presuňte úlohu na iný deň pre zmenu termínu.</p>
-        </div>
+            {/* Tip */}
+            <div className="mt-4 text-xs text-[var(--text-secondary)]">
+              <p className="mb-1">💡 Tip:</p>
+              <p>Presuňte úlohu na iný deň pre zmenu termínu.</p>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

@@ -25,6 +25,7 @@ interface MonthViewProps {
   onDayClick: (date: Date) => void
   onTaskClick: (task: TaskWithRelations) => void
   onTaskMove?: (taskId: string, newDate: Date) => void
+  onGoogleEventClick?: (event: GoogleCalendarEvent) => void
 }
 
 const WEEKDAYS = ['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne']
@@ -36,6 +37,7 @@ export function MonthView({
   onDayClick,
   onTaskClick,
   onTaskMove,
+  onGoogleEventClick,
 }: MonthViewProps) {
   const days = useMemo(() => {
     const monthStart = startOfMonth(currentDate)
@@ -131,6 +133,7 @@ export function MonthView({
                     onClick={() => onDayClick(day)}
                     onTaskClick={onTaskClick}
                     onTaskMove={onTaskMove}
+                    onGoogleEventClick={onGoogleEventClick}
                   />
                 )
               })}

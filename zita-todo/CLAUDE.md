@@ -5,8 +5,8 @@
 ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zobrazením, sledovaním času a Toggl-style time trackingom. Určená pre ~20 členný tím s podporou osobnej aj tímovej produktivity.
 
 **Dátum vytvorenia**: 2. januára 2026
-**Posledná aktualizácia**: 16. januára 2026
-**Verzia špecifikácie**: 2.39 (Slack Auto-Task Integration)
+**Posledná aktualizácia**: 17. januára 2026
+**Verzia špecifikácie**: 2.40 (Google Calendar Event Detail Panel)
 
 ---
 
@@ -778,7 +778,8 @@ zita-todo/
 │   │   ├── index.ts                      # Exporty
 │   │   ├── calendar-view.tsx
 │   │   ├── calendar-day.tsx
-│   │   └── mini-calendar.tsx             # NOVÉ v2.3 - Mini kalendár s indikátormi
+│   │   ├── mini-calendar.tsx             # NOVÉ v2.3 - Mini kalendár s indikátormi
+│   │   └── google-event-detail.tsx       # NOVÉ v2.40 - Detail panel pre Google Calendar eventy
 │   ├── export/
 │   │   └── export-menu.tsx
 │   ├── headings/                      # NOVÉ
@@ -1272,6 +1273,14 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
   - [x] `projects/[projectId]/page.tsx` - Kalendár pre projektové úlohy
   - [x] `areas/[areaId]/page.tsx` - Kalendár pre úlohy oddelenia
 - [x] **Sidebar zjednodušený** - Odstránená položka "Kalendár" z navigácie
+
+### Funkcie v2.40 - VŠETKY DOKONČENÉ ✅
+- [x] **Google Calendar Event Detail Panel** - Klikateľné Google Calendar eventy s detailom v sidebari
+  - [x] `google-event-detail.tsx` - Detail panel komponenta
+  - [x] Zobrazenie: názov, dátum, čas, miesto, popis, názov kalendára
+  - [x] Podpora viacdňových a celodenných eventov
+  - [x] Tlačidlo "Otvoriť v Google" pre otvorenie v Google Calendar
+- [x] **Klikateľné eventy** - Month view aj Week view podporujú klik na Google eventy
 
 ---
 

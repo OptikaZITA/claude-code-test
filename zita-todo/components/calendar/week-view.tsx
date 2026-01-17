@@ -24,6 +24,7 @@ interface WeekViewProps {
   googleEvents?: GoogleCalendarEvent[]
   onTaskClick: (task: TaskWithRelations) => void
   onTaskMove?: (taskId: string, newDate: Date) => void
+  onGoogleEventClick?: (event: GoogleCalendarEvent) => void
 }
 
 const MAX_VISIBLE_TASKS = 8
@@ -34,6 +35,7 @@ export function WeekView({
   googleEvents = [],
   onTaskClick,
   onTaskMove,
+  onGoogleEventClick,
 }: WeekViewProps) {
   const weekDays = useMemo(() => {
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
@@ -171,6 +173,7 @@ export function WeekView({
                       key={event.id}
                       event={event}
                       compact={false}
+                      onClick={onGoogleEventClick ? () => onGoogleEventClick(event) : undefined}
                     />
                   ))}
 

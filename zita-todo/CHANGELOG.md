@@ -4,6 +4,38 @@ História všetkých zmien v projekte.
 
 ---
 
+### v2.40 (17. januára 2026)
+**Google Calendar Event Detail Panel:**
+
+Pridanie detailného zobrazenia Google Calendar eventov v kalendári.
+
+**Hlavné funkcie:**
+
+**1. Detail panel pre Google Calendar eventy:**
+- ✅ Klik na Google Calendar event zobrazí detail v pravom sidebari
+- ✅ Zobrazenie: názov, dátum, čas, miesto, popis, názov kalendára
+- ✅ Podpora viacdňových eventov s formátovaním rozsahu dátumov
+- ✅ Podpora celodenných eventov ("Celý deň")
+- ✅ Tlačidlo "Otvoriť v Google" pre otvorenie eventu v Google Calendar
+- ✅ Zatvorenie detailu vráti pôvodný súhrn kalendára
+
+**2. Klikateľné eventy v kalendári:**
+- ✅ Month view - klik na Google event dot otvára detail
+- ✅ Week view - klik na Google event kartu otvára detail
+- ✅ External link ikona zobrazená len ak nie je onClick handler
+
+**Nové súbory:**
+- `components/calendar/google-event-detail.tsx` - Detail panel komponenta
+
+**Upravené súbory:**
+- `components/calendar/full-calendar-view.tsx` - Stav pre vybraný event, zobrazenie detailu v sidebari
+- `components/calendar/month-view.tsx` - Pridaný `onGoogleEventClick` prop
+- `components/calendar/week-view.tsx` - Pridaný `onGoogleEventClick` prop
+- `components/calendar/calendar-day-cell.tsx` - Pridaný `onGoogleEventClick` prop
+- `components/integrations/google-calendar-event.tsx` - Pridaný `onClick` handler
+
+---
+
 ### v2.39 (16. januára 2026)
 **Slack Auto-Task Integration:**
 
