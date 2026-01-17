@@ -12,13 +12,17 @@ import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { useAreas } from '@/lib/hooks/use-areas'
 import { useTags } from '@/lib/hooks/use-tags'
+import { useCurrentUser } from '@/lib/hooks/use-user-departments'
 import { TaskWithRelations } from '@/types'
 import { formatDistanceToNow, parseISO, differenceInDays } from 'date-fns'
 import { sk } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
 
 export default function TrashPage() {
-  const { tasks, loading, refetch, restoreTask, emptyTrash } = useTrashTasks()
+  const { user } = useCurrentUser()
+  // Database-level assignee filter - undefined (default = current user), 'all', 'unassigned', or UUID
+  const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>(undefined)
+  const { tasks, loading, refetch, restoreTask, emptyTrash } = useTrashTasks(dbAssigneeFilter)
   const [confirmEmptyTrash, setConfirmEmptyTrash] = useState(false)
   const { filters, setFilter, clearFilters, clearFilter, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
@@ -107,6 +111,9 @@ export default function TrashPage() {
           areas={areas}
           allTags={allTags}
           className="mb-4"
+          dbAssigneeFilter={dbAssigneeFilter}
+          onDbAssigneeChange={setDbAssigneeFilter}
+          currentUserId={user?.id}
         />
 
         {/* Unified Filter Bar - Mobile only */}
@@ -140,7 +147,7 @@ export default function TrashPage() {
         )}
 
         {/* Task list */}
-        {tagFilteredTasks.length === 0 && tasks.length === 0 ? (
+        {tagFilteredTasks.length === 0 && tasks.length === 0 && dbAssigneeFilter === undefined ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Trash2 className="mb-4 h-12 w-12 text-muted-foreground" />
             <p className="mb-2 text-lg font-medium text-foreground">
@@ -150,12 +157,12 @@ export default function TrashPage() {
               Vymazané úlohy sa tu objavia
             </p>
           </div>
-        ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag) ? (
+        ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag || dbAssigneeFilter !== undefined) ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Trash2 className="mb-4 h-12 w-12 text-muted-foreground" />
             <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
             <button
-              onClick={() => { clearFilters(); setSelectedTag(null); }}
+              onClick={() => { clearFilters(); setSelectedTag(null); setDbAssigneeFilter(undefined); }}
               className="text-primary hover:underline"
             >
               Zrušiť filtre

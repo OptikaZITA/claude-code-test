@@ -23,6 +23,7 @@ import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useViewPreference } from '@/lib/hooks/use-view-preference'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { useTags } from '@/lib/hooks/use-tags'
+import { useCurrentUser } from '@/lib/hooks/use-user-departments'
 import { TaskWithRelations, Project, TaskStatus } from '@/types'
 import { cn } from '@/lib/utils/cn'
 import { sortTasksTodayFirst } from '@/lib/utils/task-sorting'
@@ -91,9 +92,12 @@ export default function AreaDetailPage() {
   const params = useParams()
   const areaId = params.areaId as string
 
+  const { user } = useCurrentUser()
+  // Database-level assignee filter - undefined (default = current user), 'all', 'unassigned', or UUID
+  const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>(undefined)
   const { area, loading: areaLoading } = useArea(areaId)
   const { projects, loading: projectsLoading, refetch: refetchProjects } = useAreaProjects(areaId)
-  const { tasks, loading: tasksLoading, refetch: refetchTasks } = useAllAreaTasks(areaId)
+  const { tasks, loading: tasksLoading, refetch: refetchTasks } = useAllAreaTasks(areaId, dbAssigneeFilter)
   const { createTask, updateTask, completeTask, softDelete } = useTasks()
   const { viewMode, setViewMode, isLoaded } = useViewPreference('area')
   const { filters, setFilter, clearFilters, clearFilter, hasActiveFilters } = useTaskFilters()
@@ -361,6 +365,9 @@ export default function AreaDetailPage() {
           allTags={allTags}
           hideFilters={['area']}
           className="mb-0"
+          dbAssigneeFilter={dbAssigneeFilter}
+          onDbAssigneeChange={setDbAssigneeFilter}
+          currentUserId={user?.id}
         />
 
         {/* Unified Filter Bar - Mobile only */}
@@ -483,7 +490,7 @@ export default function AreaDetailPage() {
           )}
 
           {/* Filter empty state */}
-          {tagFilteredTasks.length === 0 && tasks.length > 0 && (hasActiveFilters || selectedTag) && (
+          {tagFilteredTasks.length === 0 && tasks.length > 0 && (hasActiveFilters || selectedTag || dbAssigneeFilter !== undefined) && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <FolderKanban className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
               <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
@@ -492,7 +499,7 @@ export default function AreaDetailPage() {
                   : 'Žiadne úlohy nezodpovedajú filtrom'}
               </p>
               <button
-                onClick={() => { clearFilters(); setSelectedTag(null); }}
+                onClick={() => { clearFilters(); setSelectedTag(null); setDbAssigneeFilter(undefined); }}
                 className="text-[var(--color-primary)] hover:underline"
               >
                 Zrušiť filtre

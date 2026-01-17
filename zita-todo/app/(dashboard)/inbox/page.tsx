@@ -22,10 +22,14 @@ import { useViewPreference } from '@/lib/hooks/use-view-preference'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { useAreas } from '@/lib/hooks/use-areas'
 import { useTags } from '@/lib/hooks/use-tags'
+import { useCurrentUser } from '@/lib/hooks/use-user-departments'
 import { TaskWithRelations, TaskStatus } from '@/types'
 
 export default function InboxPage() {
-  const { tasks, loading, error, refetch } = useInboxTasks()
+  const { user } = useCurrentUser()
+  // Database-level assignee filter - undefined (default = current user), 'all', 'unassigned', or UUID
+  const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>(undefined)
+  const { tasks, loading, error, refetch } = useInboxTasks(dbAssigneeFilter)
   const { createTask, updateTask, completeTask, softDelete, reorderTasks } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
   const { viewMode, setViewMode, isLoaded } = useViewPreference('inbox')
@@ -238,6 +242,9 @@ export default function InboxPage() {
           areas={areas}
           allTags={allTags}
           className="mb-0"
+          dbAssigneeFilter={dbAssigneeFilter}
+          onDbAssigneeChange={setDbAssigneeFilter}
+          currentUserId={user?.id}
         />
 
         {/* Unified Filter Bar - Mobile only */}
@@ -294,7 +301,7 @@ export default function InboxPage() {
             onAdd={handleQuickAdd}
           />
 
-          {tagFilteredTasks.length === 0 && tasks.length === 0 ? (
+          {tagFilteredTasks.length === 0 && tasks.length === 0 && dbAssigneeFilter === undefined ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Inbox className="mb-4 h-12 w-12 text-muted-foreground" />
               <p className="mb-2 text-lg font-medium text-foreground">Váš inbox je prázdny</p>
@@ -302,12 +309,12 @@ export default function InboxPage() {
                 Pridajte úlohy pomocou formulára vyššie
               </p>
             </div>
-          ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag) ? (
+          ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag || dbAssigneeFilter !== undefined) ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Inbox className="mb-4 h-12 w-12 text-muted-foreground" />
               <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
               <button
-                onClick={() => { clearFilters(); setSelectedTag(null); }}
+                onClick={() => { clearFilters(); setSelectedTag(null); setDbAssigneeFilter(undefined); }}
                 className="text-primary hover:underline"
               >
                 Zrušiť filtre

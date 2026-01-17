@@ -9,7 +9,11 @@ import {
   ChevronUp,
   Trash2,
   Flag,
+  Calendar,
+  Pencil,
 } from 'lucide-react'
+import { format, parseISO } from 'date-fns'
+import { sk } from 'date-fns/locale'
 import { TaskWithRelations, ChecklistItem, User, Project, WhenType, Tag as TagType, TaskPriority } from '@/types'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
@@ -23,9 +27,11 @@ import { DeadlinePicker } from '@/components/tasks/deadline-picker'
 import { ProjectSelector } from '@/components/tasks/project-selector'
 import { AssigneeSelector } from '@/components/tasks/assignee-selector'
 import { InlineTimeTracker } from '@/components/tasks/inline-time-tracker'
+import { ScheduleTaskModal } from '@/components/calendar/schedule-task-modal'
 import { useGlobalTimerContext } from '@/lib/contexts/global-timer-context'
 import { useTaskTimeTotal } from '@/lib/hooks/use-task-time-total'
 import { useTimeTracking } from '@/lib/hooks/use-time-tracking'
+import { useTimeBlockActions } from '@/lib/hooks/use-time-blocks'
 import { formatDurationShort } from '@/lib/utils/date'
 import { cn } from '@/lib/utils/cn'
 
@@ -59,10 +65,12 @@ export function TaskDetail({
   const [priority, setPriority] = useState<TaskPriority | null>(task.priority)
   const [showTimeEntries, setShowTimeEntries] = useState(false)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
 
   const { timeEntries, deleteTimeEntry } = useTimeTracking(task.id)
   const { totalSeconds } = useTaskTimeTotal(task.id)
   const { isRunning, currentTaskId, elapsedSeconds } = useGlobalTimerContext()
+  const { scheduleTask, unscheduleTask } = useTimeBlockActions()
 
   const isThisTaskRunning = isRunning && currentTaskId === task.id
   const displayTotalSeconds = isThisTaskRunning ? totalSeconds + elapsedSeconds : totalSeconds
@@ -154,6 +162,34 @@ export function TaskDetail({
     }
   }, [onUpdate])
 
+  // Time block handlers
+  const handleSchedule = useCallback(async (taskId: string, start: Date, end: Date) => {
+    const success = await scheduleTask(taskId, start, end)
+    if (success && onUpdate) {
+      onUpdate({
+        scheduled_start: start.toISOString(),
+        scheduled_end: end.toISOString(),
+      })
+    }
+    setShowScheduleModal(false)
+  }, [scheduleTask, onUpdate])
+
+  const handleUnschedule = useCallback(async (taskId: string) => {
+    const success = await unscheduleTask(taskId)
+    if (success && onUpdate) {
+      onUpdate({
+        scheduled_start: null,
+        scheduled_end: null,
+      })
+    }
+    setShowScheduleModal(false)
+  }, [unscheduleTask, onUpdate])
+
+  // Format scheduled time for display
+  const formattedSchedule = task.scheduled_start && task.scheduled_end
+    ? `${format(parseISO(task.scheduled_start), 'EEEE d. MMMM, HH:mm', { locale: sk })} - ${format(parseISO(task.scheduled_end), 'HH:mm', { locale: sk })}`
+    : null
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <div className="flex h-full flex-col">
@@ -239,6 +275,34 @@ export function TaskDetail({
               value={deadline}
               onChange={handleDeadlineChange}
             />
+          </div>
+
+          {/* Time Block Row */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground w-20">Čas práce:</span>
+            {formattedSchedule ? (
+              <div className="flex items-center gap-2 flex-1">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-sm">
+                  <Calendar className="h-4 w-4" />
+                  <span>{formattedSchedule}</span>
+                </div>
+                <button
+                  onClick={() => setShowScheduleModal(true)}
+                  className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  title="Upraviť naplánovaný čas"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowScheduleModal(true)}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg border border-dashed border-border transition-colors"
+              >
+                <Clock className="h-4 w-4" />
+                <span>Naplánovať čas na prácu</span>
+              </button>
+            )}
           </div>
 
           {/* Project Row */}
@@ -380,6 +444,15 @@ export function TaskDetail({
           )}
         </div>
       </div>
+
+      {/* Schedule Task Modal */}
+      <ScheduleTaskModal
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        task={task}
+        onSchedule={handleSchedule}
+        onUnschedule={handleUnschedule}
+      />
     </Modal>
   )
 }

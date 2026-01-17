@@ -149,6 +149,9 @@ export interface Task {
   archived_at: string | null
   deleted_at: string | null
   added_to_today_at: string | null  // Timestamp kedy bol task pridany do Dnes (pre zltu bodku)
+  // Time Blocking - plánovaný čas na prácu (kedy PRACOVAŤ, nie kedy je deadline)
+  scheduled_start: string | null  // timestamptz - začiatok naplánovaného času
+  scheduled_end: string | null    // timestamptz - koniec naplánovaného času
   checklist_items: ChecklistItem[]
   recurrence_rule: RecurrenceRule | null
   // Source tracking (Slack integration)

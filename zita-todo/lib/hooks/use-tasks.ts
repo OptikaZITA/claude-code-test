@@ -299,9 +299,16 @@ export function useTasks() {
   }
 }
 
+// Typ pre assignee filter (Strážcovia vesmíru)
+// 'all' = všetky úlohy v organizácii (žiadny assignee filter)
+// 'unassigned' = úlohy bez priradeného používateľa
+// UUID = úlohy konkrétneho používateľa (default = prihlásený user)
+export type AssigneeFilter = 'all' | 'unassigned' | string
+
 // Inbox view - tasks without project and without deadline
 // New simplified logic: assignee = current user, no project, no deadline
-export function useInboxTasks() {
+// assigneeFilter: user.id (default), 'all', 'unassigned', alebo konkrétny UUID
+export function useInboxTasks(assigneeFilter?: AssigneeFilter) {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -313,7 +320,10 @@ export function useInboxTasks() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      const { data, error } = await supabase
+      // Default = prihlásený používateľ
+      const effectiveFilter = assigneeFilter || user.id
+
+      let query = supabase
         .from('tasks')
         .select(`
           *,
@@ -322,14 +332,25 @@ export function useInboxTasks() {
           area:areas(id, name, color),
           tags:task_tags(tag:tags(id, name, color))
         `)
-        .eq('assignee_id', user.id)
         .is('project_id', null)
         .is('deadline', null)
         .is('archived_at', null)
         .is('deleted_at', null)
         .neq('status', 'done')
         .neq('status', 'canceled')
-        .order('sort_order', { ascending: true })
+
+      // Aplikuj filter podľa assignee_id
+      if (effectiveFilter === 'all') {
+        // Všetky úlohy v organizácii - žiadny assignee filter, RLS zabezpečí organizáciu
+      } else if (effectiveFilter === 'unassigned') {
+        // Nepriradené úlohy
+        query = query.is('assignee_id', null)
+      } else {
+        // Konkrétny používateľ (UUID) - default je prihlásený user
+        query = query.eq('assignee_id', effectiveFilter)
+      }
+
+      const { data, error } = await query.order('sort_order', { ascending: true })
 
       if (error) throw error
       setTasks(transformTasks(data || []))
@@ -338,7 +359,7 @@ export function useInboxTasks() {
     } finally {
       setLoading(false)
     }
-  }, [supabase])
+  }, [supabase, assigneeFilter])
 
   useEffect(() => {
     fetchTasks()
@@ -346,12 +367,6 @@ export function useInboxTasks() {
 
   return { tasks, loading, error, refetch: fetchTasks }
 }
-
-// Typ pre assignee filter (Strážcovia vesmíru)
-// 'all' = všetky úlohy v organizácii (žiadny assignee filter)
-// 'unassigned' = úlohy bez priradeného používateľa
-// UUID = úlohy konkrétneho používateľa (default = prihlásený user)
-export type AssigneeFilter = 'all' | 'unassigned' | string
 
 // Today view - tasks with deadline = today
 // New simplified logic: deadline = today (includes overdue)
@@ -601,7 +616,8 @@ export function useLogbookTasks(assigneeFilter?: AssigneeFilter) {
 }
 
 // Trash view - deleted tasks
-export function useTrashTasks() {
+// assigneeFilter: user.id (default), 'all', 'unassigned', alebo konkrétny UUID
+export function useTrashTasks(assigneeFilter?: AssigneeFilter) {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -610,8 +626,13 @@ export function useTrashTasks() {
   const fetchTasks = useCallback(async () => {
     try {
       setLoading(true)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
 
-      const { data, error } = await supabase
+      // Default = prihlásený používateľ
+      const effectiveFilter = assigneeFilter || user.id
+
+      let query = supabase
         .from('tasks')
         .select(`
           *,
@@ -621,6 +642,19 @@ export function useTrashTasks() {
           tags:task_tags(tag:tags(id, name, color))
         `)
         .not('deleted_at', 'is', null)
+
+      // Aplikuj filter podľa assignee_id
+      if (effectiveFilter === 'all') {
+        // Všetky úlohy v organizácii - žiadny assignee filter, RLS zabezpečí organizáciu
+      } else if (effectiveFilter === 'unassigned') {
+        // Nepriradené úlohy
+        query = query.is('assignee_id', null)
+      } else {
+        // Konkrétny používateľ (UUID) - default je prihlásený user
+        query = query.eq('assignee_id', effectiveFilter)
+      }
+
+      const { data, error } = await query
         .order('deleted_at', { ascending: false })
         .limit(100)
 
@@ -631,7 +665,7 @@ export function useTrashTasks() {
     } finally {
       setLoading(false)
     }
-  }, [supabase])
+  }, [supabase, assigneeFilter])
 
   useEffect(() => {
     fetchTasks()

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Project, TaskWithRelations } from '@/types'
 import { sortTasksTodayFirst } from '@/lib/utils/task-sorting'
+import { AssigneeFilter } from './use-tasks'
 
 export function useProject(projectId: string) {
   const [project, setProject] = useState<Project | null>(null)
@@ -38,7 +39,8 @@ export function useProject(projectId: string) {
   return { project, loading, error }
 }
 
-export function useProjectTasks(projectId: string) {
+// assigneeFilter: user.id (default), 'all', 'unassigned', alebo konkrétny UUID
+export function useProjectTasks(projectId: string, assigneeFilter?: AssigneeFilter) {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -47,7 +49,13 @@ export function useProjectTasks(projectId: string) {
   const fetchTasks = useCallback(async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      // Default = prihlásený používateľ
+      const effectiveFilter = assigneeFilter || user.id
+
+      let query = supabase
         .from('tasks')
         .select(`
           *,
@@ -55,7 +63,19 @@ export function useProjectTasks(projectId: string) {
         `)
         .eq('project_id', projectId)
         .is('archived_at', null)
-        .order('sort_order', { ascending: true })
+
+      // Aplikuj filter podľa assignee_id
+      if (effectiveFilter === 'all') {
+        // Všetky úlohy v organizácii - žiadny assignee filter, RLS zabezpečí organizáciu
+      } else if (effectiveFilter === 'unassigned') {
+        // Nepriradené úlohy
+        query = query.is('assignee_id', null)
+      } else {
+        // Konkrétny používateľ (UUID) - default je prihlásený user
+        query = query.eq('assignee_id', effectiveFilter)
+      }
+
+      const { data, error } = await query.order('sort_order', { ascending: true })
 
       if (error) throw error
       // Apply today-first sorting
@@ -65,7 +85,7 @@ export function useProjectTasks(projectId: string) {
     } finally {
       setLoading(false)
     }
-  }, [supabase, projectId])
+  }, [supabase, projectId, assigneeFilter])
 
   useEffect(() => {
     if (projectId) {

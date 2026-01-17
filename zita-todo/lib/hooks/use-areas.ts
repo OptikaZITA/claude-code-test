@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Area, Project, TaskWithRelations } from '@/types'
 import { sortTasksTodayFirst } from '@/lib/utils/task-sorting'
+import { AssigneeFilter } from './use-tasks'
 
 export interface AreaWithDetails extends Area {
   projects: Project[]
@@ -76,7 +77,8 @@ export function useAreaProjects(areaId: string) {
   return { projects, loading, error, refetch: fetchProjects }
 }
 
-export function useAreaTasks(areaId: string) {
+// assigneeFilter: user.id (default), 'all', 'unassigned', alebo konkrétny UUID
+export function useAreaTasks(areaId: string, assigneeFilter?: AssigneeFilter) {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -85,8 +87,14 @@ export function useAreaTasks(areaId: string) {
   const fetchTasks = useCallback(async () => {
     try {
       setLoading(true)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      // Default = prihlásený používateľ
+      const effectiveFilter = assigneeFilter || user.id
+
       // Fetch tasks that belong directly to the area (not in a project)
-      const { data, error } = await supabase
+      let query = supabase
         .from('tasks')
         .select(`
           *,
@@ -97,7 +105,19 @@ export function useAreaTasks(areaId: string) {
         .is('project_id', null)
         .is('archived_at', null)
         .neq('status', 'done')
-        .order('sort_order', { ascending: true })
+
+      // Aplikuj filter podľa assignee_id
+      if (effectiveFilter === 'all') {
+        // Všetky úlohy v organizácii - žiadny assignee filter, RLS zabezpečí organizáciu
+      } else if (effectiveFilter === 'unassigned') {
+        // Nepriradené úlohy
+        query = query.is('assignee_id', null)
+      } else {
+        // Konkrétny používateľ (UUID) - default je prihlásený user
+        query = query.eq('assignee_id', effectiveFilter)
+      }
+
+      const { data, error } = await query.order('sort_order', { ascending: true })
 
       if (error) throw error
       setTasks(data || [])
@@ -106,7 +126,7 @@ export function useAreaTasks(areaId: string) {
     } finally {
       setLoading(false)
     }
-  }, [supabase, areaId])
+  }, [supabase, areaId, assigneeFilter])
 
   useEffect(() => {
     if (areaId) {
@@ -118,7 +138,8 @@ export function useAreaTasks(areaId: string) {
 }
 
 // Fetch all tasks in an area (including those in projects)
-export function useAllAreaTasks(areaId: string) {
+// assigneeFilter: user.id (default), 'all', 'unassigned', alebo konkrétny UUID
+export function useAllAreaTasks(areaId: string, assigneeFilter?: AssigneeFilter) {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -127,8 +148,14 @@ export function useAllAreaTasks(areaId: string) {
   const fetchTasks = useCallback(async () => {
     try {
       setLoading(true)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      // Default = prihlásený používateľ
+      const effectiveFilter = assigneeFilter || user.id
+
       // Fetch all tasks in the area (with or without project)
-      const { data, error } = await supabase
+      let query = supabase
         .from('tasks')
         .select(`
           *,
@@ -141,7 +168,19 @@ export function useAllAreaTasks(areaId: string) {
         .is('deleted_at', null)
         .is('archived_at', null)
         .neq('status', 'done')
-        .order('sort_order', { ascending: true })
+
+      // Aplikuj filter podľa assignee_id
+      if (effectiveFilter === 'all') {
+        // Všetky úlohy v organizácii - žiadny assignee filter, RLS zabezpečí organizáciu
+      } else if (effectiveFilter === 'unassigned') {
+        // Nepriradené úlohy
+        query = query.is('assignee_id', null)
+      } else {
+        // Konkrétny používateľ (UUID) - default je prihlásený user
+        query = query.eq('assignee_id', effectiveFilter)
+      }
+
+      const { data, error } = await query.order('sort_order', { ascending: true })
 
       if (error) throw error
 
@@ -158,7 +197,7 @@ export function useAllAreaTasks(areaId: string) {
     } finally {
       setLoading(false)
     }
-  }, [supabase, areaId])
+  }, [supabase, areaId, assigneeFilter])
 
   useEffect(() => {
     if (areaId) {

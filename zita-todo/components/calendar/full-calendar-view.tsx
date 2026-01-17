@@ -13,18 +13,22 @@ import {
   endOfMonth,
 } from 'date-fns'
 import { sk } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, Clock } from 'lucide-react'
 import { TaskWithRelations } from '@/types'
 import { Button } from '@/components/ui/button'
 import { MonthView } from './month-view'
 import { WeekView } from './week-view'
+import { WeekTimeGrid } from './week-time-grid'
+import { UnscheduledTasksPanel } from './unscheduled-tasks-panel'
+import { ScheduleTaskModal } from './schedule-task-modal'
 import { CalendarSummary } from './calendar-summary'
 import { GoogleEventDetail } from './google-event-detail'
 import { cn } from '@/lib/utils/cn'
 import { useGoogleCalendarEvents, useGoogleCalendarConnection } from '@/lib/hooks/use-google-calendar'
+import { useTimeBlocks, useUnscheduledTasks, useTimeBlockActions } from '@/lib/hooks/use-time-blocks'
 import { GoogleCalendarEvent } from '@/app/api/google/events/route'
 
-type CalendarViewMode = 'month' | 'week'
+type CalendarViewMode = 'month' | 'week' | 'timeblock'
 
 interface FullCalendarViewProps {
   tasks: TaskWithRelations[]
@@ -41,11 +45,16 @@ export function FullCalendarView({
   const [viewMode, setViewMode] = useState<CalendarViewMode>('month')
   const [isMobile, setIsMobile] = useState(false)
   const [selectedGoogleEvent, setSelectedGoogleEvent] = useState<GoogleCalendarEvent | null>(null)
+  const [scheduleModalTask, setScheduleModalTask] = useState<TaskWithRelations | null>(null)
 
   // Google Calendar integration
   const { connected: googleConnected } = useGoogleCalendarConnection()
 
-  // Calculate date range for fetching Google events
+  // Time blocking hooks
+  const { scheduleTask, unscheduleTask, moveTimeBlock } = useTimeBlockActions()
+  const { tasks: unscheduledTasks, loading: unscheduledLoading, refetch: refetchUnscheduled } = useUnscheduledTasks()
+
+  // Calculate date range for fetching Google events and time blocks
   const { startDate, endDate } = useMemo(() => {
     if (viewMode === 'month') {
       const monthStart = startOfMonth(currentDate)
@@ -56,12 +65,16 @@ export function FullCalendarView({
         endDate: endOfWeek(monthEnd, { weekStartsOn: 1 }),
       }
     } else {
+      // Week view and timeblock view use same date range
       return {
         startDate: startOfWeek(currentDate, { weekStartsOn: 1 }),
         endDate: endOfWeek(currentDate, { weekStartsOn: 1 }),
       }
     }
   }, [currentDate, viewMode])
+
+  // Fetch time blocks for the current date range
+  const { timeBlocks, loading: timeBlocksLoading, refetch: refetchTimeBlocks } = useTimeBlocks(startDate, endDate)
 
   const { events: googleEvents } = useGoogleCalendarEvents(startDate, endDate, googleConnected)
 
@@ -85,6 +98,7 @@ export function FullCalendarView({
     if (viewMode === 'month') {
       setCurrentDate(prev => subMonths(prev, 1))
     } else {
+      // Week and timeblock views use week navigation
       setCurrentDate(prev => subWeeks(prev, 1))
     }
   }, [viewMode])
@@ -93,9 +107,34 @@ export function FullCalendarView({
     if (viewMode === 'month') {
       setCurrentDate(prev => addMonths(prev, 1))
     } else {
+      // Week and timeblock views use week navigation
       setCurrentDate(prev => addWeeks(prev, 1))
     }
   }, [viewMode])
+
+  // Time blocking handlers
+  const handleScheduleTask = useCallback(async (taskId: string, start: Date, end: Date) => {
+    const success = await scheduleTask(taskId, start, end)
+    if (success) {
+      refetchTimeBlocks()
+      refetchUnscheduled()
+    }
+  }, [scheduleTask, refetchTimeBlocks, refetchUnscheduled])
+
+  const handleMoveTimeBlock = useCallback(async (taskId: string, newStart: Date, newEnd: Date) => {
+    const success = await moveTimeBlock(taskId, newStart, newEnd)
+    if (success) {
+      refetchTimeBlocks()
+    }
+  }, [moveTimeBlock, refetchTimeBlocks])
+
+  const handleUnscheduleTask = useCallback(async (taskId: string) => {
+    const success = await unscheduleTask(taskId)
+    if (success) {
+      refetchTimeBlocks()
+      refetchUnscheduled()
+    }
+  }, [unscheduleTask, refetchTimeBlocks, refetchUnscheduled])
 
   const goToToday = useCallback(() => {
     setCurrentDate(new Date())
@@ -123,6 +162,7 @@ export function FullCalendarView({
     if (viewMode === 'month') {
       return format(currentDate, 'LLLL yyyy', { locale: sk })
     } else {
+      // Week and timeblock views show week range
       const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
       const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 })
       return `${format(weekStart, 'd.', { locale: sk })} - ${format(weekEnd, 'd. MMMM yyyy', { locale: sk })}`
@@ -197,6 +237,18 @@ export function FullCalendarView({
               >
                 Týždeň
               </button>
+              <button
+                onClick={() => setViewMode('timeblock')}
+                className={cn(
+                  'px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center gap-1',
+                  viewMode === 'timeblock'
+                    ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                )}
+              >
+                <Clock className="h-3.5 w-3.5" />
+                Plánovanie
+              </button>
             </div>
           )}
 
@@ -223,7 +275,7 @@ export function FullCalendarView({
               onTaskMove={handleTaskMove}
               onGoogleEventClick={handleGoogleEventClick}
             />
-          ) : (
+          ) : viewMode === 'week' ? (
             <WeekView
               currentDate={currentDate}
               tasks={tasks}
@@ -232,19 +284,39 @@ export function FullCalendarView({
               onTaskMove={handleTaskMove}
               onGoogleEventClick={handleGoogleEventClick}
             />
+          ) : (
+            <WeekTimeGrid
+              currentDate={currentDate}
+              timeBlocks={timeBlocks}
+              googleEvents={googleEvents}
+              onTimeBlockClick={onTaskClick}
+              onScheduleTask={handleScheduleTask}
+              onMoveTimeBlock={handleMoveTimeBlock}
+              onGoogleEventClick={handleGoogleEventClick}
+            />
           )}
         </div>
       </div>
 
-      {/* Summary sidebar - hidden on mobile */}
-      <div className="hidden lg:block w-64 border-l border-[var(--border-primary)] p-4 bg-[var(--bg-primary)]">
-        {selectedGoogleEvent ? (
-          <GoogleEventDetail
-            event={selectedGoogleEvent}
-            onClose={() => setSelectedGoogleEvent(null)}
+      {/* Sidebar - changes based on view mode */}
+      <div className="hidden lg:block w-72 border-l border-[var(--border-primary)] bg-[var(--bg-primary)]">
+        {viewMode === 'timeblock' ? (
+          // Time blocking mode: show unscheduled tasks panel
+          <UnscheduledTasksPanel
+            tasks={unscheduledTasks}
+            loading={unscheduledLoading}
+            onTaskClick={onTaskClick}
+            onScheduleClick={(task) => setScheduleModalTask(task)}
           />
+        ) : selectedGoogleEvent ? (
+          <div className="p-4">
+            <GoogleEventDetail
+              event={selectedGoogleEvent}
+              onClose={() => setSelectedGoogleEvent(null)}
+            />
+          </div>
         ) : (
-          <>
+          <div className="p-4">
             <CalendarSummary tasks={tasks} />
 
             {/* Legend */}
@@ -279,9 +351,18 @@ export function FullCalendarView({
               <p className="mb-1">💡 Tip:</p>
               <p>Presuňte úlohu na iný deň pre zmenu termínu.</p>
             </div>
-          </>
+          </div>
         )}
       </div>
+
+      {/* Schedule Task Modal */}
+      <ScheduleTaskModal
+        isOpen={!!scheduleModalTask}
+        onClose={() => setScheduleModalTask(null)}
+        task={scheduleModalTask}
+        onSchedule={handleScheduleTask}
+        onUnschedule={handleUnscheduleTask}
+      />
     </div>
   )
 }

@@ -12,8 +12,12 @@ import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { useAreas } from '@/lib/hooks/use-areas'
 import { useTags } from '@/lib/hooks/use-tags'
+import { useCurrentUser } from '@/lib/hooks/use-user-departments'
 
 export default function CalendarPage() {
+  const { user } = useCurrentUser()
+  // Database-level assignee filter - undefined (default = current user), 'all', 'unassigned', or UUID
+  const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>(undefined)
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
@@ -41,16 +45,25 @@ export default function CalendarPage() {
 
   useEffect(() => {
     fetchTasks()
-  }, [currentMonth])
+  }, [currentMonth, dbAssigneeFilter, user?.id])
 
   const fetchTasks = async () => {
     setLoading(true)
+
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
+    if (!currentUser) {
+      setLoading(false)
+      return
+    }
+
+    // Default = prihlásený používateľ
+    const effectiveFilter = dbAssigneeFilter || currentUser.id
 
     // Fetch tasks with deadlines in the visible range (current month +/- 1 month)
     const rangeStart = format(startOfMonth(subMonths(currentMonth, 1)), 'yyyy-MM-dd')
     const rangeEnd = format(endOfMonth(addMonths(currentMonth, 1)), 'yyyy-MM-dd')
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('tasks')
       .select(`
         *,
@@ -63,7 +76,19 @@ export default function CalendarPage() {
       .lte('deadline', rangeEnd)
       .is('archived_at', null)
       .is('deleted_at', null)
-      .order('deadline', { ascending: true })
+
+    // Aplikuj filter podľa assignee_id
+    if (effectiveFilter === 'all') {
+      // Všetky úlohy v organizácii - žiadny assignee filter, RLS zabezpečí organizáciu
+    } else if (effectiveFilter === 'unassigned') {
+      // Nepriradené úlohy
+      query = query.is('assignee_id', null)
+    } else {
+      // Konkrétny používateľ (UUID) - default je prihlásený user
+      query = query.eq('assignee_id', effectiveFilter)
+    }
+
+    const { data, error } = await query.order('deadline', { ascending: true })
 
     if (error) {
       console.error('Error fetching tasks:', error)
@@ -144,6 +169,9 @@ export default function CalendarPage() {
           areas={areas}
           allTags={allTags}
           className="mb-0"
+          dbAssigneeFilter={dbAssigneeFilter}
+          onDbAssigneeChange={setDbAssigneeFilter}
+          currentUserId={user?.id}
         />
 
         {/* Unified Filter Bar - Mobile only */}
