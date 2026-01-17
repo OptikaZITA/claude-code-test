@@ -75,3 +75,40 @@ export function useProjectTasks(projectId: string) {
 
   return { tasks, loading, error, refetch: fetchTasks }
 }
+
+/**
+ * Hook for deleting a project
+ */
+export function useDeleteProject() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+
+  const deleteProject = useCallback(async (
+    projectId: string,
+    deleteTasks: boolean = false
+  ): Promise<boolean> => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch(
+        `/api/projects/${projectId}?deleteTasks=${deleteTasks}`,
+        { method: 'DELETE' }
+      )
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Chyba pri mazaní projektu')
+      }
+
+      return true
+    } catch (err) {
+      setError(err as Error)
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  return { deleteProject, loading, error }
+}

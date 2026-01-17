@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   Inbox,
   Users,
@@ -27,6 +27,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { SidebarDropItem, SidebarDropProject, SidebarDropArea } from '@/components/layout/sidebar-drop-item'
+import { DeleteProjectModal } from '@/components/projects/delete-project-modal'
 import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
 import { useTaskCounts } from '@/lib/hooks/use-task-counts'
 import { useUserDepartments } from '@/lib/hooks/use-user-departments'
@@ -56,6 +57,7 @@ interface SidebarProps {
   onLogout: () => void
   onCreateProject: (areaId?: string) => void
   onNavigate?: () => void
+  onRefresh?: () => void
 }
 
 export function Sidebar({
@@ -64,10 +66,13 @@ export function Sidebar({
   onLogout,
   onCreateProject,
   onNavigate,
+  onRefresh,
 }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set())
   const [showOtherDepartments, setShowOtherDepartments] = useState(false)
+  const [projectToDelete, setProjectToDelete] = useState<{ id: string; name: string } | null>(null)
   const {
     isDragging,
     showCalendarPicker,
@@ -272,6 +277,7 @@ export function Sidebar({
                 icon={<FolderKanban className="h-4 w-4" />}
                 label={project.name}
                 onClick={onNavigate}
+                onDelete={() => setProjectToDelete({ id: project.id, name: project.name })}
                 todayTasksCount={getProjectNewCount(project.id)}
               />
             ))}
@@ -323,6 +329,7 @@ export function Sidebar({
                     icon={<FolderKanban className="h-4 w-4" />}
                     label={project.name}
                     onClick={onNavigate}
+                    onDelete={() => setProjectToDelete({ id: project.id, name: project.name })}
                     todayTasksCount={getProjectNewCount(project.id)}
                   />
                 ))}
@@ -416,6 +423,23 @@ export function Sidebar({
             />
           </div>
         </>
+      )}
+
+      {/* Delete Project Modal */}
+      {projectToDelete && (
+        <DeleteProjectModal
+          isOpen={true}
+          onClose={() => setProjectToDelete(null)}
+          onSuccess={() => {
+            // If we're on the deleted project's page, redirect to inbox
+            if (pathname === `/projects/${projectToDelete.id}`) {
+              router.push('/inbox')
+            }
+            // Refresh sidebar data
+            onRefresh?.()
+          }}
+          project={projectToDelete}
+        />
       )}
     </aside>
   )

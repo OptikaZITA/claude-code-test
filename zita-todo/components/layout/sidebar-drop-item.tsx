@@ -3,7 +3,7 @@
 import { ReactNode, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ChevronDown, ChevronRight, Plus } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react'
 import { useSidebarDrop, DropTarget } from '@/lib/contexts/sidebar-drop-context'
 import { SidebarStarBadge } from '@/components/indicators'
 import { cn } from '@/lib/utils/cn'
@@ -308,6 +308,7 @@ interface SidebarDropProjectProps {
   icon: ReactNode
   label: string
   onClick?: () => void
+  onDelete?: () => void
   /** Pocet taskov v "Dnes" pre tento projekt */
   todayTasksCount?: number
 }
@@ -319,6 +320,7 @@ export function SidebarDropProject({
   icon,
   label,
   onClick,
+  onDelete,
   todayTasksCount = 0,
 }: SidebarDropProjectProps) {
   const {
@@ -390,16 +392,14 @@ export function SidebarDropProject({
   )
 
   return (
-    <Link
-      href={href}
-      onClick={onClick}
+    <div
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDropEvent}
       className={cn(
-        'flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all',
+        'group flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all',
         isActive
           ? 'bg-accent text-foreground font-medium'
           : 'text-foreground hover:bg-accent/50',
@@ -407,15 +407,36 @@ export function SidebarDropProject({
         isDropTarget && 'ring-2 ring-primary bg-primary/10 scale-105'
       )}
     >
-      {icon}
-      <span className="flex-1">{label}</span>
+      <Link
+        href={href}
+        onClick={onClick}
+        className="flex flex-1 items-center gap-2 min-w-0"
+      >
+        {icon}
+        <span className="flex-1 truncate">{label}</span>
+      </Link>
       {isDropTarget ? (
-        <span className="text-xs text-primary font-medium">
+        <span className="text-xs text-primary font-medium shrink-0">
           +
         </span>
       ) : (
-        <SidebarStarBadge todayTasksCount={todayTasksCount} />
+        <div className="flex items-center gap-1 shrink-0">
+          <SidebarStarBadge todayTasksCount={todayTasksCount} />
+          {onDelete && (
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onDelete()
+              }}
+              className="h-5 w-5 p-0.5 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+              title="Zmazať projekt"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          )}
+        </div>
       )}
-    </Link>
+    </div>
   )
 }
