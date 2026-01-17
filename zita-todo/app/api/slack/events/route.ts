@@ -7,6 +7,7 @@ import {
   SlackClient,
   parseTaskTitle,
   formatTaskNotes,
+  extractSlackUserMentions,
 } from '@/lib/slack'
 import { SlackEventPayload, TaskStatus, SlackChannelConfig } from '@/types'
 import { addDays } from 'date-fns'
@@ -16,6 +17,83 @@ function getSupabase() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
+}
+
+/**
+ * Finds a ZITA TODO user by nickname (case insensitive)
+ * Returns user ID if found, null otherwise
+ */
+async function findUserByNickname(
+  organizationId: string,
+  nickname: string
+): Promise<string | null> {
+  const supabase = getSupabase()
+
+  // Try exact match first (case insensitive)
+  const { data: user } = await supabase
+    .from('users')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .ilike('nickname', nickname)
+    .single()
+
+  if (user) {
+    return user.id
+  }
+
+  // If no exact match, try partial match (starts with)
+  const { data: partialUser } = await supabase
+    .from('users')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .ilike('nickname', `${nickname}%`)
+    .limit(1)
+    .single()
+
+  return partialUser?.id || null
+}
+
+/**
+ * Resolves assignee from Slack mentions in message text
+ * Tries to find a ZITA TODO user based on Slack user's display_name or real_name
+ * Returns user ID if found, null otherwise
+ */
+async function resolveAssigneeFromMentions(
+  slackClient: SlackClient,
+  organizationId: string,
+  messageText: string
+): Promise<string | null> {
+  const mentionedUserIds = extractSlackUserMentions(messageText)
+
+  if (mentionedUserIds.length === 0) {
+    return null
+  }
+
+  // Try first mentioned user
+  for (const slackUserId of mentionedUserIds) {
+    try {
+      const slackUserInfo = await slackClient.getUserInfo(slackUserId)
+
+      // Try display_name first, then real_name
+      const namesToTry = [
+        slackUserInfo.display_name,
+        slackUserInfo.real_name,
+        slackUserInfo.name,
+      ].filter(Boolean)
+
+      for (const name of namesToTry) {
+        const userId = await findUserByNickname(organizationId, name)
+        if (userId) {
+          console.log(`Matched Slack user @${slackUserInfo.name} (${name}) to ZITA user ${userId}`)
+          return userId
+        }
+      }
+    } catch (e) {
+      console.warn(`Could not get info for Slack user ${slackUserId}:`, e)
+    }
+  }
+
+  return null
 }
 
 export async function POST(request: NextRequest) {
@@ -168,6 +246,21 @@ async function handleNewMessage(
     const taskNotes = formatTaskNotes(messageText, permalink, slackUserName)
     const deadline = addDays(new Date(), config.default_deadline_days || 7)
 
+    // Try to resolve assignee from @mentions in message
+    let assigneeId = config.default_assignee_id
+    try {
+      const mentionedAssignee = await resolveAssigneeFromMentions(
+        slackClient,
+        config.organization_id,
+        messageText
+      )
+      if (mentionedAssignee) {
+        assigneeId = mentionedAssignee
+      }
+    } catch (e) {
+      console.warn('Could not resolve assignee from mentions:', e)
+    }
+
     const { data: task, error: taskError } = await supabase
       .from('tasks')
       .insert({
@@ -176,7 +269,7 @@ async function handleNewMessage(
         organization_id: config.organization_id,
         area_id: config.area_id,
         project_id: config.project_id,
-        assignee_id: config.default_assignee_id,
+        assignee_id: assigneeId,
         priority: config.default_priority === 'high' || config.default_priority === 'low'
           ? config.default_priority
           : null,

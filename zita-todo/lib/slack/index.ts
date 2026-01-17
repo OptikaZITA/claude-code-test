@@ -48,6 +48,23 @@ export function verifySlackRequest(
 // =====================================================
 
 /**
+ * Extracts Slack user IDs from message text
+ * Format: <@U12345678> or <@U12345678|username>
+ * Returns array of user IDs (without < @ > characters)
+ */
+export function extractSlackUserMentions(messageText: string): string[] {
+  const regex = /<@([A-Z0-9]+)(\|[^>]+)?>/g
+  const userIds: string[] = []
+  let match: RegExpExecArray | null
+
+  while ((match = regex.exec(messageText)) !== null) {
+    userIds.push(match[1])
+  }
+
+  return userIds
+}
+
+/**
  * Parses task title from Slack message text
  * Tries to extract meaningful title from the message
  */
@@ -286,20 +303,35 @@ export class SlackClient {
   }
 
   /**
-   * Gets user info
+   * Gets user info including display_name from profile
    */
   async getUserInfo(userId: string): Promise<{
     id: string
     name: string
     real_name: string
+    display_name: string
   }> {
     const response = await this.request<SlackApiResponse & {
-      user?: { id: string; name: string; real_name: string }
+      user?: {
+        id: string
+        name: string
+        real_name: string
+        profile?: {
+          display_name?: string
+          real_name?: string
+        }
+      }
     }>('users.info', {
       user: userId,
     })
 
-    return response.user || { id: userId, name: '', real_name: '' }
+    const user = response.user
+    return {
+      id: user?.id || userId,
+      name: user?.name || '',
+      real_name: user?.real_name || '',
+      display_name: user?.profile?.display_name || '',
+    }
   }
 
   /**
