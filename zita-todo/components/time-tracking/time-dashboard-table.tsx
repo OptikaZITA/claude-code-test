@@ -265,7 +265,10 @@ export function TimeDashboardTable({
 
   // Listen for time entry events to refresh
   useEffect(() => {
-    const handleRefresh = () => onRefresh?.()
+    const handleRefresh = (event: Event) => {
+      console.log('[TIME_DASHBOARD_TABLE] Event received:', event.type)
+      onRefresh?.()
+    }
 
     window.addEventListener('time-entry:updated', handleRefresh)
     window.addEventListener('time-entry:deleted', handleRefresh)

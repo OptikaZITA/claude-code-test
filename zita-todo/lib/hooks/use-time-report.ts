@@ -81,6 +81,8 @@ export function useTimeReport(filters: TimeReportFilters) {
       filters.projectIds?.forEach(id => params.append('projectId', id))
       filters.tagIds?.forEach(id => params.append('tagId', id))
 
+      // Add cache-busting parameter to ensure fresh data
+      params.set('_t', Date.now().toString())
       const response = await fetch(`/api/time/report?${params}`)
 
       if (!response.ok) {

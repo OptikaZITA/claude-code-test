@@ -90,15 +90,25 @@ export async function PUT(
       )
     }
 
-    // Calculate duration if both times provided
-    let duration_seconds = existingEntry.duration_seconds
+    // Calculate duration - ALWAYS recalculate from timestamps
     const finalStartedAt = started_at || existingEntry.started_at
     const finalEndedAt = stopped_at || existingEntry.ended_at
 
-    if (started_at && stopped_at) {
-      const start = new Date(started_at)
-      const stop = new Date(stopped_at)
+    let duration_seconds: number | null = null
+
+    // Always recalculate duration from timestamps if we have both
+    if (finalStartedAt && finalEndedAt) {
+      const start = new Date(finalStartedAt)
+      const stop = new Date(finalEndedAt)
       duration_seconds = Math.floor((stop.getTime() - start.getTime()) / 1000)
+
+      // Debug logging
+      console.log('[TIME_ENTRY_UPDATE] Calculating duration:', {
+        id,
+        started_at: finalStartedAt,
+        ended_at: finalEndedAt,
+        duration_seconds,
+      })
     }
 
     // Check for overlapping entries
@@ -122,15 +132,16 @@ export async function PUT(
     }
 
     // Build update object
-    const updateData: Record<string, unknown> = {
-      updated_at: new Date().toISOString(),
-    }
+    const updateData: Record<string, unknown> = {}
 
     if (task_id !== undefined) updateData.task_id = task_id
     if (description !== undefined) updateData.description = description
     if (started_at !== undefined) updateData.started_at = started_at
     if (stopped_at !== undefined) updateData.ended_at = stopped_at
-    if (duration_seconds !== undefined) updateData.duration_seconds = duration_seconds
+    // Always update duration_seconds if we calculated it
+    if (duration_seconds !== null) updateData.duration_seconds = duration_seconds
+
+    console.log('[TIME_ENTRY_UPDATE] Saving:', updateData)
 
     const { data, error } = await supabase
       .from('time_entries')

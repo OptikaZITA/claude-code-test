@@ -208,13 +208,26 @@ export function EditTimeEntryModal({
     e.preventDefault()
     setError(null)
 
+    console.log('[EDIT_TIME_MODAL] handleSubmit called', {
+      mode,
+      taskId,
+      calculatedDuration,
+      durationHours,
+      durationMinutes,
+      durationDate,
+      isEditMode,
+      entryId: entry?.id,
+    })
+
     // Validate
     if (!taskId) {
+      console.log('[EDIT_TIME_MODAL] Validation failed: no taskId')
       setError('Vyberte úlohu')
       return
     }
 
     if (calculatedDuration < 60) {
+      console.log('[EDIT_TIME_MODAL] Validation failed: duration < 60', calculatedDuration)
       setError('Minimálne trvanie je 1 minúta')
       return
     }
@@ -234,14 +247,27 @@ export function EditTimeEntryModal({
       stopped_at = new Date(`${endDate}T${endTime}`).toISOString()
     }
 
+    console.log('[EDIT_TIME_MODAL] Calculated timestamps:', {
+      started_at,
+      stopped_at,
+      calculatedDuration,
+    })
+
     try {
       if (isEditMode && entry) {
+        console.log('[EDIT_TIME_MODAL] Calling updateTimeEntry with:', {
+          id: entry.id,
+          task_id: taskId,
+          started_at,
+          stopped_at,
+        })
         await updateTimeEntry(entry.id, {
           task_id: taskId,
           description: description || undefined,
           started_at,
           stopped_at,
         })
+        console.log('[EDIT_TIME_MODAL] updateTimeEntry completed successfully')
       } else {
         await createTimeEntry({
           task_id: taskId,
