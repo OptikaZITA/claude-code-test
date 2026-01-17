@@ -1,13 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { format, startOfMonth, endOfMonth, subMonths, addMonths } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
 import { TaskWithRelations } from '@/types'
-import { CalendarView } from '@/components/calendar/calendar-view'
+import { FullCalendarView } from '@/components/calendar/full-calendar-view'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { Header } from '@/components/layout/header'
 import { ExportMenu } from '@/components/export/export-menu'
+import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
+import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
+import { useAreas } from '@/lib/hooks/use-areas'
+import { useTags } from '@/lib/hooks/use-tags'
 
 export default function CalendarPage() {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([])
@@ -16,6 +20,25 @@ export default function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const supabase = createClient()
 
+  // Filters
+  const { filters, setFilter, clearFilters, clearFilter, hasActiveFilters } = useTaskFilters()
+  const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  const { areas } = useAreas()
+  const { tags: allTags } = useTags()
+
+  // Apply filters to tasks
+  const filteredTasks = useMemo(() => {
+    return filterTasks(tasks, filters)
+  }, [tasks, filters])
+
+  // Apply tag filter
+  const tagFilteredTasks = useMemo(() => {
+    if (!selectedTag) return filteredTasks
+    return filteredTasks.filter(task =>
+      task.tags?.some(tag => tag.id === selectedTag)
+    )
+  }, [filteredTasks, selectedTag])
+
   useEffect(() => {
     fetchTasks()
   }, [currentMonth])
@@ -23,7 +46,7 @@ export default function CalendarPage() {
   const fetchTasks = async () => {
     setLoading(true)
 
-    // Fetch tasks with due dates in the visible range (current month +/- 1 month)
+    // Fetch tasks with deadlines in the visible range (current month +/- 1 month)
     const rangeStart = format(startOfMonth(subMonths(currentMonth, 1)), 'yyyy-MM-dd')
     const rangeEnd = format(endOfMonth(addMonths(currentMonth, 1)), 'yyyy-MM-dd')
 
@@ -31,14 +54,16 @@ export default function CalendarPage() {
       .from('tasks')
       .select(`
         *,
-        assignee:users!tasks_assignee_id_fkey(id, full_name, avatar_url),
+        assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url),
         project:projects(id, name, color),
+        area:areas(id, name, color),
         tags:task_tags(tag:tags(*))
       `)
-      .gte('due_date', rangeStart)
-      .lte('due_date', rangeEnd)
+      .gte('deadline', rangeStart)
+      .lte('deadline', rangeEnd)
       .is('archived_at', null)
-      .order('due_date', { ascending: true })
+      .is('deleted_at', null)
+      .order('deadline', { ascending: true })
 
     if (error) {
       console.error('Error fetching tasks:', error)
@@ -58,16 +83,11 @@ export default function CalendarPage() {
     setSelectedTask(task)
   }
 
-  const handleDateClick = (date: Date) => {
-    // Could open a modal to create a new task on this date
-    console.log('Date clicked:', format(date, 'yyyy-MM-dd'))
-  }
-
-  const handleTaskMove = async (taskId: string, newDate: Date) => {
-    // Update task due date
+  const handleDateChange = async (taskId: string, newDate: Date) => {
+    // Update task deadline
     const { error } = await supabase
       .from('tasks')
-      .update({ due_date: format(newDate, 'yyyy-MM-dd') })
+      .update({ deadline: format(newDate, 'yyyy-MM-dd') })
       .eq('id', taskId)
 
     if (error) {
@@ -78,33 +98,29 @@ export default function CalendarPage() {
     }
   }
 
-  const handleTaskUpdate = async (taskId: string, updates: Partial<TaskWithRelations>) => {
+  const handleTaskUpdate = async (updates: Partial<TaskWithRelations>) => {
+    if (!selectedTask) return
+
     const { error } = await supabase
       .from('tasks')
       .update(updates)
-      .eq('id', taskId)
+      .eq('id', selectedTask.id)
 
     if (error) {
       console.error('Error updating task:', error)
     } else {
       fetchTasks()
-      if (selectedTask?.id === taskId) {
-        setSelectedTask({ ...selectedTask, ...updates })
-      }
+      setSelectedTask(null)
     }
-  }
-
-  const handleTaskComplete = async (taskId: string, completed: boolean) => {
-    await handleTaskUpdate(taskId, {
-      status: completed ? 'done' : 'todo',
-      completed_at: completed ? new Date().toISOString() : null,
-    })
   }
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent" />
+      <div className="flex h-full flex-col">
+        <Header title="Kalendár" />
+        <div className="flex flex-1 items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent" />
+        </div>
       </div>
     )
   }
@@ -112,15 +128,45 @@ export default function CalendarPage() {
   return (
     <div className="flex h-full flex-col">
       <Header title="Kalendár">
-        <ExportMenu tasks={tasks} title="Kalendár" filename="kalendar" />
+        <ExportMenu tasks={tagFilteredTasks} title="Kalendár" filename="kalendar" />
       </Header>
 
-      <div className="flex-1 overflow-hidden">
-        <CalendarView
+      {/* Filters */}
+      <div className="px-6 pt-4 pb-2 border-b border-[var(--border-primary)] bg-[var(--bg-primary)]">
+        {/* Cascading Filter Bar - Desktop only */}
+        <CascadingFilterBar
           tasks={tasks}
+          filters={filters}
+          onFilterChange={setFilter}
+          onClearFilters={clearFilters}
+          onClearFilter={clearFilter}
+          hasActiveFilters={hasActiveFilters}
+          areas={areas}
+          allTags={allTags}
+          className="mb-0"
+        />
+
+        {/* Unified Filter Bar - Mobile only */}
+        <div className="lg:hidden">
+          <UnifiedFilterBar
+            tasks={filteredTasks}
+            filters={filters}
+            onFilterChange={setFilter}
+            onClearFilters={clearFilters}
+            onClearFilter={clearFilter}
+            hasActiveFilters={hasActiveFilters}
+            selectedTag={selectedTag}
+            onSelectTag={setSelectedTag}
+            className="mb-0"
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-hidden">
+        <FullCalendarView
+          tasks={tagFilteredTasks}
           onTaskClick={handleTaskClick}
-          onDateClick={handleDateClick}
-          onTaskMove={handleTaskMove}
+          onDateChange={handleDateChange}
         />
       </div>
 
@@ -130,8 +176,7 @@ export default function CalendarPage() {
           task={selectedTask}
           isOpen={!!selectedTask}
           onClose={() => setSelectedTask(null)}
-          onUpdate={(updates) => handleTaskUpdate(selectedTask.id, updates)}
-          onComplete={(completed) => handleTaskComplete(selectedTask.id, completed)}
+          onUpdate={handleTaskUpdate}
         />
       )}
     </div>

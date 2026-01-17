@@ -121,9 +121,9 @@ export function EditUserModal({
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-lg bg-[var(--bg-primary)] rounded-xl shadow-xl mx-4">
+      <div className="relative w-full max-w-lg max-h-[90vh] bg-[var(--bg-primary)] rounded-xl shadow-xl mx-4 flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[var(--border-primary)]">
+        <div className="flex items-center justify-between p-4 border-b border-[var(--border-primary)] flex-shrink-0">
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">
             Upraviť používateľa
           </h2>
@@ -133,7 +133,7 @@ export function EditUserModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
           {error && (
             <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm">
               {error}

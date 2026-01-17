@@ -10,7 +10,9 @@ import { TaskList } from '@/components/tasks/task-list'
 import { TaskQuickAdd, TaskQuickAddData, TaskQuickAddHandle } from '@/components/tasks/task-quick-add'
 import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
-import { CalendarView } from '@/components/calendar/calendar-view'
+import { FullCalendarView } from '@/components/calendar/full-calendar-view'
+import { format } from 'date-fns'
+import { TaskDetail } from '@/components/tasks/task-detail'
 import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { ProjectFormModal } from '@/components/projects/project-form-modal'
 import { QuickTimeModal } from '@/components/time-tracking/quick-time-modal'
@@ -104,6 +106,8 @@ export default function AreaDetailPage() {
 
   // State for QuickTimeModal
   const [pendingCompleteTask, setPendingCompleteTask] = useState<TaskWithRelations | null>(null)
+  // State for TaskDetail
+  const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -288,10 +292,10 @@ export default function AreaDetailPage() {
   }
 
   // Calendar handlers
-  const handleCalendarTaskMove = async (taskId: string, newDate: Date) => {
+  const handleCalendarDateChange = async (taskId: string, newDate: Date) => {
     try {
       await updateTask(taskId, {
-        due_date: newDate.toISOString().split('T')[0],
+        deadline: format(newDate, 'yyyy-MM-dd'),
       })
       refetchTasks()
     } catch (error) {
@@ -299,9 +303,16 @@ export default function AreaDetailPage() {
     }
   }
 
-  const handleCalendarDateClick = (date: Date) => {
-    // Could open quick add for that date
-    console.log('Date clicked:', date)
+  // Task detail update handler
+  const handleTaskDetailUpdate = async (updates: Partial<TaskWithRelations>) => {
+    if (!selectedTask) return
+    try {
+      await updateTask(selectedTask.id, updates)
+      refetchTasks()
+      setSelectedTask(null)
+    } catch (error) {
+      console.error('Error updating task:', error)
+    }
   }
 
   if (areaLoading || projectsLoading || tasksLoading || !isLoaded) {
@@ -336,13 +347,44 @@ export default function AreaDetailPage() {
         onViewModeChange={setViewMode}
       />
 
+      {/* Filters - shown for all view modes */}
+      <div className="px-6 pt-4 pb-2 border-b border-[var(--border-primary)] bg-[var(--bg-primary)]">
+        {/* Cascading Filter Bar - Desktop only */}
+        <CascadingFilterBar
+          tasks={tasks}
+          filters={filters}
+          onFilterChange={setFilter}
+          onClearFilters={clearFilters}
+          onClearFilter={clearFilter}
+          hasActiveFilters={hasActiveFilters}
+          areas={areas}
+          allTags={allTags}
+          hideFilters={['area']}
+          className="mb-0"
+        />
+
+        {/* Unified Filter Bar - Mobile only */}
+        <div className="lg:hidden">
+          <UnifiedFilterBar
+            tasks={filteredTasks}
+            filters={filters}
+            onFilterChange={setFilter}
+            onClearFilters={clearFilters}
+            onClearFilter={clearFilter}
+            hasActiveFilters={hasActiveFilters}
+            selectedTag={selectedTag}
+            onSelectTag={setSelectedTag}
+            className="mb-0"
+          />
+        </div>
+      </div>
+
       {viewMode === 'calendar' ? (
         <div className="flex-1 overflow-hidden">
-          <CalendarView
+          <FullCalendarView
             tasks={tagFilteredTasks}
-            onTaskClick={() => {}}
-            onDateClick={handleCalendarDateClick}
-            onTaskMove={handleCalendarTaskMove}
+            onTaskClick={setSelectedTask}
+            onDateChange={handleCalendarDateChange}
           />
         </div>
       ) : viewMode === 'kanban' ? (
@@ -350,7 +392,7 @@ export default function AreaDetailPage() {
           <KanbanBoard
             tasks={tagFilteredTasks}
             onTaskMove={handleKanbanTaskMove}
-            onTaskClick={() => {}}
+            onTaskClick={setSelectedTask}
             onQuickAdd={handleKanbanQuickAdd}
           />
         </div>
@@ -375,35 +417,6 @@ export default function AreaDetailPage() {
                 Pridať úlohu
               </Button>
             </div>
-          </div>
-
-          {/* Cascading Filter Bar - Desktop only */}
-          <CascadingFilterBar
-            tasks={tasks}
-            filters={filters}
-            onFilterChange={setFilter}
-            onClearFilters={clearFilters}
-            onClearFilter={clearFilter}
-            hasActiveFilters={hasActiveFilters}
-            areas={areas}
-            allTags={allTags}
-            hideFilters={['area']}
-            className="mb-4"
-          />
-
-          {/* Unified Filter Bar - Mobile only */}
-          <div className="lg:hidden">
-            <UnifiedFilterBar
-              tasks={filteredTasks}
-              filters={filters}
-              onFilterChange={setFilter}
-              onClearFilters={clearFilters}
-              onClearFilter={clearFilter}
-              hasActiveFilters={hasActiveFilters}
-              selectedTag={selectedTag}
-              onSelectTag={setSelectedTag}
-              className="mb-4"
-            />
           </div>
 
           {/* Inline Task Quick Add Form */}
@@ -520,6 +533,16 @@ export default function AreaDetailPage() {
         }}
         preselectedAreaId={areaId}
       />
+
+      {/* Task Detail Modal */}
+      {selectedTask && (
+        <TaskDetail
+          task={selectedTask}
+          isOpen={!!selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onUpdate={handleTaskDetailUpdate}
+        />
+      )}
 
       {/* Quick Time Modal - shown when completing task without time entries */}
       {pendingCompleteTask && (

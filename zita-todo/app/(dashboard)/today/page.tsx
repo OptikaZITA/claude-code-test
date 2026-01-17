@@ -9,7 +9,7 @@ import { TaskQuickAdd, TaskQuickAddData, TaskQuickAddHandle } from '@/components
 import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
-import { CalendarView } from '@/components/calendar/calendar-view'
+import { FullCalendarView } from '@/components/calendar/full-calendar-view'
 import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { TimeSummaryCard } from '@/components/time-tracking/time-summary-card'
 import { NewTasksBanner } from '@/components/indicators'
@@ -215,19 +215,15 @@ export default function TodayPage() {
   }
 
   // Calendar handlers
-  const handleCalendarTaskMove = async (taskId: string, newDate: Date) => {
+  const handleCalendarDateChange = async (taskId: string, newDate: Date) => {
     try {
       await updateTask(taskId, {
-        due_date: newDate.toISOString().split('T')[0],
+        deadline: format(newDate, 'yyyy-MM-dd'),
       })
       refetch()
     } catch (error) {
       console.error('Error moving task:', error)
     }
-  }
-
-  const handleCalendarDateClick = (date: Date) => {
-    console.log('Date clicked:', date)
   }
 
   if (loading || !isLoaded) {
@@ -250,13 +246,46 @@ export default function TodayPage() {
         onViewModeChange={setViewMode}
       />
 
+      {/* Filters - shown for all view modes */}
+      <div className="px-6 pt-4 pb-2 border-b border-[var(--border-primary)] bg-[var(--bg-primary)]">
+        {/* Cascading Filter Bar - Desktop only */}
+        <CascadingFilterBar
+          tasks={tasks}
+          filters={filters}
+          onFilterChange={setFilter}
+          onClearFilters={clearFilters}
+          onClearFilter={clearFilter}
+          hasActiveFilters={hasActiveFilters}
+          areas={areas}
+          allTags={allTags}
+          className="mb-0"
+          dbAssigneeFilter={dbAssigneeFilter}
+          onDbAssigneeChange={setDbAssigneeFilter}
+          currentUserId={user?.id}
+        />
+
+        {/* Unified Filter Bar - Mobile only */}
+        <div className="lg:hidden">
+          <UnifiedFilterBar
+            tasks={filteredTasks}
+            filters={filters}
+            onFilterChange={setFilter}
+            onClearFilters={clearFilters}
+            onClearFilter={clearFilter}
+            hasActiveFilters={hasActiveFilters}
+            selectedTag={selectedTag}
+            onSelectTag={setSelectedTag}
+            className="mb-0"
+          />
+        </div>
+      </div>
+
       {viewMode === 'calendar' ? (
         <div className="flex-1 overflow-hidden">
-          <CalendarView
+          <FullCalendarView
             tasks={tagFilteredTasks}
             onTaskClick={setSelectedTask}
-            onDateClick={handleCalendarDateClick}
-            onTaskMove={handleCalendarTaskMove}
+            onDateChange={handleCalendarDateChange}
           />
         </div>
       ) : viewMode === 'kanban' ? (
@@ -301,37 +330,6 @@ export default function TodayPage() {
               className="mb-4"
             />
           )}
-
-          {/* Cascading Filter Bar - Desktop only */}
-          <CascadingFilterBar
-            tasks={tasks}
-            filters={filters}
-            onFilterChange={setFilter}
-            onClearFilters={clearFilters}
-            onClearFilter={clearFilter}
-            hasActiveFilters={hasActiveFilters}
-            areas={areas}
-            allTags={allTags}
-            className="mb-4"
-            dbAssigneeFilter={dbAssigneeFilter}
-            onDbAssigneeChange={setDbAssigneeFilter}
-            currentUserId={user?.id}
-          />
-
-          {/* Unified Filter Bar - Mobile only */}
-          <div className="lg:hidden">
-            <UnifiedFilterBar
-              tasks={filteredTasks}
-              filters={filters}
-              onFilterChange={setFilter}
-              onClearFilters={clearFilters}
-              onClearFilter={clearFilter}
-              hasActiveFilters={hasActiveFilters}
-              selectedTag={selectedTag}
-              onSelectTag={setSelectedTag}
-              className="mb-4"
-            />
-          </div>
 
           {/* Inline Task Quick Add Form */}
           <TaskQuickAdd

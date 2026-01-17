@@ -59,26 +59,36 @@ export default function UsersManagementPage() {
     }
   }, [editingUser, getUserDepartments])
 
-  // Filter users
-  const filteredUsers = users.filter((user) => {
-    // Search
-    if (search) {
-      const searchLower = search.toLowerCase()
-      const matches =
-        user.email.toLowerCase().includes(searchLower) ||
-        user.full_name?.toLowerCase().includes(searchLower) ||
-        user.nickname?.toLowerCase().includes(searchLower)
-      if (!matches) return false
-    }
+  // Filter and sort users (active first, inactive last)
+  const filteredUsers = users
+    .filter((user) => {
+      // Search
+      if (search) {
+        const searchLower = search.toLowerCase()
+        const matches =
+          user.email.toLowerCase().includes(searchLower) ||
+          user.full_name?.toLowerCase().includes(searchLower) ||
+          user.nickname?.toLowerCase().includes(searchLower)
+        if (!matches) return false
+      }
 
-    // Role filter
-    if (roleFilter !== 'all' && user.role !== roleFilter) return false
+      // Role filter
+      if (roleFilter !== 'all' && user.role !== roleFilter) return false
 
-    // Status filter
-    if (statusFilter !== 'all' && user.status !== statusFilter) return false
+      // Status filter
+      if (statusFilter !== 'all' && user.status !== statusFilter) return false
 
-    return true
-  })
+      return true
+    })
+    .sort((a, b) => {
+      // Active users first, inactive last
+      if (a.status === 'active' && b.status !== 'active') return -1
+      if (a.status !== 'active' && b.status === 'active') return 1
+      // Within same status, sort by name
+      const nameA = a.nickname || a.full_name || a.email
+      const nameB = b.nickname || b.full_name || b.email
+      return nameA.localeCompare(nameB)
+    })
 
   const handleInvite = async (data: InviteUserData) => {
     const invitation = await inviteUser(data)

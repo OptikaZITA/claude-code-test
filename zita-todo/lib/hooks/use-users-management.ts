@@ -103,49 +103,59 @@ export function useUsersManagement(): UseUsersManagementResult {
     fetchData()
   }, [fetchData])
 
-  // Update user
+  // Update user (via API route to bypass RLS)
   const updateUser = useCallback(async (userId: string, data: UpdateUserData) => {
-    const { error } = await supabase
-      .from('users')
-      .update({
-        ...data,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId)
+    const response = await fetch(`/api/users/${userId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    })
 
-    if (error) throw error
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Failed to update user')
+    }
+
     await fetchData()
-  }, [supabase, fetchData])
+  }, [fetchData])
 
-  // Deactivate user
+  // Deactivate user (via API route to bypass RLS)
   const deactivateUser = useCallback(async (userId: string) => {
-    const { error } = await supabase
-      .from('users')
-      .update({
-        status: 'inactive',
-        is_active: false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId)
+    const response = await fetch(`/api/users/${userId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status: 'inactive' }),
+    })
 
-    if (error) throw error
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Failed to deactivate user')
+    }
+
     await fetchData()
-  }, [supabase, fetchData])
+  }, [fetchData])
 
-  // Reactivate user
+  // Reactivate user (via API route to bypass RLS)
   const reactivateUser = useCallback(async (userId: string) => {
-    const { error } = await supabase
-      .from('users')
-      .update({
-        status: 'active',
-        is_active: true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId)
+    const response = await fetch(`/api/users/${userId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status: 'active' }),
+    })
 
-    if (error) throw error
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Failed to reactivate user')
+    }
+
     await fetchData()
-  }, [supabase, fetchData])
+  }, [fetchData])
 
   // Add user to department
   const addUserToDepartment = useCallback(async (userId: string, departmentId: string) => {

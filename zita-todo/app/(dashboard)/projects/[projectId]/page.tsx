@@ -9,7 +9,8 @@ import { ProjectTaskList } from '@/components/tasks/project-task-list'
 import { TaskQuickAdd, TaskQuickAddData, TaskQuickAddHandle } from '@/components/tasks/task-quick-add'
 import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
-import { CalendarView } from '@/components/calendar/calendar-view'
+import { FullCalendarView } from '@/components/calendar/full-calendar-view'
+import { format } from 'date-fns'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { QuickTimeModal } from '@/components/time-tracking/quick-time-modal'
@@ -192,20 +193,15 @@ export default function ProjectPage() {
   }
 
   // Calendar handlers
-  const handleCalendarTaskMove = async (taskId: string, newDate: Date) => {
+  const handleCalendarDateChange = async (taskId: string, newDate: Date) => {
     try {
       await updateTask(taskId, {
-        due_date: newDate.toISOString().split('T')[0],
+        deadline: format(newDate, 'yyyy-MM-dd'),
       })
       refetchTasks()
     } catch (error) {
       console.error('Error moving task:', error)
     }
-  }
-
-  const handleCalendarDateClick = (date: Date) => {
-    // Could open quick add for that date
-    console.log('Date clicked:', date)
   }
 
   if (projectLoading || tasksLoading || headingsLoading || !isLoaded) {
@@ -240,13 +236,43 @@ export default function ProjectPage() {
         onViewModeChange={setViewMode}
       />
 
+      {/* Filters - shown for all view modes */}
+      <div className="px-6 pt-4 pb-2 border-b border-[var(--border-primary)] bg-[var(--bg-primary)]">
+        {/* Cascading Filter Bar - Desktop only */}
+        <CascadingFilterBar
+          tasks={tasks}
+          filters={filters}
+          onFilterChange={setFilter}
+          onClearFilters={clearFilters}
+          onClearFilter={clearFilter}
+          hasActiveFilters={hasActiveFilters}
+          areas={areas}
+          allTags={allTags}
+          className="mb-0"
+        />
+
+        {/* Unified Filter Bar - Mobile only */}
+        <div className="lg:hidden">
+          <UnifiedFilterBar
+            tasks={filteredTasks}
+            filters={filters}
+            onFilterChange={setFilter}
+            onClearFilters={clearFilters}
+            onClearFilter={clearFilter}
+            hasActiveFilters={hasActiveFilters}
+            selectedTag={selectedTag}
+            onSelectTag={setSelectedTag}
+            className="mb-0"
+          />
+        </div>
+      </div>
+
       {viewMode === 'calendar' ? (
         <div className="flex-1 overflow-hidden">
-          <CalendarView
+          <FullCalendarView
             tasks={tagFilteredTasks}
             onTaskClick={setSelectedTask}
-            onDateClick={handleCalendarDateClick}
-            onTaskMove={handleCalendarTaskMove}
+            onDateChange={handleCalendarDateChange}
           />
         </div>
       ) : viewMode === 'kanban' ? (
@@ -270,34 +296,6 @@ export default function ProjectPage() {
               <Plus className="h-4 w-4 mr-2" />
               Pridať úlohu
             </Button>
-          </div>
-
-          {/* Cascading Filter Bar - Desktop only */}
-          <CascadingFilterBar
-            tasks={tasks}
-            filters={filters}
-            onFilterChange={setFilter}
-            onClearFilters={clearFilters}
-            onClearFilter={clearFilter}
-            hasActiveFilters={hasActiveFilters}
-            areas={areas}
-            allTags={allTags}
-            className="mb-4"
-          />
-
-          {/* Unified Filter Bar - Mobile only */}
-          <div className="lg:hidden">
-            <UnifiedFilterBar
-              tasks={filteredTasks}
-              filters={filters}
-              onFilterChange={setFilter}
-              onClearFilters={clearFilters}
-              onClearFilter={clearFilter}
-              hasActiveFilters={hasActiveFilters}
-              selectedTag={selectedTag}
-              onSelectTag={setSelectedTag}
-              className="mb-4"
-            />
           </div>
 
           {/* Inline Task Quick Add Form */}

@@ -57,13 +57,24 @@ export function UserRow({
   const displayName = getFullDisplayName(user)
   const avatarName = getDisplayName(user)
 
+  // Check if user is inactive
+  const isInactive = user.status === 'inactive'
+
   return (
-    <div className="flex items-center gap-4 p-4 border-b border-[var(--border-primary)] hover:bg-[var(--bg-hover)] transition-colors">
+    <div className={cn(
+      "flex items-center gap-4 p-4 border-b border-[var(--border-primary)] hover:bg-[var(--bg-hover)] transition-colors",
+      isInactive && "opacity-60"
+    )}>
       {/* Avatar & Name */}
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <Avatar src={user.avatar_url} name={avatarName} size="md" />
+        <div className={cn(isInactive && "grayscale")}>
+          <Avatar src={user.avatar_url} name={avatarName} size="md" />
+        </div>
         <div className="min-w-0">
-          <p className="font-medium text-[var(--text-primary)] truncate">
+          <p className={cn(
+            "font-medium truncate",
+            isInactive ? "text-[var(--text-secondary)]" : "text-[var(--text-primary)]"
+          )}>
             {displayName}
           </p>
           <p className="text-sm text-[var(--text-secondary)] truncate">
