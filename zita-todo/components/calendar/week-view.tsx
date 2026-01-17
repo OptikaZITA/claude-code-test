@@ -198,7 +198,7 @@ export function WeekView({
                   )}
                   {!hasContent && (
                     <div className="text-center py-4 text-xs text-[var(--text-secondary)]/50">
-                      Žiadne ulohy
+                      Žiadne úlohy
                     </div>
                   )}
                 </div>
