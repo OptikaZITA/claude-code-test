@@ -8,15 +8,20 @@ import {
   format,
   isToday,
   isWeekend,
+  parseISO,
+  isSameDay,
 } from 'date-fns'
 import { sk } from 'date-fns/locale'
 import { TaskWithRelations } from '@/types'
 import { CalendarTaskItem } from './calendar-task-item'
+import { GoogleCalendarEventItem } from '@/components/integrations/google-calendar-event'
+import { GoogleCalendarEvent } from '@/app/api/google/events/route'
 import { cn } from '@/lib/utils/cn'
 
 interface WeekViewProps {
   currentDate: Date
   tasks: TaskWithRelations[]
+  googleEvents?: GoogleCalendarEvent[]
   onTaskClick: (task: TaskWithRelations) => void
   onTaskMove?: (taskId: string, newDate: Date) => void
 }
@@ -26,6 +31,7 @@ const MAX_VISIBLE_TASKS = 8
 export function WeekView({
   currentDate,
   tasks,
+  googleEvents = [],
   onTaskClick,
   onTaskMove,
 }: WeekViewProps) {
@@ -49,6 +55,28 @@ export function WeekView({
 
     return map
   }, [tasks])
+
+  // Group Google events by date
+  const googleEventsByDate = useMemo(() => {
+    const map = new Map<string, GoogleCalendarEvent[]>()
+
+    googleEvents.forEach((event) => {
+      // Get the date from either dateTime or date
+      const eventDate = event.start.dateTime
+        ? parseISO(event.start.dateTime)
+        : event.start.date
+          ? parseISO(event.start.date)
+          : null
+
+      if (eventDate) {
+        const dateKey = format(eventDate, 'yyyy-MM-dd')
+        const existing = map.get(dateKey) || []
+        map.set(dateKey, [...existing, event])
+      }
+    })
+
+    return map
+  }, [googleEvents])
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -118,9 +146,11 @@ export function WeekView({
           {weekDays.map((day) => {
             const dateKey = format(day, 'yyyy-MM-dd')
             const dayTasks = tasksByDate.get(dateKey) || []
+            const dayGoogleEvents = googleEventsByDate.get(dateKey) || []
             const pendingTasks = dayTasks.filter(t => t.status !== 'done' && t.status !== 'canceled')
             const visibleTasks = pendingTasks.slice(0, MAX_VISIBLE_TASKS)
             const hiddenCount = pendingTasks.length - MAX_VISIBLE_TASKS
+            const hasContent = pendingTasks.length > 0 || dayGoogleEvents.length > 0
 
             return (
               <div
@@ -135,6 +165,21 @@ export function WeekView({
                 onDrop={(e) => handleDrop(e, day)}
               >
                 <div className="space-y-2">
+                  {/* Google Calendar events first */}
+                  {dayGoogleEvents.map((event) => (
+                    <GoogleCalendarEventItem
+                      key={event.id}
+                      event={event}
+                      compact={false}
+                    />
+                  ))}
+
+                  {/* Separator if both Google events and tasks exist */}
+                  {dayGoogleEvents.length > 0 && pendingTasks.length > 0 && (
+                    <div className="border-t border-dashed border-[var(--border-primary)] my-2" />
+                  )}
+
+                  {/* ZITA tasks */}
                   {visibleTasks.map((task) => (
                     <CalendarTaskItem
                       key={task.id}
@@ -151,9 +196,9 @@ export function WeekView({
                       +{hiddenCount} ďalších
                     </div>
                   )}
-                  {pendingTasks.length === 0 && (
+                  {!hasContent && (
                     <div className="text-center py-4 text-xs text-[var(--text-secondary)]/50">
-                      Žiadne úlohy
+                      Žiadne ulohy
                     </div>
                   )}
                 </div>

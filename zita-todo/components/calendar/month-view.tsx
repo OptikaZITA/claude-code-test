@@ -11,15 +11,17 @@ import {
   isSameMonth,
   isToday,
   isWeekend,
-  getWeek,
+  parseISO,
 } from 'date-fns'
 import { TaskWithRelations } from '@/types'
 import { CalendarDayCell } from './calendar-day-cell'
+import { GoogleCalendarEvent } from '@/app/api/google/events/route'
 import { cn } from '@/lib/utils/cn'
 
 interface MonthViewProps {
   currentDate: Date
   tasks: TaskWithRelations[]
+  googleEvents?: GoogleCalendarEvent[]
   onDayClick: (date: Date) => void
   onTaskClick: (task: TaskWithRelations) => void
   onTaskMove?: (taskId: string, newDate: Date) => void
@@ -30,6 +32,7 @@ const WEEKDAYS = ['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne']
 export function MonthView({
   currentDate,
   tasks,
+  googleEvents = [],
   onDayClick,
   onTaskClick,
   onTaskMove,
@@ -57,6 +60,27 @@ export function MonthView({
 
     return map
   }, [tasks])
+
+  // Group Google events by date
+  const googleEventsByDate = useMemo(() => {
+    const map = new Map<string, GoogleCalendarEvent[]>()
+
+    googleEvents.forEach((event) => {
+      const eventDate = event.start.dateTime
+        ? parseISO(event.start.dateTime)
+        : event.start.date
+          ? parseISO(event.start.date)
+          : null
+
+      if (eventDate) {
+        const dateKey = format(eventDate, 'yyyy-MM-dd')
+        const existing = map.get(dateKey) || []
+        map.set(dateKey, [...existing, event])
+      }
+    })
+
+    return map
+  }, [googleEvents])
 
   // Group days into weeks for row rendering
   const weeks = useMemo(() => {
@@ -92,6 +116,7 @@ export function MonthView({
               {week.map((day) => {
                 const dateKey = format(day, 'yyyy-MM-dd')
                 const dayTasks = tasksByDate.get(dateKey) || []
+                const dayGoogleEvents = googleEventsByDate.get(dateKey) || []
                 const isCurrentMonth = isSameMonth(day, currentDate)
 
                 return (
@@ -99,6 +124,7 @@ export function MonthView({
                     key={dateKey}
                     date={day}
                     tasks={dayTasks}
+                    googleEvents={dayGoogleEvents}
                     isCurrentMonth={isCurrentMonth}
                     isToday={isToday(day)}
                     isWeekend={isWeekend(day)}

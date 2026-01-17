@@ -9,16 +9,19 @@ import {
   subWeeks,
   startOfWeek,
   endOfWeek,
-  getWeek,
+  startOfMonth,
+  endOfMonth,
 } from 'date-fns'
 import { sk } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
 import { TaskWithRelations } from '@/types'
 import { Button } from '@/components/ui/button'
 import { MonthView } from './month-view'
 import { WeekView } from './week-view'
 import { CalendarSummary } from './calendar-summary'
 import { cn } from '@/lib/utils/cn'
+import { useGoogleCalendarEvents, useGoogleCalendarConnection } from '@/lib/hooks/use-google-calendar'
+import { GoogleCalendarEvent } from '@/app/api/google/events/route'
 
 type CalendarViewMode = 'month' | 'week'
 
@@ -36,6 +39,29 @@ export function FullCalendarView({
   const [currentDate, setCurrentDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<CalendarViewMode>('month')
   const [isMobile, setIsMobile] = useState(false)
+
+  // Google Calendar integration
+  const { connected: googleConnected } = useGoogleCalendarConnection()
+
+  // Calculate date range for fetching Google events
+  const { startDate, endDate } = useMemo(() => {
+    if (viewMode === 'month') {
+      const monthStart = startOfMonth(currentDate)
+      const monthEnd = endOfMonth(currentDate)
+      // Include surrounding weeks for month view
+      return {
+        startDate: startOfWeek(monthStart, { weekStartsOn: 1 }),
+        endDate: endOfWeek(monthEnd, { weekStartsOn: 1 }),
+      }
+    } else {
+      return {
+        startDate: startOfWeek(currentDate, { weekStartsOn: 1 }),
+        endDate: endOfWeek(currentDate, { weekStartsOn: 1 }),
+      }
+    }
+  }, [currentDate, viewMode])
+
+  const { events: googleEvents } = useGoogleCalendarEvents(startDate, endDate, googleConnected)
 
   // Detect mobile and force week view
   useEffect(() => {
@@ -184,6 +210,7 @@ export function FullCalendarView({
             <MonthView
               currentDate={currentDate}
               tasks={tasks}
+              googleEvents={googleEvents}
               onDayClick={handleDayClick}
               onTaskClick={onTaskClick}
               onTaskMove={handleTaskMove}
@@ -192,6 +219,7 @@ export function FullCalendarView({
             <WeekView
               currentDate={currentDate}
               tasks={tasks}
+              googleEvents={googleEvents}
               onTaskClick={onTaskClick}
               onTaskMove={handleTaskMove}
             />
@@ -221,6 +249,12 @@ export function FullCalendarView({
               <div className="h-2.5 w-2.5 rounded-full bg-blue-500" />
               <span className="text-xs text-[var(--text-secondary)]">V budúcnosti</span>
             </div>
+            {googleConnected && (
+              <div className="flex items-center gap-2">
+                <Calendar className="h-2.5 w-2.5 text-gray-400" />
+                <span className="text-xs text-[var(--text-secondary)]">Google Calendar</span>
+              </div>
+            )}
           </div>
         </div>
 

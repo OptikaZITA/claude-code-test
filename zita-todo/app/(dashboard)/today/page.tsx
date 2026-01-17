@@ -13,6 +13,7 @@ import { FullCalendarView } from '@/components/calendar/full-calendar-view'
 import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { TimeSummaryCard } from '@/components/time-tracking/time-summary-card'
 import { NewTasksBanner } from '@/components/indicators'
+import { GoogleCalendarBanner } from '@/components/integrations/google-calendar-banner'
 import { QuickTimeModal } from '@/components/time-tracking/quick-time-modal'
 import { useTodayTasks, useTasks } from '@/lib/hooks/use-tasks'
 import { useCurrentUser } from '@/lib/hooks/use-user-departments'
@@ -310,6 +311,9 @@ export default function TodayPage() {
               Pridať úlohu
             </Button>
           </div>
+
+          {/* Google Calendar Events Banner */}
+          <GoogleCalendarBanner />
 
           {/* New Tasks Banner */}
           <NewTasksBanner

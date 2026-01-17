@@ -3,11 +3,14 @@
 import { format } from 'date-fns'
 import { TaskWithRelations } from '@/types'
 import { CalendarTaskItem } from './calendar-task-item'
+import { GoogleCalendarEventDot } from '@/components/integrations/google-calendar-event'
+import { GoogleCalendarEvent } from '@/app/api/google/events/route'
 import { cn } from '@/lib/utils/cn'
 
 interface CalendarDayCellProps {
   date: Date
   tasks: TaskWithRelations[]
+  googleEvents?: GoogleCalendarEvent[]
   isCurrentMonth: boolean
   isToday: boolean
   isWeekend: boolean
@@ -20,6 +23,7 @@ interface CalendarDayCellProps {
 export function CalendarDayCell({
   date,
   tasks,
+  googleEvents = [],
   isCurrentMonth,
   isToday,
   isWeekend,
@@ -31,6 +35,7 @@ export function CalendarDayCell({
   const dayNumber = format(date, 'd')
   const pendingTasks = tasks.filter((t) => t.status !== 'done' && t.status !== 'canceled')
   const completedTasks = tasks.filter((t) => t.status === 'done')
+  const totalItemCount = tasks.length + googleEvents.length
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -50,8 +55,12 @@ export function CalendarDayCell({
     }
   }
 
-  const visibleTasks = pendingTasks.slice(0, maxVisibleTasks)
-  const hiddenCount = pendingTasks.length - maxVisibleTasks
+  // Calculate visible items: Google events first, then tasks
+  const maxGoogleEvents = Math.min(googleEvents.length, 2)
+  const remainingSlots = maxVisibleTasks - maxGoogleEvents
+  const visibleGoogleEvents = googleEvents.slice(0, maxGoogleEvents)
+  const visibleTasks = pendingTasks.slice(0, remainingSlots)
+  const hiddenCount = pendingTasks.length - visibleTasks.length + (googleEvents.length - maxGoogleEvents)
 
   return (
     <div
@@ -81,15 +90,21 @@ export function CalendarDayCell({
         >
           {dayNumber}
         </span>
-        {tasks.length > 0 && (
+        {totalItemCount > 0 && (
           <span className="text-[10px] text-[var(--text-secondary)]">
-            {completedTasks.length > 0 ? `${completedTasks.length}/${tasks.length}` : tasks.length}
+            {completedTasks.length > 0 ? `${completedTasks.length}/${tasks.length}` : totalItemCount}
           </span>
         )}
       </div>
 
-      {/* Tasks */}
+      {/* Items */}
       <div className="space-y-1">
+        {/* Google events first */}
+        {visibleGoogleEvents.map((event) => (
+          <GoogleCalendarEventDot key={event.id} event={event} />
+        ))}
+
+        {/* ZITA tasks */}
         {visibleTasks.map((task) => (
           <CalendarTaskItem
             key={task.id}
@@ -109,7 +124,7 @@ export function CalendarDayCell({
             }}
             className="w-full text-left px-1.5 py-0.5 text-xs text-[var(--text-secondary)] hover:text-[var(--color-primary)] transition-colors"
           >
-            +{hiddenCount} ďalších
+            +{hiddenCount} dalsich
           </button>
         )}
       </div>
