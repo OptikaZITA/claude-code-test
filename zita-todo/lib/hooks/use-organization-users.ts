@@ -15,6 +15,8 @@ interface UseOrganizationUsersResult {
  * Hook pre načítanie všetkých používateľov organizácie.
  * Používa sa pre filter "Strážci vesmíru" aby zobrazoval všetkých používateľov,
  * nielen tých z aktuálne viditeľných úloh.
+ *
+ * Vzor skopírovaný z useUsersManagement ktorý funguje.
  */
 export function useOrganizationUsers(): UseOrganizationUsersResult {
   const [users, setUsers] = useState<User[]>([])
@@ -28,17 +30,23 @@ export function useOrganizationUsers(): UseOrganizationUsersResult {
       setLoading(true)
       setError(null)
 
-      // RLS zabezpečí že vidíme len používateľov z našej organizácie
+      // Fetch all users - RLS zabezpečí že vidíme len používateľov z našej organizácie
+      // Rovnaký vzor ako useUsersManagement ktorý funguje
       const { data, error: fetchError } = await supabase
         .from('users')
         .select('*')
         .order('nickname', { ascending: true, nullsFirst: false })
         .order('full_name', { ascending: true })
 
-      if (fetchError) throw fetchError
+      if (fetchError) {
+        console.error('[useOrganizationUsers] Error:', fetchError)
+        throw fetchError
+      }
+
+      console.log('[useOrganizationUsers] Loaded', data?.length, 'users')
       setUsers(data || [])
     } catch (err) {
-      console.error('Error fetching organization users:', err)
+      console.error('[useOrganizationUsers] Error fetching users:', err)
       setError(err instanceof Error ? err : new Error('Failed to fetch users'))
     } finally {
       setLoading(false)
