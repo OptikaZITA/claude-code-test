@@ -144,3 +144,86 @@ export function TimeDisplay({ taskId, className }: { taskId: string; className?:
     </div>
   )
 }
+
+// Play/Pause button only (for fixed column layout)
+export function TimerPlayButton({ taskId, className }: { taskId: string; className?: string }) {
+  const {
+    isRunning,
+    currentTaskId,
+    startTimer,
+    stopTimer,
+    loading: timerLoading,
+  } = useGlobalTimerContext()
+
+  const [actionLoading, setActionLoading] = useState(false)
+  const isThisTaskRunning = isRunning && currentTaskId === taskId
+  const loading = actionLoading || timerLoading
+
+  const handleClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (loading) return
+
+    setActionLoading(true)
+    try {
+      if (isThisTaskRunning) {
+        await stopTimer()
+      } else {
+        await startTimer(taskId)
+      }
+    } catch (err) {
+      console.error('Timer action error:', err)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={loading}
+      className={cn(
+        'p-1.5 rounded-md transition-colors touch-manipulation',
+        isThisTaskRunning
+          ? 'bg-[var(--color-success)]/10 text-[var(--color-success)] hover:bg-[var(--color-success)]/20'
+          : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]',
+        loading && 'opacity-50 cursor-not-allowed',
+        className
+      )}
+      title={isThisTaskRunning ? 'Zastaviť časovač' : 'Spustiť časovač'}
+    >
+      {isThisTaskRunning ? (
+        <Pause className="h-3.5 w-3.5" />
+      ) : (
+        <Play className="h-3.5 w-3.5" />
+      )}
+    </button>
+  )
+}
+
+// Time display only (for fixed column layout) - shows time text without icon
+export function TimerTimeDisplay({ taskId, className }: { taskId: string; className?: string }) {
+  const { isRunning, currentTaskId, elapsedSeconds } = useGlobalTimerContext()
+  const { totalSeconds } = useTaskTimeTotal(taskId)
+
+  const isThisTaskRunning = isRunning && currentTaskId === taskId
+  const displaySeconds = isThisTaskRunning ? totalSeconds + elapsedSeconds : totalSeconds
+
+  // Return empty div to maintain column width even when no time
+  if (displaySeconds === 0 && !isThisTaskRunning) {
+    return <div className={className} />
+  }
+
+  return (
+    <span
+      className={cn(
+        'text-xs font-mono tabular-nums',
+        isThisTaskRunning
+          ? 'text-[var(--color-success)] font-medium animate-pulse'
+          : 'text-[var(--text-secondary)]',
+        className
+      )}
+    >
+      {isThisTaskRunning ? formatRunningTime(displaySeconds) : formatTime(displaySeconds)}
+    </span>
+  )
+}

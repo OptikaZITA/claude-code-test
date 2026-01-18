@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar } from '@/components/ui/avatar'
 import { DeadlineBadge } from '@/components/tasks/deadline-picker'
 import { TaskItemExpanded } from '@/components/tasks/task-item-expanded'
-import { InlineTimeTracker } from '@/components/tasks/inline-time-tracker'
+import { TimerPlayButton, TimerTimeDisplay } from '@/components/tasks/inline-time-tracker'
 import { TodayStarIndicator, NewTaskIndicator } from '@/components/indicators'
 import { cn } from '@/lib/utils/cn'
 import { getDisplayName } from '@/lib/utils/user'
@@ -242,94 +242,110 @@ export function TaskItem({
         onTouchMove={isMobile && onDelete ? handleTouchMove : undefined}
         onTouchEnd={isMobile && onDelete ? handleTouchEnd : undefined}
       >
-        {/* DESKTOP LAYOUT */}
+        {/* DESKTOP LAYOUT - Fixed columns: Title+Tags (flex) | Play | Time | Deadline | Avatar */}
         <div className="hidden md:flex items-center gap-2">
-          {/* Checkbox */}
-          <div onClick={(e) => e.stopPropagation()} className="shrink-0">
-            <Checkbox
-              checked={isCompleted}
-              onChange={(checked) => onComplete(checked)}
-            />
-          </div>
+          {/* Column 1: Checkbox + Title + Tags (flexible width) */}
+          <div className="flex items-start gap-2 min-w-0 flex-1">
+            {/* Checkbox */}
+            <div onClick={(e) => e.stopPropagation()} className="shrink-0 mt-0.5">
+              <Checkbox
+                checked={isCompleted}
+                onChange={(checked) => onComplete(checked)}
+              />
+            </div>
 
-          {/* Žltá bodka - za checkboxom */}
-          <NewTaskIndicator isNew={isNew} />
+            {/* Žltá bodka - za checkboxom */}
+            <div className="shrink-0 mt-1">
+              <NewTaskIndicator isNew={isNew} />
+            </div>
 
-          {/* Priority flag */}
-          {task.priority && ['high', 'low'].includes(task.priority) && (
-            <Flag
-              className={cn('h-4 w-4 shrink-0', priorityFlagColors[task.priority])}
-              fill="currentColor"
-            />
-          )}
+            {/* Priority flag */}
+            {task.priority && ['high', 'low'].includes(task.priority) && (
+              <Flag
+                className={cn('h-4 w-4 shrink-0 mt-0.5', priorityFlagColors[task.priority])}
+                fill="currentColor"
+              />
+            )}
 
-          {/* Today star */}
-          {showTodayStar && isTodayTask && (
-            <TodayStarIndicator isInToday={true} size="md" />
-          )}
+            {/* Today star */}
+            {showTodayStar && isTodayTask && (
+              <div className="shrink-0 mt-0.5">
+                <TodayStarIndicator isInToday={true} size="md" />
+              </div>
+            )}
 
-          {/* Title + Notes icon */}
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <span
-              className={cn(
-                'text-sm font-medium text-foreground truncate',
-                isCompleted && 'line-through text-muted-foreground'
+            {/* Title + Tags + Area */}
+            <div className="min-w-0 flex-1">
+              {/* Row 1: Title + icons + Tags */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span
+                  className={cn(
+                    'text-sm font-medium text-foreground',
+                    isCompleted && 'line-through text-muted-foreground'
+                  )}
+                >
+                  {task.title}
+                </span>
+                {task.notes && (
+                  <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                )}
+                {task.recurrence_rule && (
+                  <span title="Opakujúca sa úloha">
+                    <Repeat className="h-3.5 w-3.5 text-primary shrink-0" />
+                  </span>
+                )}
+                {task.is_private && (
+                  <span title="Súkromná úloha">
+                    <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  </span>
+                )}
+                {/* Tags inline after title */}
+                {task.tags?.map(tag => (
+                  <span
+                    key={tag.id}
+                    className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground whitespace-nowrap"
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
+              {/* Row 2: Area below title */}
+              {task.area && (
+                <div className="text-xs text-muted-foreground truncate">
+                  {task.area.name}
+                </div>
               )}
-            >
-              {task.title}
-            </span>
-            {task.notes && (
-              <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            )}
-            {task.recurrence_rule && (
-              <span title="Opakujúca sa úloha">
-                <Repeat className="h-3.5 w-3.5 text-primary shrink-0" />
-              </span>
-            )}
-            {task.is_private && (
-              <span title="Súkromná úloha">
-                <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              </span>
-            )}
+            </div>
           </div>
 
-          {/* Tags - inline on desktop */}
-          <div className="flex items-center gap-1 shrink-0">
-            {task.tags?.slice(0, 3).map(tag => (
-              <span
-                key={tag.id}
-                className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground whitespace-nowrap"
-              >
-                {tag.name}
-              </span>
-            ))}
-            {(task.tags?.length || 0) > 3 && (
-              <span className="text-xs text-muted-foreground">+{(task.tags?.length || 0) - 3}</span>
-            )}
+          {/* Column 2: Play button (fixed width, always aligned) */}
+          <div className="w-8 flex justify-center shrink-0" onClick={(e) => e.stopPropagation()}>
+            <TimerPlayButton taskId={task.id} />
           </div>
 
-          {/* Time tracker */}
-          <InlineTimeTracker taskId={task.id} />
+          {/* Column 3: Time display (fixed width) */}
+          <div className="w-[70px] shrink-0">
+            <TimerTimeDisplay taskId={task.id} />
+          </div>
 
-          {/* Deadline */}
-          <DeadlineBadge value={task.deadline} />
+          {/* Column 4: Deadline (fixed width) */}
+          <div className="w-[70px] flex justify-end shrink-0">
+            <DeadlineBadge value={task.deadline} />
+          </div>
 
-          {/* Avatar */}
-          {task.assignee && (
-            <Avatar
-              src={task.assignee.avatar_url}
-              name={getDisplayName(task.assignee)}
-              size="sm"
-            />
-          )}
+          {/* Column 5: Avatar (fixed width) */}
+          <div className="w-10 flex justify-center shrink-0">
+            {task.assignee ? (
+              <Avatar
+                src={task.assignee.avatar_url}
+                name={getDisplayName(task.assignee)}
+                size="sm"
+              />
+            ) : (
+              <div className="w-6 h-6" />
+            )}
+          </div>
         </div>
-
-        {/* Area - desktop (below title) */}
-        {task.area && (
-          <div className="hidden md:block text-xs text-muted-foreground mt-0.5 ml-7">
-            {task.area.name}
-          </div>
-        )}
 
         {/* MOBILE LAYOUT */}
         <div className="md:hidden">
