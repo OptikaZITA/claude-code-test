@@ -4,6 +4,41 @@ História všetkých zmien v projekte.
 
 ---
 
+### v2.42 (18. januára 2026)
+**List View Layout + Slack Tasks Fix:**
+
+Vylepšenie rozloženia úloh v List view a oprava zobrazenia Slack taskov.
+
+**1. Nové rozloženie List view:**
+- ✅ Tagy sa zobrazujú inline za názvom úlohy (nie vo fixnom stĺpci)
+- ✅ Play button má fixnú pozíciu - vždy zarovnané vertikálne
+- ✅ Čas sa zobrazuje za play buttonom (len ak existuje trackovaný čas)
+- ✅ Fixné stĺpce: Title+Tags (flex) | Play (32px) | Time (70px) | Deadline (70px) | Avatar (40px)
+
+**2. Nové komponenty pre time tracking:**
+- ✅ `TimerPlayButton` - samostatný play/pause button
+- ✅ `TimerTimeDisplay` - zobrazenie času bez ikony
+
+**3. Filter "Nepriradené" v Strážci vesmíru dropdown:**
+- ✅ Pridaný hook `useUnassignedTaskCount` pre získanie počtu nepriradených úloh
+- ✅ "Nepriradené" možnosť vždy zobrazená s korektným počtom
+
+**4. Fix: Slack tasky sa nezobrazovali v projekte:**
+- ✅ Projekty a Oddelenia teraz defaultne zobrazujú **všetky úlohy** (nie len aktuálneho používateľa)
+- ✅ Slack tasky bez assignee sú teraz viditeľné v príslušnom projekte
+- ✅ Ak je v Slack správe @otagovaný niekto, task sa mu automaticky priradí
+
+**Upravené súbory:**
+- `components/tasks/task-item.tsx` - Nové rozloženie s fixnými stĺpcami
+- `components/tasks/inline-time-tracker.tsx` - Pridané TimerPlayButton a TimerTimeDisplay
+- `components/filters/cascading-filter-bar.tsx` - Integrácia useUnassignedTaskCount
+- `lib/hooks/use-cascading-filters.ts` - Podpora externalUnassignedCount parametra
+- `lib/hooks/use-unassigned-task-count.ts` - Nový hook (vytvorený)
+- `app/(dashboard)/projects/[projectId]/page.tsx` - Default filter zmenený na 'all'
+- `app/(dashboard)/areas/[areaId]/page.tsx` - Default filter zmenený na 'all'
+
+---
+
 ### v2.41 (18. januára 2026)
 **Calendar Phase 3 - Time Blocking:**
 

@@ -32,8 +32,9 @@ export default function ProjectPage() {
   const projectId = params.projectId as string
 
   const { user } = useCurrentUser()
-  // Database-level assignee filter - undefined (default = current user), 'all', 'unassigned', or UUID
-  const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>(undefined)
+  // Database-level assignee filter - 'all' (default for projects), 'unassigned', or UUID
+  // Projects default to 'all' to show Slack-created tasks and team tasks
+  const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>('all')
   const { project, loading: projectLoading } = useProject(projectId)
   const { tasks, loading: tasksLoading, refetch: refetchTasks } = useProjectTasks(projectId, dbAssigneeFilter)
   const { headings, loading: headingsLoading, createHeading, updateHeading, deleteHeading } = useHeadings(projectId)
@@ -316,7 +317,7 @@ export default function ProjectPage() {
             context={{ defaultWhenType: 'anytime', defaultProjectId: projectId }}
           />
 
-          {tagFilteredTasks.length === 0 && tasks.length === 0 && headings.length === 0 && dbAssigneeFilter === undefined ? (
+          {tagFilteredTasks.length === 0 && tasks.length === 0 && headings.length === 0 && dbAssigneeFilter === 'all' ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <FolderKanban className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
               <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Projekt je prázdny</p>
@@ -324,12 +325,12 @@ export default function ProjectPage() {
                 Pridajte prvú úlohu alebo sekciu
               </p>
             </div>
-          ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag || dbAssigneeFilter !== undefined) ? (
+          ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag || dbAssigneeFilter !== 'all') ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <FolderKanban className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
               <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Žiadne úlohy nezodpovedajú filtrom</p>
               <button
-                onClick={() => { clearFilters(); setSelectedTag(null); setDbAssigneeFilter(undefined); }}
+                onClick={() => { clearFilters(); setSelectedTag(null); setDbAssigneeFilter('all'); }}
                 className="text-[var(--color-primary)] hover:underline"
               >
                 Zrušiť filtre

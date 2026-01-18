@@ -94,8 +94,9 @@ export default function AreaDetailPage() {
   const areaId = params.areaId as string
 
   const { user } = useCurrentUser()
-  // Database-level assignee filter - undefined (default = current user), 'all', 'unassigned', or UUID
-  const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>(undefined)
+  // Database-level assignee filter - 'all' (default for areas), 'unassigned', or UUID
+  // Areas default to 'all' to show Slack-created tasks and team tasks
+  const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>('all')
   const { area, loading: areaLoading } = useArea(areaId)
   const { projects, loading: projectsLoading, refetch: refetchProjects } = useAreaProjects(areaId)
   const { tasks, loading: tasksLoading, refetch: refetchTasks } = useAllAreaTasks(areaId, dbAssigneeFilter)
@@ -493,7 +494,7 @@ export default function AreaDetailPage() {
           )}
 
           {/* Filter empty state */}
-          {tagFilteredTasks.length === 0 && tasks.length > 0 && (hasActiveFilters || selectedTag || dbAssigneeFilter !== undefined) && (
+          {tagFilteredTasks.length === 0 && tasks.length > 0 && (hasActiveFilters || selectedTag || dbAssigneeFilter !== 'all') && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <FolderKanban className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
               <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">
@@ -502,7 +503,7 @@ export default function AreaDetailPage() {
                   : 'Žiadne úlohy nezodpovedajú filtrom'}
               </p>
               <button
-                onClick={() => { clearFilters(); setSelectedTag(null); setDbAssigneeFilter(undefined); }}
+                onClick={() => { clearFilters(); setSelectedTag(null); setDbAssigneeFilter('all'); }}
                 className="text-[var(--color-primary)] hover:underline"
               >
                 Zrušiť filtre
