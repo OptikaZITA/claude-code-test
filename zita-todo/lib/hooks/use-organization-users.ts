@@ -38,15 +38,9 @@ export function useOrganizationUsers(): UseOrganizationUsersResult {
         .order('nickname', { ascending: true, nullsFirst: false })
         .order('full_name', { ascending: true })
 
-      if (fetchError) {
-        console.error('[useOrganizationUsers] Error:', fetchError)
-        throw fetchError
-      }
-
-      console.log('[useOrganizationUsers] Loaded', data?.length, 'users')
+      if (fetchError) throw fetchError
       setUsers(data || [])
     } catch (err) {
-      console.error('[useOrganizationUsers] Error fetching users:', err)
       setError(err instanceof Error ? err : new Error('Failed to fetch users'))
     } finally {
       setLoading(false)
