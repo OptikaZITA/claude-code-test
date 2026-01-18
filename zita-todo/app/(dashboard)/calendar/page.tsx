@@ -13,6 +13,7 @@ import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { useAreas } from '@/lib/hooks/use-areas'
 import { useTags } from '@/lib/hooks/use-tags'
 import { useCurrentUser } from '@/lib/hooks/use-user-departments'
+import { useOrganizationUsers } from '@/lib/hooks/use-organization-users'
 
 export default function CalendarPage() {
   const { user } = useCurrentUser()
@@ -29,6 +30,7 @@ export default function CalendarPage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
   const { areas } = useAreas()
   const { tags: allTags } = useTags()
+  const { users: organizationUsers } = useOrganizationUsers()
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -168,6 +170,7 @@ export default function CalendarPage() {
           hasActiveFilters={hasActiveFilters}
           areas={areas}
           allTags={allTags}
+          allOrganizationUsers={organizationUsers}
           className="mb-0"
           dbAssigneeFilter={dbAssigneeFilter}
           onDbAssigneeChange={setDbAssigneeFilter}

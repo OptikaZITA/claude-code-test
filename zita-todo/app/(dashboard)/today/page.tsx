@@ -24,6 +24,7 @@ import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { useNewTasks } from '@/lib/hooks/use-new-tasks'
 import { useAreas } from '@/lib/hooks/use-areas'
 import { useTags } from '@/lib/hooks/use-tags'
+import { useOrganizationUsers } from '@/lib/hooks/use-organization-users'
 import { TaskWithRelations, TaskStatus } from '@/types'
 import { isToday, isPast, parseISO, format } from 'date-fns'
 
@@ -40,6 +41,7 @@ export default function TodayPage() {
   const inlineFormRef = useRef<TaskQuickAddHandle>(null)
   const { areas } = useAreas()
   const { tags: allTags } = useTags()
+  const { users: organizationUsers } = useOrganizationUsers()
   const { checkTaskHasTime } = useTaskHasTime()
 
   // State for QuickTimeModal
@@ -259,6 +261,7 @@ export default function TodayPage() {
           hasActiveFilters={hasActiveFilters}
           areas={areas}
           allTags={allTags}
+          allOrganizationUsers={organizationUsers}
           className="mb-0"
           dbAssigneeFilter={dbAssigneeFilter}
           onDbAssigneeChange={setDbAssigneeFilter}

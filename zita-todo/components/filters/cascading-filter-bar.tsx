@@ -13,6 +13,7 @@ import {
   SortOption,
   Area,
   Tag,
+  User,
 } from '@/types'
 import {
   useCascadingFilters,
@@ -28,6 +29,8 @@ interface CascadingFilterBarProps {
   hasActiveFilters: boolean
   areas?: Area[]
   allTags?: Tag[]
+  /** Všetci používatelia organizácie - pre Strážci vesmíru dropdown */
+  allOrganizationUsers?: User[]
   className?: string
   /** Hide specific filter categories */
   hideFilters?: Array<'assignee' | 'status' | 'area' | 'priority' | 'dueDate' | 'tags' | 'sort'>
@@ -48,14 +51,15 @@ export function CascadingFilterBar({
   hasActiveFilters,
   areas = [],
   allTags = [],
+  allOrganizationUsers = [],
   className,
   hideFilters = [],
   onDbAssigneeChange,
   dbAssigneeFilter,
   currentUserId,
 }: CascadingFilterBarProps) {
-  // Get cascading filter options
-  const options = useCascadingFilters(tasks, filters, areas, allTags)
+  // Get cascading filter options - pass all organization users for full dropdown
+  const options = useCascadingFilters(tasks, filters, areas, allTags, allOrganizationUsers)
 
   // Build active filters for chips
   const activeFilters = useMemo(() => {

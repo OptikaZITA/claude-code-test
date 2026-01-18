@@ -24,6 +24,7 @@ import { useViewPreference } from '@/lib/hooks/use-view-preference'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { useTags } from '@/lib/hooks/use-tags'
 import { useCurrentUser } from '@/lib/hooks/use-user-departments'
+import { useOrganizationUsers } from '@/lib/hooks/use-organization-users'
 import { TaskWithRelations, Project, TaskStatus } from '@/types'
 import { cn } from '@/lib/utils/cn'
 import { sortTasksTodayFirst } from '@/lib/utils/task-sorting'
@@ -106,6 +107,7 @@ export default function AreaDetailPage() {
   const inlineFormRef = useRef<TaskQuickAddHandle>(null)
   const { areas } = useAreas()
   const { tags: allTags } = useTags()
+  const { users: organizationUsers } = useOrganizationUsers()
   const { checkTaskHasTime } = useTaskHasTime()
 
   // State for QuickTimeModal
@@ -363,6 +365,7 @@ export default function AreaDetailPage() {
           hasActiveFilters={hasActiveFilters}
           areas={areas}
           allTags={allTags}
+          allOrganizationUsers={organizationUsers}
           hideFilters={['area']}
           className="mb-0"
           dbAssigneeFilter={dbAssigneeFilter}

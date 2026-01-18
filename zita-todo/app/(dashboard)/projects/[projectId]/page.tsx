@@ -24,6 +24,7 @@ import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useViewPreference } from '@/lib/hooks/use-view-preference'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { useCurrentUser } from '@/lib/hooks/use-user-departments'
+import { useOrganizationUsers } from '@/lib/hooks/use-organization-users'
 import { TaskWithRelations, TaskStatus } from '@/types'
 
 export default function ProjectPage() {
@@ -43,6 +44,7 @@ export default function ProjectPage() {
   const inlineFormRef = useRef<TaskQuickAddHandle>(null)
   const { areas } = useAreas()
   const { tags: allTags } = useTags()
+  const { users: organizationUsers } = useOrganizationUsers()
   const { checkTaskHasTime } = useTaskHasTime()
 
   // State for QuickTimeModal
@@ -252,6 +254,7 @@ export default function ProjectPage() {
           hasActiveFilters={hasActiveFilters}
           areas={areas}
           allTags={allTags}
+          allOrganizationUsers={organizationUsers}
           className="mb-0"
           dbAssigneeFilter={dbAssigneeFilter}
           onDbAssigneeChange={setDbAssigneeFilter}

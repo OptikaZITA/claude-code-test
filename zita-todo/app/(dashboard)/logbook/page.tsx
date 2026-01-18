@@ -12,6 +12,7 @@ import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { useAreas } from '@/lib/hooks/use-areas'
 import { useTags } from '@/lib/hooks/use-tags'
+import { useOrganizationUsers } from '@/lib/hooks/use-organization-users'
 import { TaskWithRelations } from '@/types'
 import { format, parseISO, startOfDay, isToday, isYesterday, isThisWeek, isThisMonth } from 'date-fns'
 import { sk } from 'date-fns/locale'
@@ -27,6 +28,7 @@ export default function LogbookPage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
   const { areas } = useAreas()
   const { tags: allTags } = useTags()
+  const { users: organizationUsers } = useOrganizationUsers()
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -152,6 +154,7 @@ export default function LogbookPage() {
           hasActiveFilters={hasActiveFilters}
           areas={areas}
           allTags={allTags}
+          allOrganizationUsers={organizationUsers}
           className="mb-4"
           dbAssigneeFilter={dbAssigneeFilter}
           onDbAssigneeChange={setDbAssigneeFilter}

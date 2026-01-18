@@ -140,43 +140,82 @@ export function useCascadingFilters(
   tasks: TaskWithRelations[],
   filters: TaskFilters,
   areas: Area[] = [],
-  allTags: Tag[] = []
+  allTags: Tag[] = [],
+  /** Všetci používatelia organizácie - ak je poskytnuté, zobrazí všetkých v dropdown */
+  allOrganizationUsers: User[] = []
 ): CascadingFilterOptions {
   return useMemo(() => {
-    // Get available assignees
-    const assigneesFiltered = filterTasksExcluding(tasks, filters, 'assigneeIds')
-    const assigneeMap = new Map<string, { user: User; count: number }>()
+    // Get task counts per assignee from ALL tasks (not filtered)
+    // This ensures we show correct counts regardless of current view filters
+    const assigneeTaskCounts = new Map<string, number>()
     let unassignedCount = 0
 
-    assigneesFiltered.forEach(task => {
-      if (task.assignee && task.assignee_id) {
-        const existing = assigneeMap.get(task.assignee_id)
-        if (existing) {
-          existing.count++
-        } else {
-          assigneeMap.set(task.assignee_id, { user: task.assignee, count: 1 })
-        }
+    tasks.forEach(task => {
+      if (task.assignee_id) {
+        const current = assigneeTaskCounts.get(task.assignee_id) || 0
+        assigneeTaskCounts.set(task.assignee_id, current + 1)
       } else {
         unassignedCount++
       }
     })
 
-    // Jednotliví používatelia z úloh - zoradení abecedne
-    // Neaktívni používatelia majú suffix "(neaktívny)"
-    const userAssignees: AssigneeOption[] = Array.from(assigneeMap.entries())
-      .map(([id, { user, count }]) => {
-        const baseName = user.nickname || user.full_name || user.email || 'Neznámy'
-        const isInactive = user.status === 'inactive'
-        return {
-          value: id,
-          label: isInactive ? `${baseName} (neaktívny)` : baseName,
-          count,
-          avatarUrl: user.avatar_url,
-          isInactive,
+    // Build assignee options from ALL organization users (not just from tasks)
+    // This ensures deactivated users with tasks still appear in dropdown
+    let userAssignees: AssigneeOption[]
+
+    if (allOrganizationUsers.length > 0) {
+      // Use all organization users - show everyone with their task counts
+      userAssignees = allOrganizationUsers
+        .map(user => {
+          const baseName = user.nickname || user.full_name || user.email || 'Neznámy'
+          const isInactive = user.status === 'inactive'
+          const count = assigneeTaskCounts.get(user.id) || 0
+          return {
+            value: user.id,
+            label: isInactive ? `${baseName} (neaktívny)` : baseName,
+            count,
+            avatarUrl: user.avatar_url,
+            isInactive,
+          }
+        })
+        // Show users with tasks OR inactive users (might have historical tasks)
+        .filter(a => a.count > 0 || a.isInactive)
+        .sort((a, b) => {
+          // Sort: active users first, then by name
+          if (a.isInactive !== b.isInactive) {
+            return a.isInactive ? 1 : -1
+          }
+          return a.label.localeCompare(b.label, 'sk')
+        })
+    } else {
+      // Fallback: build from tasks (original behavior)
+      const assigneeMap = new Map<string, { user: User; count: number }>()
+      tasks.forEach(task => {
+        if (task.assignee && task.assignee_id) {
+          const existing = assigneeMap.get(task.assignee_id)
+          if (existing) {
+            existing.count++
+          } else {
+            assigneeMap.set(task.assignee_id, { user: task.assignee, count: 1 })
+          }
         }
       })
-      .filter(a => a.count > 0)
-      .sort((a, b) => a.label.localeCompare(b.label, 'sk'))
+
+      userAssignees = Array.from(assigneeMap.entries())
+        .map(([id, { user, count }]) => {
+          const baseName = user.nickname || user.full_name || user.email || 'Neznámy'
+          const isInactive = user.status === 'inactive'
+          return {
+            value: id,
+            label: isInactive ? `${baseName} (neaktívny)` : baseName,
+            count,
+            avatarUrl: user.avatar_url,
+            isInactive,
+          }
+        })
+        .filter(a => a.count > 0)
+        .sort((a, b) => a.label.localeCompare(b.label, 'sk'))
+    }
 
     // "Strážcovia vesmíru" dropdown:
     // 1. Zoznam používateľov (prihlásený user je označený "(ja)")
@@ -329,7 +368,7 @@ export function useCascadingFilters(
       tags,
       sortOptions,
     }
-  }, [tasks, filters, areas, allTags])
+  }, [tasks, filters, areas, allTags, allOrganizationUsers])
 }
 
 // Get label for active filter value

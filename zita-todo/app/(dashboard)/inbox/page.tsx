@@ -23,6 +23,7 @@ import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { useAreas } from '@/lib/hooks/use-areas'
 import { useTags } from '@/lib/hooks/use-tags'
 import { useCurrentUser } from '@/lib/hooks/use-user-departments'
+import { useOrganizationUsers } from '@/lib/hooks/use-organization-users'
 import { TaskWithRelations, TaskStatus } from '@/types'
 
 export default function InboxPage() {
@@ -38,6 +39,7 @@ export default function InboxPage() {
   const inlineFormRef = useRef<TaskQuickAddHandle>(null)
   const { areas } = useAreas()
   const { tags: allTags } = useTags()
+  const { users: organizationUsers } = useOrganizationUsers()
   const { checkTaskHasTime } = useTaskHasTime()
 
   // State for QuickTimeModal
@@ -241,6 +243,7 @@ export default function InboxPage() {
           hasActiveFilters={hasActiveFilters}
           areas={areas}
           allTags={allTags}
+          allOrganizationUsers={organizationUsers}
           className="mb-0"
           dbAssigneeFilter={dbAssigneeFilter}
           onDbAssigneeChange={setDbAssigneeFilter}
