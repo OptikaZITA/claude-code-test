@@ -178,8 +178,9 @@ export function useCascadingFilters(
             isInactive,
           }
         })
-        // Show users with tasks OR inactive users (might have historical tasks)
-        .filter(a => a.count > 0 || a.isInactive)
+        // Show ALL active users, plus inactive users only if they have tasks
+        // This ensures all organization members appear in dropdown regardless of current filter
+        .filter(a => !a.isInactive || a.count > 0)
         .sort((a, b) => {
           // Sort: active users first, then by name
           if (a.isInactive !== b.isInactive) {
