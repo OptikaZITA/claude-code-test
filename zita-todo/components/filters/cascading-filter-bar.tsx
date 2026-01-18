@@ -19,6 +19,7 @@ import {
   useCascadingFilters,
   CascadingFilterOptions,
 } from '@/lib/hooks/use-cascading-filters'
+import { useUnassignedTaskCount } from '@/lib/hooks/use-unassigned-task-count'
 
 interface CascadingFilterBarProps {
   tasks: TaskWithRelations[]
@@ -58,8 +59,11 @@ export function CascadingFilterBar({
   dbAssigneeFilter,
   currentUserId,
 }: CascadingFilterBarProps) {
+  // Get unassigned task count separately (for when tasks are filtered by assignee)
+  const { count: unassignedTaskCount } = useUnassignedTaskCount()
+
   // Get cascading filter options - pass all organization users for full dropdown
-  const options = useCascadingFilters(tasks, filters, areas, allTags, allOrganizationUsers)
+  const options = useCascadingFilters(tasks, filters, areas, allTags, allOrganizationUsers, unassignedTaskCount)
 
   // Build active filters for chips
   const activeFilters = useMemo(() => {

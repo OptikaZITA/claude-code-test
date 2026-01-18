@@ -142,7 +142,9 @@ export function useCascadingFilters(
   areas: Area[] = [],
   allTags: Tag[] = [],
   /** Všetci používatelia organizácie - ak je poskytnuté, zobrazí všetkých v dropdown */
-  allOrganizationUsers: User[] = []
+  allOrganizationUsers: User[] = [],
+  /** Počet nepriradených úloh - pre zobrazenie v dropdown keď tasks sú filtrované */
+  externalUnassignedCount?: number
 ): CascadingFilterOptions {
   return useMemo(() => {
     // Get task counts per assignee from ALL tasks (not filtered)
@@ -223,12 +225,18 @@ export function useCascadingFilters(
     // Default = prihlásený používateľ (nastavuje sa v komponente, nie tu)
     const assignees: AssigneeOption[] = [...userAssignees]
 
+    // Použij externý count ak je poskytnutý (keď tasks sú filtrované podľa assignee)
+    // Inak použi count z aktuálnych tasks
+    const finalUnassignedCount = externalUnassignedCount !== undefined
+      ? externalUnassignedCount
+      : unassignedCount
+
     // Pridaj "Nepriradené" ak existujú úlohy bez assignee
-    if (unassignedCount > 0) {
+    if (finalUnassignedCount > 0) {
       assignees.push({
         value: 'unassigned',
         label: 'Nepriradené',
-        count: unassignedCount,
+        count: finalUnassignedCount,
         avatarUrl: null,
       })
     }
@@ -368,7 +376,7 @@ export function useCascadingFilters(
       tags,
       sortOptions,
     }
-  }, [tasks, filters, areas, allTags, allOrganizationUsers])
+  }, [tasks, filters, areas, allTags, allOrganizationUsers, externalUnassignedCount])
 }
 
 // Get label for active filter value
