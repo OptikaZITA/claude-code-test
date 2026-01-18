@@ -42,7 +42,7 @@ export function useTimeBlocks(startDate: Date, endDate: Date) {
         .from('tasks')
         .select(`
           *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url),
+          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
           project:projects(id, name, color),
           area:areas(id, name, color),
           tags:task_tags(tag:tags(id, name, color))
@@ -95,7 +95,7 @@ export function useUnscheduledTasks() {
         .from('tasks')
         .select(`
           *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url),
+          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
           project:projects(id, name, color),
           area:areas(id, name, color),
           tags:task_tags(tag:tags(id, name, color))

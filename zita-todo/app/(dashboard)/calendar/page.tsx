@@ -67,7 +67,7 @@ export default function CalendarPage() {
       .from('tasks')
       .select(`
         *,
-        assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url),
+        assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
         project:projects(id, name, color),
         area:areas(id, name, color),
         tags:task_tags(tag:tags(*))

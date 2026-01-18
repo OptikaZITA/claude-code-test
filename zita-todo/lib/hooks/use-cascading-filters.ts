@@ -23,6 +23,7 @@ export interface FilterOption<T = string> {
 
 export interface AssigneeOption extends FilterOption {
   avatarUrl: string | null
+  isInactive?: boolean
 }
 
 export interface TagOption extends FilterOption {
@@ -161,13 +162,19 @@ export function useCascadingFilters(
     })
 
     // Jednotliví používatelia z úloh - zoradení abecedne
+    // Neaktívni používatelia majú suffix "(neaktívny)"
     const userAssignees: AssigneeOption[] = Array.from(assigneeMap.entries())
-      .map(([id, { user, count }]) => ({
-        value: id,
-        label: user.nickname || user.full_name || user.email || 'Neznámy',
-        count,
-        avatarUrl: user.avatar_url,
-      }))
+      .map(([id, { user, count }]) => {
+        const baseName = user.nickname || user.full_name || user.email || 'Neznámy'
+        const isInactive = user.status === 'inactive'
+        return {
+          value: id,
+          label: isInactive ? `${baseName} (neaktívny)` : baseName,
+          count,
+          avatarUrl: user.avatar_url,
+          isInactive,
+        }
+      })
       .filter(a => a.count > 0)
       .sort((a, b) => a.label.localeCompare(b.label, 'sk'))
 

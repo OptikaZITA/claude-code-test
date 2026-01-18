@@ -113,11 +113,21 @@ export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
         </div>
 
         {task.assignee && (
-          <Avatar
-            src={task.assignee.avatar_url}
-            name={task.assignee.full_name}
-            size="sm"
-          />
+          <div className={cn(
+            "relative",
+            task.assignee.status === 'inactive' && "opacity-60"
+          )}>
+            <Avatar
+              src={task.assignee.avatar_url}
+              name={task.assignee.full_name}
+              size="sm"
+            />
+            {task.assignee.status === 'inactive' && (
+              <span className="absolute -bottom-1 -right-1 text-[8px] bg-[var(--bg-secondary)] px-0.5 rounded text-[var(--text-secondary)]">
+                ×
+              </span>
+            )}
+          </div>
         )}
       </div>
     </div>

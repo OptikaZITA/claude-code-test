@@ -27,7 +27,7 @@ export default function TaskDetailPage() {
           *,
           project:projects(id, name, color),
           area:areas(id, name, color),
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url),
+          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
           tags:task_tags(tag:tags(id, name, color))
         `)
         .eq('id', taskId)

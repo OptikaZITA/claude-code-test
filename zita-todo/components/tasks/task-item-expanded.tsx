@@ -327,13 +327,19 @@ export function TaskItemExpanded({
         )}
 
         {task.assignee && (
-          <div className="flex items-center gap-1">
+          <div className={cn(
+            "flex items-center gap-1",
+            task.assignee.status === 'inactive' && "opacity-60"
+          )}>
             <Avatar
               src={task.assignee.avatar_url}
               name={task.assignee.full_name}
               size="xs"
             />
-            <span>{task.assignee.full_name?.split(' ')[0]}</span>
+            <span>{task.assignee.nickname || task.assignee.full_name?.split(' ')[0]}</span>
+            {task.assignee.status === 'inactive' && (
+              <span className="text-[10px] text-[var(--text-secondary)]">(neakt.)</span>
+            )}
           </div>
         )}
 

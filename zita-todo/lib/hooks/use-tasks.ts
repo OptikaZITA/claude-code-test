@@ -65,7 +65,7 @@ export function useTasks() {
         .from('tasks')
         .select(`
           *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url),
+          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
           project:projects(id, name, color),
           area:areas(id, name, color),
           tags:task_tags(tag:tags(id, name, color))
@@ -327,7 +327,7 @@ export function useInboxTasks(assigneeFilter?: AssigneeFilter) {
         .from('tasks')
         .select(`
           *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url),
+          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
           project:projects(id, name, color),
           area:areas(id, name, color),
           tags:task_tags(tag:tags(id, name, color))
@@ -393,7 +393,7 @@ export function useTodayTasks(assigneeFilter?: AssigneeFilter) {
         .from('tasks')
         .select(`
           *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url),
+          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
           project:projects(id, name, color),
           area:areas(id, name, color),
           tags:task_tags(tag:tags(id, name, color))
@@ -458,7 +458,7 @@ export function useUpcomingTasks(assigneeFilter?: AssigneeFilter) {
         .from('tasks')
         .select(`
           *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url),
+          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
           project:projects(id, name, color),
           area:areas(id, name, color),
           tags:task_tags(tag:tags(id, name, color))
@@ -518,7 +518,7 @@ export function useAnytimeTasks(assigneeFilter?: AssigneeFilter) {
         .from('tasks')
         .select(`
           *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url),
+          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
           project:projects(id, name, color),
           area:areas(id, name, color),
           tags:task_tags(tag:tags(id, name, color))
@@ -577,7 +577,7 @@ export function useLogbookTasks(assigneeFilter?: AssigneeFilter) {
         .from('tasks')
         .select(`
           *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url),
+          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
           project:projects(id, name, color),
           area:areas(id, name, color),
           tags:task_tags(tag:tags(id, name, color))
@@ -636,7 +636,7 @@ export function useTrashTasks(assigneeFilter?: AssigneeFilter) {
         .from('tasks')
         .select(`
           *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url),
+          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
           project:projects(id, name, color),
           area:areas(id, name, color),
           tags:task_tags(tag:tags(id, name, color))
