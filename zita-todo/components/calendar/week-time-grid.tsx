@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useCallback, useState } from 'react'
+import { useMemo } from 'react'
 import {
   startOfWeek,
   endOfWeek,
@@ -10,12 +10,9 @@ import {
   isWeekend,
   isSameDay,
   parseISO,
-  setHours,
-  setMinutes,
-  addHours,
 } from 'date-fns'
 import { sk } from 'date-fns/locale'
-import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, useDroppable, useDraggable } from '@dnd-kit/core'
+import { useDroppable } from '@dnd-kit/core'
 import { TaskWithRelations } from '@/types'
 import { GoogleCalendarEvent } from '@/app/api/google/events/route'
 import { TimeBlockItem, GoogleEventTimeBlock } from './time-block-item'
@@ -34,6 +31,8 @@ interface WeekTimeGridProps {
   onScheduleTask: (taskId: string, start: Date, end: Date) => Promise<void>
   onMoveTimeBlock: (taskId: string, newStart: Date, newEnd: Date) => Promise<void>
   onGoogleEventClick?: (event: GoogleCalendarEvent) => void
+  /** Active drag ID from parent DndContext */
+  activeDragId?: string | null
 }
 
 /**
@@ -78,8 +77,8 @@ export function WeekTimeGrid({
   onScheduleTask,
   onMoveTimeBlock,
   onGoogleEventClick,
+  activeDragId = null,
 }: WeekTimeGridProps) {
-  const [activeDragId, setActiveDragId] = useState<string | null>(null)
 
   // Dni v týždni
   const weekDays = useMemo(() => {
@@ -140,60 +139,17 @@ export function WeekTimeGrid({
     return map
   }, [timeBlocks])
 
-  // Handle drag end
-  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
-    setActiveDragId(null)
-
-    const { active, over } = event
-    if (!over) return
-
-    const activeData = active.data.current as { task: TaskWithRelations; type: string } | undefined
-    const overData = over.data.current as { day: Date; hour: number; type: string } | undefined
-
-    if (!activeData || !overData) return
-
-    // Dropping a time block onto a time slot
-    if (activeData.type === 'time-block' && overData.type === 'time-slot') {
-      const task = activeData.task
-      const newStartDate = setMinutes(setHours(overData.day, overData.hour), 0)
-
-      // Vypočítať pôvodné trvanie
-      let durationHours = 1
-      if (task.scheduled_start && task.scheduled_end) {
-        const oldStart = parseISO(task.scheduled_start)
-        const oldEnd = parseISO(task.scheduled_end)
-        durationHours = (oldEnd.getTime() - oldStart.getTime()) / (1000 * 60 * 60)
-      }
-
-      const newEndDate = addHours(newStartDate, durationHours)
-      await onMoveTimeBlock(task.id, newStartDate, newEndDate)
-    }
-
-    // Dropping an unscheduled task onto a time slot
-    if (activeData.type === 'unscheduled-task' && overData.type === 'time-slot') {
-      const task = activeData.task
-      const newStartDate = setMinutes(setHours(overData.day, overData.hour), 0)
-      const newEndDate = addHours(newStartDate, 1) // Default 1 hour duration
-      await onScheduleTask(task.id, newStartDate, newEndDate)
-    }
-  }, [onMoveTimeBlock, onScheduleTask])
-
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    setActiveDragId(String(event.active.id))
-  }, [])
-
   // Celodenné Google eventy
   const allDayEvents = useMemo(() => {
     return googleEvents.filter(event => !event.start.dateTime)
   }, [googleEvents])
 
   return (
-    <DndContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
-      <div className="flex flex-col h-full overflow-auto">
-        {/* Header s dňami */}
-        <div className="flex sticky top-0 z-20 bg-[var(--bg-primary)] border-b border-[var(--border-primary)]">
-          {/* Prázdna bunka pre časovú os */}
-          <div className="w-16 flex-shrink-0 border-r border-[var(--border-primary)]" />
+    <div className="flex flex-col h-full overflow-auto">
+      {/* Header s dňami */}
+      <div className="flex sticky top-0 z-20 bg-[var(--bg-primary)] border-b border-[var(--border-primary)]">
+        {/* Prázdna bunka pre časovú os */}
+        <div className="w-16 flex-shrink-0 border-r border-[var(--border-primary)]" />
 
           {/* Dni */}
           {weekDays.map((day) => {
@@ -358,15 +314,5 @@ export function WeekTimeGrid({
           })}
         </div>
       </div>
-
-      {/* Drag overlay */}
-      <DragOverlay>
-        {activeDragId && activeDragId.startsWith('time-block-') && (
-          <div className="bg-[var(--bg-primary)] shadow-lg rounded-lg p-2 border border-[var(--border-primary)] opacity-80">
-            <span className="text-sm font-medium">Presúvam...</span>
-          </div>
-        )}
-      </DragOverlay>
-    </DndContext>
   )
 }

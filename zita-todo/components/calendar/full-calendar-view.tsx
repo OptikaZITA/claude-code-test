@@ -11,9 +11,14 @@ import {
   endOfWeek,
   startOfMonth,
   endOfMonth,
+  setHours,
+  setMinutes,
+  addHours,
+  parseISO,
 } from 'date-fns'
 import { sk } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Calendar, Clock } from 'lucide-react'
+import { DndContext, DragEndEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core'
 import { TaskWithRelations } from '@/types'
 import { Button } from '@/components/ui/button'
 import { MonthView } from './month-view'
@@ -46,6 +51,7 @@ export function FullCalendarView({
   const [isMobile, setIsMobile] = useState(false)
   const [selectedGoogleEvent, setSelectedGoogleEvent] = useState<GoogleCalendarEvent | null>(null)
   const [scheduleModalTask, setScheduleModalTask] = useState<TaskWithRelations | null>(null)
+  const [activeDragId, setActiveDragId] = useState<string | null>(null)
 
   // Google Calendar integration
   const { connected: googleConnected } = useGoogleCalendarConnection()
@@ -157,6 +163,48 @@ export function FullCalendarView({
     setSelectedGoogleEvent(event)
   }, [])
 
+  // Drag & Drop handlers for time blocking
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveDragId(String(event.active.id))
+  }, [])
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    setActiveDragId(null)
+
+    const { active, over } = event
+    if (!over) return
+
+    const activeData = active.data.current as { task: TaskWithRelations; type: string } | undefined
+    const overData = over.data.current as { day: Date; hour: number; type: string } | undefined
+
+    if (!activeData || !overData) return
+
+    // Dropping a time block onto a time slot
+    if (activeData.type === 'time-block' && overData.type === 'time-slot') {
+      const task = activeData.task
+      const newStartDate = setMinutes(setHours(overData.day, overData.hour), 0)
+
+      // Vypočítať pôvodné trvanie
+      let durationHours = 1
+      if (task.scheduled_start && task.scheduled_end) {
+        const oldStart = parseISO(task.scheduled_start)
+        const oldEnd = parseISO(task.scheduled_end)
+        durationHours = (oldEnd.getTime() - oldStart.getTime()) / (1000 * 60 * 60)
+      }
+
+      const newEndDate = addHours(newStartDate, durationHours)
+      await handleMoveTimeBlock(task.id, newStartDate, newEndDate)
+    }
+
+    // Dropping an unscheduled task onto a time slot
+    if (activeData.type === 'unscheduled-task' && overData.type === 'time-slot') {
+      const task = activeData.task
+      const newStartDate = setMinutes(setHours(overData.day, overData.hour), 0)
+      const newEndDate = addHours(newStartDate, 1) // Default 1 hour duration
+      await handleScheduleTask(task.id, newStartDate, newEndDate)
+    }
+  }, [handleMoveTimeBlock, handleScheduleTask])
+
   // Header title based on view mode
   const headerTitle = useMemo(() => {
     if (viewMode === 'month') {
@@ -169,7 +217,8 @@ export function FullCalendarView({
     }
   }, [currentDate, viewMode])
 
-  return (
+  // Wrap content with DndContext when in timeblock mode
+  const calendarContent = (
     <div className="flex h-full flex-col lg:flex-row">
       {/* Main calendar area */}
       <div className="flex-1 flex flex-col min-w-0">
@@ -293,6 +342,7 @@ export function FullCalendarView({
               onScheduleTask={handleScheduleTask}
               onMoveTimeBlock={handleMoveTimeBlock}
               onGoogleEventClick={handleGoogleEventClick}
+              activeDragId={activeDragId}
             />
           )}
         </div>
@@ -365,4 +415,23 @@ export function FullCalendarView({
       />
     </div>
   )
+
+  // Wrap with DndContext only in timeblock mode (for drag & drop between panel and grid)
+  if (viewMode === 'timeblock') {
+    return (
+      <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        {calendarContent}
+        {/* Drag overlay */}
+        <DragOverlay>
+          {activeDragId && (
+            <div className="bg-[var(--bg-primary)] shadow-lg rounded-lg p-2 border border-[var(--border-primary)] opacity-80">
+              <span className="text-sm font-medium">Presúvam...</span>
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
+    )
+  }
+
+  return calendarContent
 }
