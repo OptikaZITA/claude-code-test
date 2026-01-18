@@ -292,7 +292,7 @@ export default function UsersManagementPage() {
           <h3 className="text-sm font-medium text-[var(--text-secondary)] uppercase mb-3">
             Používatelia ({filteredUsers.length})
           </h3>
-          <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg overflow-hidden">
+          <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg">
             {filteredUsers.length === 0 ? (
               <div className="p-8 text-center">
                 <Users className="h-12 w-12 mx-auto mb-4 text-[var(--text-secondary)]" />
