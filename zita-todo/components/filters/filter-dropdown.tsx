@@ -22,6 +22,14 @@ interface FilterDropdownProps {
   showCounts?: boolean
   className?: string
   allLabel?: string
+  /** Hide the "All" option from dropdown (for assignee filter) */
+  hideAllOption?: boolean
+  /** Show selected option label on button when active (for assignee filter) */
+  showSelectedLabelOnButton?: boolean
+  /** Callback for clearing the filter - shows ✕ button */
+  onClear?: () => void
+  /** Special option at the bottom (e.g., "Nepriradené") */
+  specialOption?: FilterDropdownOption
 }
 
 export function FilterDropdown({
@@ -33,6 +41,10 @@ export function FilterDropdown({
   showCounts = true,
   className,
   allLabel = 'Všetky',
+  hideAllOption = false,
+  showSelectedLabelOnButton = false,
+  onClear,
+  specialOption,
 }: FilterDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -42,9 +54,11 @@ export function FilterDropdown({
     ? Array.isArray(value) && value.length > 0
     : value !== null
 
-  // Button text sa NEMENÍ - vždy len label kategórie
-  // Len farba (sivá/modrá) indikuje aktívny filter
-  // Aktívne filtre sa zobrazujú v riadku chips pod buttonmi
+  // Get selected option label for button (when showSelectedLabelOnButton is true)
+  const selectedLabel = showSelectedLabelOnButton && isActive && !multiSelect
+    ? (options.find(o => o.value === value)?.label ||
+       (specialOption?.value === value ? specialOption.label : null))
+    : null
 
   // Handle click outside
   useEffect(() => {
@@ -103,6 +117,13 @@ export function FilterDropdown({
     return value === optionValue
   }
 
+  // Handle clear button click
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onClear?.()
+    setIsOpen(false)
+  }
+
   return (
     <div ref={dropdownRef} className={cn('relative', className)}>
       {/* Trigger button */}
@@ -117,8 +138,15 @@ export function FilterDropdown({
           isOpen && !isActive && 'border-primary'
         )}
       >
-        <span>{label}</span>
-        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', isOpen && 'rotate-180')} />
+        <span>{selectedLabel || label}</span>
+        {isActive && onClear ? (
+          <X
+            className="h-3.5 w-3.5 hover:opacity-70"
+            onClick={handleClear}
+          />
+        ) : (
+          <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', isOpen && 'rotate-180')} />
+        )}
       </button>
 
       {/* Dropdown */}
@@ -132,34 +160,38 @@ export function FilterDropdown({
           )}
         >
           <div className="p-1.5">
-            {/* "All" option */}
-            <button
-              onClick={handleAllClick}
-              className={cn(
-                'flex items-center gap-2 w-full px-3 py-2 rounded-lg text-left text-sm transition-colors',
-                !isActive ? 'bg-accent' : 'hover:bg-accent/50'
-              )}
-            >
-              {multiSelect ? (
-                <div className={cn(
-                  'w-4 h-4 rounded border flex items-center justify-center',
-                  !isActive ? 'bg-primary border-primary' : 'border-muted-foreground/30'
-                )}>
-                  {!isActive && <Check className="h-3 w-3 text-white" />}
-                </div>
-              ) : (
-                <div className={cn(
-                  'w-4 h-4 rounded-full border-2 flex items-center justify-center',
-                  !isActive ? 'border-primary' : 'border-muted-foreground/30'
-                )}>
-                  {!isActive && <div className="w-2 h-2 rounded-full bg-primary" />}
-                </div>
-              )}
-              <span className="flex-1">{allLabel}</span>
-            </button>
+            {/* "All" option - hidden when hideAllOption is true */}
+            {!hideAllOption && (
+              <>
+                <button
+                  onClick={handleAllClick}
+                  className={cn(
+                    'flex items-center gap-2 w-full px-3 py-2 rounded-lg text-left text-sm transition-colors',
+                    !isActive ? 'bg-accent' : 'hover:bg-accent/50'
+                  )}
+                >
+                  {multiSelect ? (
+                    <div className={cn(
+                      'w-4 h-4 rounded border flex items-center justify-center',
+                      !isActive ? 'bg-primary border-primary' : 'border-muted-foreground/30'
+                    )}>
+                      {!isActive && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                  ) : (
+                    <div className={cn(
+                      'w-4 h-4 rounded-full border-2 flex items-center justify-center',
+                      !isActive ? 'border-primary' : 'border-muted-foreground/30'
+                    )}>
+                      {!isActive && <div className="w-2 h-2 rounded-full bg-primary" />}
+                    </div>
+                  )}
+                  <span className="flex-1">{allLabel}</span>
+                </button>
 
-            {/* Divider */}
-            {options.length > 0 && <div className="my-1 border-t border-border" />}
+                {/* Divider after All option */}
+                {options.length > 0 && <div className="my-1 border-t border-border" />}
+              </>
+            )}
 
             {/* Options */}
             {options.map(option => (
@@ -217,8 +249,48 @@ export function FilterDropdown({
               </button>
             ))}
 
+            {/* Special option at bottom (e.g., "Nepriradené") */}
+            {specialOption && (
+              <>
+                <div className="my-1 border-t border-border" />
+                <button
+                  onClick={() => handleOptionClick(specialOption.value)}
+                  className={cn(
+                    'flex items-center gap-2 w-full px-3 py-2 rounded-lg text-left text-sm transition-colors',
+                    isOptionSelected(specialOption.value) ? 'bg-accent' : 'hover:bg-accent/50'
+                  )}
+                >
+                  <div className={cn(
+                    'w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0',
+                    isOptionSelected(specialOption.value) ? 'border-primary' : 'border-muted-foreground/30'
+                  )}>
+                    {isOptionSelected(specialOption.value) && <div className="w-2 h-2 rounded-full bg-primary" />}
+                  </div>
+
+                  {/* Avatar (for assignees) */}
+                  {specialOption.avatarUrl !== undefined && (
+                    <Avatar
+                      src={specialOption.avatarUrl}
+                      name={specialOption.label}
+                      size="xs"
+                    />
+                  )}
+
+                  {/* Label */}
+                  <span className="flex-1 truncate">{specialOption.label}</span>
+
+                  {/* Count */}
+                  {showCounts && (
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      ({specialOption.count})
+                    </span>
+                  )}
+                </button>
+              </>
+            )}
+
             {/* Empty state */}
-            {options.length === 0 && (
+            {options.length === 0 && !specialOption && (
               <div className="px-3 py-4 text-sm text-muted-foreground text-center">
                 Žiadne možnosti
               </div>

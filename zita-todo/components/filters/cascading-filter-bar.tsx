@@ -66,29 +66,22 @@ export function CascadingFilterBar({
     }> = []
 
     // Database-level assignee filter
-    // undefined = default (moje úlohy, sivý button, žiadny chip)
-    // 'all' | 'unassigned' | userId = aktívny filter (modrý button, chip)
-    if (dbAssigneeFilter === 'all') {
-      chips.push({
-        key: 'dbAssignee',
-        label: 'Všetci',
-        value: 'all',
-      })
-    } else if (dbAssigneeFilter === 'unassigned') {
+    // undefined = default (žiadny filter, sivý button, žiadny chip)
+    // 'unassigned' | userId = aktívny filter (modrý button, chip)
+    // NOTE: 'all' option was removed - no longer supported
+    if (dbAssigneeFilter === 'unassigned') {
       chips.push({
         key: 'dbAssignee',
         label: 'Nepriradené',
         value: 'unassigned',
       })
     } else if (dbAssigneeFilter) {
-      // Konkrétny používateľ (vrátane seba) - aktívny filter
+      // Konkrétny používateľ - aktívny filter
       const option = options.assignees.find(a => a.value === dbAssigneeFilter)
       const label = option?.label || dbAssigneeFilter
-      // Ak je to ja, pridaj "(ja)" do chipu
-      const chipLabel = dbAssigneeFilter === currentUserId ? `${label} (ja)` : label
       chips.push({
         key: 'dbAssignee',
-        label: chipLabel,
+        label: label,
         value: dbAssigneeFilter,
       })
     }
@@ -172,32 +165,50 @@ export function CascadingFilterBar({
       {/* Filter dropdowns row - DESKTOP ONLY */}
       <div className="hidden lg:flex items-center gap-2 flex-wrap py-2">
         {/* Strážci vesmíru (Assignees) - Database-level filter */}
-        {!hideFilters.includes('assignee') && (
-          <FilterDropdown
-            label="Strážci vesmíru"
-            options={options.assignees.map(a => ({
-              value: a.value,
-              label: a.label,
-              count: a.count,
-              avatarUrl: a.avatarUrl,
-            }))}
-            value={dbAssigneeFilter || currentUserId || null}
-            onChange={(value) => {
-              // Špeciálne hodnoty: 'all', 'unassigned', alebo UUID
-              if (value === null) {
-                // "Všetci" - ukáž všetky úlohy v organizácii
-                onDbAssigneeChange?.('all')
-              } else if (value === 'unassigned') {
-                // "Nepriradené" - ukáž úlohy bez assignee
-                onDbAssigneeChange?.('unassigned')
-              } else {
-                // Konkrétny používateľ (vrátane seba) - aktívny filter
-                onDbAssigneeChange?.(value as string)
-              }
-            }}
-            allLabel="Všetci"
-          />
-        )}
+        {!hideFilters.includes('assignee') && (() => {
+          // Filtrovať "unassigned" z hlavného zoznamu - bude ako specialOption
+          const userOptions = options.assignees.filter(a => a.value !== 'unassigned')
+          const unassignedOption = options.assignees.find(a => a.value === 'unassigned')
+
+          // Vybrané meno pre tlačidlo (ak je filter aktívny)
+          const getSelectedLabel = () => {
+            if (!dbAssigneeFilter) return null
+            if (dbAssigneeFilter === 'unassigned') return 'Nepriradené'
+            const option = userOptions.find(a => a.value === dbAssigneeFilter)
+            return option?.label || null
+          }
+
+          return (
+            <FilterDropdown
+              label="Strážci vesmíru"
+              options={userOptions.map(a => ({
+                value: a.value,
+                label: a.label,
+                count: a.count,
+                avatarUrl: a.avatarUrl,
+              }))}
+              value={dbAssigneeFilter || null}
+              onChange={(value) => {
+                if (value === 'unassigned') {
+                  // "Nepriradené" - ukáž úlohy bez assignee
+                  onDbAssigneeChange?.('unassigned')
+                } else if (value) {
+                  // Konkrétny používateľ - aktívny filter
+                  onDbAssigneeChange?.(value as string)
+                }
+              }}
+              hideAllOption={true}
+              showSelectedLabelOnButton={true}
+              onClear={() => onDbAssigneeChange?.(undefined)}
+              specialOption={unassignedOption ? {
+                value: 'unassigned',
+                label: 'Nepriradené',
+                count: unassignedOption.count,
+                avatarUrl: null,
+              } : undefined}
+            />
+          )
+        })()}
 
         {/* Status */}
         {!hideFilters.includes('status') && (
