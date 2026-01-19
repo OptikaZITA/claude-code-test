@@ -61,13 +61,10 @@ function CustomTooltip({ active, payload, totalSeconds }: CustomTooltipProps) {
   const percent = totalSeconds > 0 ? ((item.value / totalSeconds) * 100).toFixed(1) : '0'
 
   return (
-    <div className="bg-[var(--bg-primary)] p-3 rounded-lg shadow-lg border border-[var(--border-primary)]">
+    <div className="bg-[var(--bg-primary)] px-3 py-2 rounded-md shadow-sm border border-[var(--border-primary)] text-sm">
       <p className="font-medium text-[var(--text-primary)]">{item.name}</p>
       <p className="text-[var(--text-secondary)]">
-        {formatDuration(item.value)}
-      </p>
-      <p className="text-sm text-[var(--text-secondary)]">
-        {percent}%
+        {formatDuration(item.value)} · {percent}%
       </p>
     </div>
   )
@@ -159,6 +156,13 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
           </Pie>
           <Tooltip
             content={<CustomTooltip totalSeconds={totalSeconds} />}
+            isAnimationActive={false}
+            offset={20}
+            wrapperStyle={{
+              zIndex: 100,
+              pointerEvents: 'none',
+              outline: 'none'
+            }}
           />
           <Legend
             content={<CustomLegend totalSeconds={totalSeconds} />}
