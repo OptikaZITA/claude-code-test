@@ -123,7 +123,7 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
   return (
     <div className="relative" onMouseLeave={() => setActiveIndex(null)}>
       <ResponsiveContainer width="100%" height={300}>
-        <PieChart>
+        <PieChart onMouseLeave={() => setActiveIndex(null)}>
           <Pie
             data={chartData}
             cx="50%"
@@ -135,7 +135,7 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
             nameKey="name"
             onClick={(data) => onSegmentClick?.(data.id)}
             onMouseOver={(_, index) => setActiveIndex(index)}
-            style={{ cursor: onSegmentClick ? 'pointer' : 'default' }}
+            style={{ cursor: onSegmentClick ? 'pointer' : 'default', outline: 'none' }}
           >
             {chartData.map((entry, index) => (
               <Cell
@@ -145,7 +145,8 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
                 strokeWidth={2}
                 style={{
                   opacity: activeIndex !== null && activeIndex !== index ? 0.6 : 1,
-                  transition: 'opacity 150ms ease'
+                  transition: 'opacity 150ms ease',
+                  outline: 'none'
                 }}
               />
             ))}

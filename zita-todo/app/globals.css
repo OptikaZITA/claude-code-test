@@ -371,3 +371,14 @@ h3, h4, h5, h6, p, span, div {
   text-decoration: line-through;
   background-color: color-mix(in srgb, var(--error) 10%, transparent);
 }
+
+/* Recharts - remove focus outlines */
+.recharts-pie-sector:focus,
+.recharts-pie-sector:focus-visible,
+.recharts-sector:focus,
+.recharts-sector:focus-visible,
+.recharts-pie path:focus,
+.recharts-pie path:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
