@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-// POST - Create a new invitation using Supabase Auth (sends email automatically)
+// POST - Create a new invitation (no automatic email - admin shares link manually)
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -56,7 +56,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if pending invitation exists in our table
+    // Check if email already exists in auth.users
+    const { data: authUsers } = await adminSupabase.auth.admin.listUsers()
+    const existingAuthUser = authUsers?.users?.find(u => u.email === email)
+
+    if (existingAuthUser) {
+      return NextResponse.json(
+        { error: 'Používateľ s týmto emailom už existuje v systéme' },
+        { status: 400 }
+      )
+    }
+
+    // Check if pending invitation exists
     const { data: existingInvitation } = await adminSupabase
       .from('invitations')
       .select('id')
@@ -71,48 +82,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Build redirect URL for after email confirmation
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ||
-      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
-    const redirectTo = `${appUrl}/auth/callback`
-
-    // Use Supabase Auth to invite user (sends email automatically)
-    const { data: authData, error: authError } = await adminSupabase.auth.admin.inviteUserByEmail(
-      email,
-      {
-        data: {
-          // Store our custom metadata in user_metadata
-          full_name,
-          nickname,
-          position: position || null,
-          role,
-          departments,
-          organization_id: currentUser.organization_id,
-          invited_by: user.id,
-        },
-        redirectTo,
-      }
-    )
-
-    if (authError) {
-      console.error('Supabase invite error:', authError)
-
-      if (authError.message?.includes('already been registered')) {
-        return NextResponse.json(
-          { error: 'Používateľ s týmto emailom už existuje v systéme' },
-          { status: 400 }
-        )
-      }
-
-      return NextResponse.json(
-        { error: `Chyba pri odosielaní pozvánky: ${authError.message}` },
-        { status: 500 }
-      )
-    }
-
-    // Also store in our invitations table for tracking
+    // Create invitation record (no automatic email)
     const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 7)
+    expiresAt.setDate(expiresAt.getDate() + 7) // 7 days expiration
 
     const { data: invitation, error: insertError } = await adminSupabase
       .from('invitations')
@@ -123,7 +95,7 @@ export async function POST(request: NextRequest) {
         position: position || null,
         role,
         departments,
-        token: authData.user?.id || crypto.randomUUID(), // Use auth user ID as token
+        token: crypto.randomUUID(), // Generate unique token
         expires_at: expiresAt.toISOString(),
         invited_by: user.id,
         organization_id: currentUser.organization_id,
@@ -133,13 +105,21 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('Insert error:', insertError)
-      // Don't fail - the Supabase invite was sent successfully
+      return NextResponse.json(
+        { error: 'Chyba pri vytváraní pozvánky' },
+        { status: 500 }
+      )
     }
 
+    // Build the invitation URL
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+    const inviteUrl = `${appUrl}/invite/${invitation.id}`
+
     return NextResponse.json({
-      invitation: invitation || { id: authData.user?.id, email },
-      emailSent: true, // Supabase sends email automatically
-      userId: authData.user?.id,
+      invitation,
+      inviteUrl,
+      emailSent: false, // No automatic email
     })
   } catch (error) {
     console.error('Create invitation error:', error)

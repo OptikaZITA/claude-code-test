@@ -40,7 +40,8 @@ export default function UsersManagementPage() {
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [editingUserDepartments, setEditingUserDepartments] = useState<Area[]>([])
-  const [lastInviteEmail, setLastInviteEmail] = useState<string | null>(null)
+  const [lastInvite, setLastInvite] = useState<{ email: string; url: string } | null>(null)
+  const [copied, setCopied] = useState(false)
 
   // Check if current user is admin
   useEffect(() => {
@@ -90,9 +91,19 @@ export default function UsersManagementPage() {
     })
 
   const handleInvite = async (data: InviteUserData) => {
-    await inviteUser(data)
-    // Supabase sends email automatically
-    setLastInviteEmail(data.email)
+    const result = await inviteUser(data) as any
+    // Show the invitation URL for manual sharing
+    const inviteUrl = result.inviteUrl || `${window.location.origin}/invite/${result.id}`
+    setLastInvite({ email: data.email, url: inviteUrl })
+    setCopied(false)
+  }
+
+  const handleCopyInviteUrl = async () => {
+    if (lastInvite?.url) {
+      await navigator.clipboard.writeText(lastInvite.url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
   }
 
   const handleSaveUser = async (userId: string, data: EditUserData) => {
@@ -203,24 +214,43 @@ export default function UsersManagementPage() {
         </div>
 
         {/* Last Invite Notification */}
-        {lastInviteEmail && (
-          <div className="mb-6 p-4 border rounded-lg bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-green-800 dark:text-green-200">
-                  Pozvánka odoslaná
-                </p>
-                <p className="text-sm mt-1 text-green-600 dark:text-green-400">
-                  Email s pozvánkou bol odoslaný na adresu <strong>{lastInviteEmail}</strong>
-                </p>
+        {lastInvite && (
+          <div className="mb-6 p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-blue-800 dark:text-blue-200">
+                    Pozvánka vytvorená
+                  </p>
+                  <p className="text-sm mt-1 text-blue-600 dark:text-blue-400">
+                    Skopírujte link a pošlite ho používateľovi <strong>{lastInvite.email}</strong>
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setLastInvite(null)}
+                >
+                  Zavrieť
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLastInviteEmail(null)}
-              >
-                Zavrieť
-              </Button>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={lastInvite.url}
+                  className="flex-1 px-3 py-2 text-sm border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleCopyInviteUrl}
+                  className="shrink-0"
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  {copied ? 'Skopírované!' : 'Kopírovať'}
+                </Button>
+              </div>
             </div>
           </div>
         )}
