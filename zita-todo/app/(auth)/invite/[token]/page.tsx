@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Invitation, UserRole } from '@/types'
 import { CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react'
 
@@ -262,9 +262,8 @@ export default function InviteAcceptPage() {
           <label htmlFor="password" className="mb-1 block text-sm font-medium text-[var(--text-primary)]">
             Heslo
           </label>
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Minimálne 6 znakov"
@@ -277,9 +276,8 @@ export default function InviteAcceptPage() {
           <label htmlFor="confirmPassword" className="mb-1 block text-sm font-medium text-[var(--text-primary)]">
             Potvrdiť heslo
           </label>
-          <Input
+          <PasswordInput
             id="confirmPassword"
-            type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Zopakujte heslo"

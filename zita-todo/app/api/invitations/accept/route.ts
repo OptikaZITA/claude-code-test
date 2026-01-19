@@ -60,17 +60,25 @@ export async function POST(request: NextRequest) {
 
     if (authError) {
       console.error('Auth error:', authError)
+      console.error('Auth error details:', JSON.stringify(authError, null, 2))
 
       // Check if user already exists
-      if (authError.message.includes('already been registered')) {
+      if (authError.message?.includes('already been registered') || authError.message?.includes('already exists')) {
         return NextResponse.json(
-          { error: 'Používateľ s týmto emailom už existuje' },
+          { error: 'Používateľ s týmto emailom už existuje. Skúste sa prihlásiť.' },
+          { status: 400 }
+        )
+      }
+
+      if (authError.message?.includes('password')) {
+        return NextResponse.json(
+          { error: 'Heslo nespĺňa požiadavky. Musí mať aspoň 6 znakov.' },
           { status: 400 }
         )
       }
 
       return NextResponse.json(
-        { error: 'Chyba pri vytváraní účtu' },
+        { error: `Chyba pri vytváraní účtu: ${authError.message || 'Neznáma chyba'}` },
         { status: 500 }
       )
     }
@@ -95,12 +103,23 @@ export async function POST(request: NextRequest) {
 
     if (userError) {
       console.error('User creation error:', userError)
+      console.error('User creation error details:', JSON.stringify(userError, null, 2))
 
       // Rollback: delete auth user
       await supabase.auth.admin.deleteUser(userId)
 
+      // Return more specific error message
+      let errorMessage = 'Chyba pri vytváraní používateľského profilu'
+      if (userError.code === '23505') {
+        errorMessage = 'Používateľ s týmto emailom už existuje v systéme'
+      } else if (userError.code === '23503') {
+        errorMessage = 'Neplatná referencia na organizáciu alebo oddelenie'
+      } else if (userError.message) {
+        errorMessage = `Chyba: ${userError.message}`
+      }
+
       return NextResponse.json(
-        { error: 'Chyba pri vytváraní používateľského profilu' },
+        { error: errorMessage, details: userError.message },
         { status: 500 }
       )
     }

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -69,9 +70,8 @@ export default function LoginPage() {
           <label htmlFor="password" className="mb-1 block text-sm font-medium text-[var(--text-primary)]">
             Heslo
           </label>
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
