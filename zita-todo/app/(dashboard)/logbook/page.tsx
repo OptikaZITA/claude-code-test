@@ -21,7 +21,7 @@ export default function LogbookPage() {
   const { user } = useCurrentUser()
   // Database-level assignee filter - undefined (default = current user), 'all', 'unassigned', or UUID
   const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>(undefined)
-  const { tasks, loading, refetch } = useLogbookTasks(dbAssigneeFilter)
+  const { tasks, setTasks, loading, refetch } = useLogbookTasks(dbAssigneeFilter)
   const { updateTask, completeTask } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
   const { filters, setFilter, clearFilters, clearFilter, hasActiveFilters } = useTaskFilters()
@@ -87,11 +87,30 @@ export default function LogbookPage() {
   }, [tagFilteredTasks])
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
+    // Find the task for rollback
+    const task = tasks.find(t => t.id === taskId)
+
+    // OPTIMISTIC UPDATE: Update local state immediately
+    setTasks(prev => prev.map(t =>
+      t.id === taskId
+        ? {
+            ...t,
+            status: completed ? 'done' as const : 'todo' as const,
+            completed_at: completed ? new Date().toISOString() : null,
+            when_type: completed ? null : 'inbox',
+          }
+        : t
+    ))
+
     try {
       await completeTask(taskId, completed)
-      refetch()
+      // No refetch() - optimistic update is already done
     } catch (error) {
       console.error('Error completing task:', error)
+      // Rollback on error
+      if (task) {
+        setTasks(prev => prev.map(t => t.id === taskId ? task : t))
+      }
     }
   }
 

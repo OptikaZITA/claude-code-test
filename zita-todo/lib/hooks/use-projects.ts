@@ -93,7 +93,7 @@ export function useProjectTasks(projectId: string, assigneeFilter?: AssigneeFilt
     }
   }, [projectId, fetchTasks])
 
-  return { tasks, loading, error, refetch: fetchTasks }
+  return { tasks, setTasks, loading, error, refetch: fetchTasks }
 }
 
 /**

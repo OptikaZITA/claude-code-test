@@ -181,13 +181,48 @@ export function useTasks() {
     // Najprv získaj aktuálny task pre recurrence logiku
     const currentTask = tasks.find(t => t.id === taskId)
 
+    // OPTIMISTIC UPDATE: Okamžite aktualizuj lokálny stav
+    const completedAt = completed ? new Date().toISOString() : null
+    const newStatus = completed ? 'done' : 'todo'
+    const newWhenType = completed ? null : 'inbox'
+
+    setTasks(prev => prev.map(t =>
+      t.id === taskId
+        ? {
+            ...t,
+            status: newStatus as TaskWithRelations['status'],
+            completed_at: completedAt,
+            when_type: newWhenType,
+          }
+        : t
+    ))
+
     // AUTO-LOGBOOK: Keď task je done, presunie sa do Logbooku (when_type = null)
     // Keď sa odznačí, vráti sa do inbox
-    await updateTask(taskId, {
-      status: completed ? 'done' : 'todo',
-      completed_at: completed ? new Date().toISOString() : null,
-      when_type: completed ? null : 'inbox', // Auto-logbook: null = Logbook
-    } as Partial<Task>)
+    // Použijeme priamy Supabase update namiesto updateTask (aby sa nevolal fetchTasks)
+    const { error: updateError } = await supabase
+      .from('tasks')
+      .update({
+        status: newStatus,
+        completed_at: completedAt,
+        when_type: newWhenType,
+        added_to_today_at: null, // Clear added_to_today_at when completing
+      })
+      .eq('id', taskId)
+
+    if (updateError) {
+      console.error('Error completing task:', updateError)
+      // ROLLBACK: Vráť pôvodný stav pri chybe
+      if (currentTask) {
+        setTasks(prev => prev.map(t =>
+          t.id === taskId ? currentTask : t
+        ))
+      }
+      return
+    }
+
+    // Emit event pre refresh na iných stránkach (napr. sidebar počítadlá)
+    window.dispatchEvent(new CustomEvent('task:moved'))
 
     // After completion recurring logic
     if (completed && currentTask?.recurrence_rule?.type === 'after_completion') {
@@ -241,11 +276,9 @@ export function useTasks() {
 
         if (error) {
           console.error('Error creating recurring task:', error)
-        } else {
-          // Emit event pre refresh na iných stránkach
-          window.dispatchEvent(new CustomEvent('task:moved'))
         }
 
+        // Pre recurring tasky musíme refreshnúť, aby sa zobrazil nový task
         await fetchTasks()
       }
     }
@@ -365,7 +398,7 @@ export function useInboxTasks(assigneeFilter?: AssigneeFilter) {
     fetchTasks()
   }, [fetchTasks])
 
-  return { tasks, loading, error, refetch: fetchTasks }
+  return { tasks, setTasks, loading, error, refetch: fetchTasks }
 }
 
 // Today view - tasks with deadline = today
@@ -430,7 +463,7 @@ export function useTodayTasks(assigneeFilter?: AssigneeFilter) {
     fetchTasks()
   }, [fetchTasks])
 
-  return { tasks, loading, error, refetch: fetchTasks }
+  return { tasks, setTasks, loading, error, refetch: fetchTasks }
 }
 
 // Upcoming view - tasks with deadline > today
@@ -493,7 +526,7 @@ export function useUpcomingTasks(assigneeFilter?: AssigneeFilter) {
     fetchTasks()
   }, [fetchTasks])
 
-  return { tasks, loading, error, refetch: fetchTasks }
+  return { tasks, setTasks, loading, error, refetch: fetchTasks }
 }
 
 // Anytime view - tasks without specific time
@@ -553,7 +586,7 @@ export function useAnytimeTasks(assigneeFilter?: AssigneeFilter) {
     fetchTasks()
   }, [fetchTasks])
 
-  return { tasks, loading, error, refetch: fetchTasks }
+  return { tasks, setTasks, loading, error, refetch: fetchTasks }
 }
 
 // Logbook view - completed tasks
@@ -612,7 +645,7 @@ export function useLogbookTasks(assigneeFilter?: AssigneeFilter) {
     fetchTasks()
   }, [fetchTasks])
 
-  return { tasks, loading, error, refetch: fetchTasks }
+  return { tasks, setTasks, loading, error, refetch: fetchTasks }
 }
 
 // Trash view - deleted tasks

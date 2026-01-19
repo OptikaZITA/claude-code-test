@@ -30,7 +30,7 @@ export default function InboxPage() {
   const { user } = useCurrentUser()
   // Database-level assignee filter - undefined (default = current user), 'all', 'unassigned', or UUID
   const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>(undefined)
-  const { tasks, loading, error, refetch } = useInboxTasks(dbAssigneeFilter)
+  const { tasks, setTasks, loading, error, refetch } = useInboxTasks(dbAssigneeFilter)
   const { createTask, updateTask, completeTask, softDelete, reorderTasks } = useTasks()
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
   const { viewMode, setViewMode, isLoaded } = useViewPreference('inbox')
@@ -83,17 +83,6 @@ export default function InboxPage() {
   }
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
-    // If uncompleting a task, just do it directly
-    if (!completed) {
-      try {
-        await completeTask(taskId, completed)
-        refetch()
-      } catch (error) {
-        console.error('Error completing task:', error)
-      }
-      return
-    }
-
     // Find the task
     const task = tasks.find(t => t.id === taskId)
     if (!task) {
@@ -101,16 +90,45 @@ export default function InboxPage() {
       return
     }
 
+    // If uncompleting a task, do optimistic update and complete directly
+    if (!completed) {
+      // OPTIMISTIC UPDATE: Update local state immediately
+      setTasks(prev => prev.map(t =>
+        t.id === taskId
+          ? { ...t, status: 'todo' as const, completed_at: null, when_type: 'inbox' }
+          : t
+      ))
+
+      try {
+        await completeTask(taskId, completed)
+        // No refetch() - optimistic update is already done
+      } catch (error) {
+        console.error('Error completing task:', error)
+        // Rollback on error
+        setTasks(prev => prev.map(t => t.id === taskId ? task : t))
+      }
+      return
+    }
+
     // Check if task has any time entries
     const hasTime = await checkTaskHasTime(taskId)
 
     if (hasTime) {
-      // Task has time entries - complete directly
+      // Task has time entries - complete directly with optimistic update
+      // OPTIMISTIC UPDATE: Update local state immediately
+      setTasks(prev => prev.map(t =>
+        t.id === taskId
+          ? { ...t, status: 'done' as const, completed_at: new Date().toISOString(), when_type: null }
+          : t
+      ))
+
       try {
         await completeTask(taskId, completed)
-        refetch()
+        // No refetch() - optimistic update is already done
       } catch (error) {
         console.error('Error completing task:', error)
+        // Rollback on error
+        setTasks(prev => prev.map(t => t.id === taskId ? task : t))
       }
     } else {
       // No time entries - show QuickTimeModal
@@ -121,11 +139,23 @@ export default function InboxPage() {
   // Handler for completing task after QuickTimeModal
   const handleQuickTimeComplete = async () => {
     if (!pendingCompleteTask) return
+    const task = pendingCompleteTask
+    const taskId = task.id
+
+    // OPTIMISTIC UPDATE: Update local state immediately
+    setTasks(prev => prev.map(t =>
+      t.id === taskId
+        ? { ...t, status: 'done' as const, completed_at: new Date().toISOString(), when_type: null }
+        : t
+    ))
+
     try {
-      await completeTask(pendingCompleteTask.id, true)
-      refetch()
+      await completeTask(taskId, true)
+      // No refetch() - optimistic update is already done
     } catch (error) {
       console.error('Error completing task:', error)
+      // Rollback on error
+      setTasks(prev => prev.map(t => t.id === taskId ? task : t))
     }
     setPendingCompleteTask(null)
   }

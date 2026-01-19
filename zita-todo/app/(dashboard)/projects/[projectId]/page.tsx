@@ -36,7 +36,7 @@ export default function ProjectPage() {
   // Projects default to 'all' to show Slack-created tasks and team tasks
   const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>('all')
   const { project, loading: projectLoading } = useProject(projectId)
-  const { tasks, loading: tasksLoading, refetch: refetchTasks } = useProjectTasks(projectId, dbAssigneeFilter)
+  const { tasks, setTasks, loading: tasksLoading, refetch: refetchTasks } = useProjectTasks(projectId, dbAssigneeFilter)
   const { headings, loading: headingsLoading, createHeading, updateHeading, deleteHeading } = useHeadings(projectId)
   const { createTask, updateTask, completeTask } = useTasks()
   const { viewMode, setViewMode, isLoaded } = useViewPreference('project')
@@ -107,17 +107,6 @@ export default function ProjectPage() {
   }
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
-    // If uncompleting a task, just do it directly
-    if (!completed) {
-      try {
-        await completeTask(taskId, completed)
-        refetchTasks()
-      } catch (error) {
-        console.error('Error completing task:', error)
-      }
-      return
-    }
-
     // Find the task
     const task = tasks.find(t => t.id === taskId)
     if (!task) {
@@ -125,16 +114,45 @@ export default function ProjectPage() {
       return
     }
 
+    // If uncompleting a task, do optimistic update and complete directly
+    if (!completed) {
+      // OPTIMISTIC UPDATE: Update local state immediately
+      setTasks(prev => prev.map(t =>
+        t.id === taskId
+          ? { ...t, status: 'todo' as const, completed_at: null, when_type: 'inbox' }
+          : t
+      ))
+
+      try {
+        await completeTask(taskId, completed)
+        // No refetchTasks() - optimistic update is already done
+      } catch (error) {
+        console.error('Error completing task:', error)
+        // Rollback on error
+        setTasks(prev => prev.map(t => t.id === taskId ? task : t))
+      }
+      return
+    }
+
     // Check if task has any time entries
     const hasTime = await checkTaskHasTime(taskId)
 
     if (hasTime) {
-      // Task has time entries - complete directly
+      // Task has time entries - complete directly with optimistic update
+      // OPTIMISTIC UPDATE: Update local state immediately
+      setTasks(prev => prev.map(t =>
+        t.id === taskId
+          ? { ...t, status: 'done' as const, completed_at: new Date().toISOString(), when_type: null }
+          : t
+      ))
+
       try {
         await completeTask(taskId, completed)
-        refetchTasks()
+        // No refetchTasks() - optimistic update is already done
       } catch (error) {
         console.error('Error completing task:', error)
+        // Rollback on error
+        setTasks(prev => prev.map(t => t.id === taskId ? task : t))
       }
     } else {
       // No time entries - show QuickTimeModal
@@ -145,11 +163,23 @@ export default function ProjectPage() {
   // Handler for completing task after QuickTimeModal
   const handleQuickTimeComplete = async () => {
     if (!pendingCompleteTask) return
+    const task = pendingCompleteTask
+    const taskId = task.id
+
+    // OPTIMISTIC UPDATE: Update local state immediately
+    setTasks(prev => prev.map(t =>
+      t.id === taskId
+        ? { ...t, status: 'done' as const, completed_at: new Date().toISOString(), when_type: null }
+        : t
+    ))
+
     try {
-      await completeTask(pendingCompleteTask.id, true)
-      refetchTasks()
+      await completeTask(taskId, true)
+      // No refetchTasks() - optimistic update is already done
     } catch (error) {
       console.error('Error completing task:', error)
+      // Rollback on error
+      setTasks(prev => prev.map(t => t.id === taskId ? task : t))
     }
     setPendingCompleteTask(null)
   }
