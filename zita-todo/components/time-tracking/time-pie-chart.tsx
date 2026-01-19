@@ -1,6 +1,7 @@
 'use client'
 
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { useState } from 'react'
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts'
 import { Clock } from 'lucide-react'
 
 // ZITA TODO color palette
@@ -40,34 +41,6 @@ function formatDuration(seconds: number): string {
   }
 
   return `${hours}h ${minutes}m`
-}
-
-interface CustomTooltipProps {
-  active?: boolean
-  payload?: Array<{
-    name: string
-    value: number
-    payload: ChartDataItem
-  }>
-  totalSeconds: number
-}
-
-function CustomTooltip({ active, payload, totalSeconds }: CustomTooltipProps) {
-  if (!active || !payload || payload.length === 0) {
-    return null
-  }
-
-  const item = payload[0]
-  const percent = totalSeconds > 0 ? ((item.value / totalSeconds) * 100).toFixed(1) : '0'
-
-  return (
-    <div className="bg-[var(--bg-primary)] px-3 py-2 rounded-md shadow-sm border border-[var(--border-primary)] text-sm">
-      <p className="font-medium text-[var(--text-primary)]">{item.name}</p>
-      <p className="text-[var(--text-secondary)]">
-        {formatDuration(item.value)} · {percent}%
-      </p>
-    </div>
-  )
 }
 
 interface CustomLegendProps {
@@ -112,6 +85,8 @@ function CustomLegend({ payload, totalSeconds }: CustomLegendProps) {
 }
 
 export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChartProps) {
+  const [activeSegment, setActiveSegment] = useState<ChartDataItem | null>(null)
+
   // Assign colors if not provided
   const chartData = data.map((item, index) => ({
     ...item,
@@ -143,6 +118,8 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
             dataKey="value"
             nameKey="name"
             onClick={(data) => onSegmentClick?.(data.id)}
+            onMouseEnter={(_, index) => setActiveSegment(chartData[index])}
+            onMouseLeave={() => setActiveSegment(null)}
             style={{ cursor: onSegmentClick ? 'pointer' : 'default' }}
           >
             {chartData.map((entry, index) => (
@@ -151,19 +128,13 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
                 fill={entry.color}
                 stroke="var(--bg-primary)"
                 strokeWidth={2}
+                style={{
+                  opacity: activeSegment && activeSegment.id !== entry.id ? 0.6 : 1,
+                  transition: 'opacity 150ms ease'
+                }}
               />
             ))}
           </Pie>
-          <Tooltip
-            content={<CustomTooltip totalSeconds={totalSeconds} />}
-            isAnimationActive={false}
-            offset={20}
-            wrapperStyle={{
-              zIndex: 100,
-              pointerEvents: 'none',
-              outline: 'none'
-            }}
-          />
           <Legend
             content={<CustomLegend totalSeconds={totalSeconds} />}
             verticalAlign="bottom"
@@ -171,15 +142,34 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
         </PieChart>
       </ResponsiveContainer>
 
-      {/* Central value */}
+      {/* Central value - shows hovered segment or total */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ height: 300 }}>
-        <div className="text-center -mt-16">
-          <div className="text-2xl font-bold text-[var(--text-primary)]">
-            {formatDuration(totalSeconds)}
-          </div>
-          <div className="text-sm text-[var(--text-secondary)]">
-            celkovo
-          </div>
+        <div className="text-center -mt-16 transition-all duration-150">
+          {activeSegment ? (
+            <>
+              <div
+                className="text-lg font-bold truncate max-w-[120px]"
+                style={{ color: activeSegment.color }}
+              >
+                {activeSegment.name}
+              </div>
+              <div className="text-xl font-bold text-[var(--text-primary)]">
+                {formatDuration(activeSegment.value)}
+              </div>
+              <div className="text-sm text-[var(--text-secondary)]">
+                {totalSeconds > 0 ? ((activeSegment.value / totalSeconds) * 100).toFixed(1) : '0'}%
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-2xl font-bold text-[var(--text-primary)]">
+                {formatDuration(totalSeconds)}
+              </div>
+              <div className="text-sm text-[var(--text-secondary)]">
+                celkovo
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
