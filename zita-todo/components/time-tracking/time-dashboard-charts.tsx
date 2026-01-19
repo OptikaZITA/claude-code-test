@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Users, Building2, FolderKanban } from 'lucide-react'
+import { ChevronDown, Users, Building2, FolderKanban, BarChart3, PieChartIcon } from 'lucide-react'
 import { format, parseISO, isWeekend } from 'date-fns'
 import { sk } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
+import { TimePieChart } from './time-pie-chart'
 
 interface DayEntry {
   date: string
@@ -26,6 +27,8 @@ interface TimeDashboardChartsProps {
   onGroupByChange: (groupBy: 'user' | 'area' | 'project') => void
   onDrilldown?: (id: string, type: string) => void
 }
+
+type ChartView = 'pie' | 'bar'
 
 function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600)
@@ -106,6 +109,7 @@ function GroupByChart({
   onDrilldown?: (id: string, type: string) => void
 }) {
   const [isOpen, setIsOpen] = useState(false)
+  const [chartView, setChartView] = useState<ChartView>('pie')
 
   const groupByOptions = [
     { value: 'user', label: 'Používateľ', icon: Users },
@@ -116,83 +120,133 @@ function GroupByChart({
   const currentOption = groupByOptions.find(o => o.value === groupBy) || groupByOptions[0]
   const Icon = currentOption.icon
 
-  if (summary.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-40 text-[var(--text-secondary)]">
-        Žiadne dáta pre vybrané obdobie
-      </div>
-    )
-  }
+  // Calculate total seconds for pie chart
+  const totalSeconds = summary.reduce((sum, item) => sum + item.totalSeconds, 0)
 
-  // Show top 5
+  // Convert summary to pie chart format
+  const pieData = summary.slice(0, 10).map(item => ({
+    id: item.id,
+    name: item.label,
+    value: item.totalSeconds,
+    percent: item.percent,
+  }))
+
+  // Show top 5 for bar chart
   const topItems = summary.slice(0, 5)
   const maxPercent = Math.max(...topItems.map(s => s.percent), 1)
 
   return (
     <div className="space-y-3">
-      {/* Group by selector */}
-      <div className="relative inline-block">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 px-2 py-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-        >
-          <Icon className="h-4 w-4" />
-          <span>{currentOption.label}</span>
-          <ChevronDown className="h-3 w-3" />
-        </button>
-
-        {isOpen && (
-          <div className="absolute top-full left-0 mt-1 z-50 w-40 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-lg">
-            {groupByOptions.map(option => {
-              const OptionIcon = option.icon
-              return (
-                <button
-                  key={option.value}
-                  onClick={() => {
-                    onGroupByChange(option.value)
-                    setIsOpen(false)
-                  }}
-                  className={cn(
-                    'flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-[var(--bg-hover)]',
-                    groupBy === option.value
-                      ? 'text-[var(--color-primary)] font-medium'
-                      : 'text-[var(--text-primary)]'
-                  )}
-                >
-                  <OptionIcon className="h-4 w-4" />
-                  {option.label}
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Bars */}
-      <div className="space-y-2">
-        {topItems.map(item => (
+      {/* Header with group by selector and chart view toggle */}
+      <div className="flex items-center justify-between">
+        {/* Group by selector */}
+        <div className="relative inline-block">
           <button
-            key={item.id}
-            onClick={() => onDrilldown?.(item.id, item.type)}
-            className="w-full text-left group"
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex items-center gap-2 px-2 py-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
           >
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm text-[var(--text-primary)] truncate group-hover:text-[var(--color-primary)] transition-colors">
-                {item.label}
-              </span>
-              <span className="text-sm text-[var(--text-secondary)] ml-2 whitespace-nowrap">
-                {formatDuration(item.totalSeconds)}
-              </span>
-            </div>
-            <div className="h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[var(--color-primary)] rounded-full transition-all"
-                style={{ width: `${(item.percent / maxPercent) * 100}%` }}
-              />
-            </div>
+            <Icon className="h-4 w-4" />
+            <span>{currentOption.label}</span>
+            <ChevronDown className="h-3 w-3" />
           </button>
-        ))}
+
+          {isOpen && (
+            <div className="absolute top-full left-0 mt-1 z-50 w-40 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-lg">
+              {groupByOptions.map(option => {
+                const OptionIcon = option.icon
+                return (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      onGroupByChange(option.value)
+                      setIsOpen(false)
+                    }}
+                    className={cn(
+                      'flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-[var(--bg-hover)]',
+                      groupBy === option.value
+                        ? 'text-[var(--color-primary)] font-medium'
+                        : 'text-[var(--text-primary)]'
+                    )}
+                  >
+                    <OptionIcon className="h-4 w-4" />
+                    {option.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Chart view toggle */}
+        <div className="flex items-center gap-1 p-1 bg-[var(--bg-tertiary)] rounded-lg">
+          <button
+            onClick={() => setChartView('pie')}
+            className={cn(
+              'p-1.5 rounded transition-colors',
+              chartView === 'pie'
+                ? 'bg-[var(--bg-primary)] text-[var(--color-primary)] shadow-sm'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            )}
+            title="Koláčový graf"
+          >
+            <PieChartIcon className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setChartView('bar')}
+            className={cn(
+              'p-1.5 rounded transition-colors',
+              chartView === 'bar'
+                ? 'bg-[var(--bg-primary)] text-[var(--color-primary)] shadow-sm'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            )}
+            title="Stĺpcový graf"
+          >
+            <BarChart3 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
+
+      {/* Chart content */}
+      {chartView === 'pie' ? (
+        <TimePieChart
+          data={pieData}
+          totalSeconds={totalSeconds}
+          onSegmentClick={(id) => onDrilldown?.(id, groupBy)}
+        />
+      ) : (
+        <>
+          {summary.length === 0 ? (
+            <div className="flex items-center justify-center h-40 text-[var(--text-secondary)]">
+              Žiadne dáta pre vybrané obdobie
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {topItems.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => onDrilldown?.(item.id, item.type)}
+                  className="w-full text-left group"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-[var(--text-primary)] truncate group-hover:text-[var(--color-primary)] transition-colors">
+                      {item.label}
+                    </span>
+                    <span className="text-sm text-[var(--text-secondary)] ml-2 whitespace-nowrap">
+                      {formatDuration(item.totalSeconds)}
+                    </span>
+                  </div>
+                  <div className="h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[var(--color-primary)] rounded-full transition-all"
+                      style={{ width: `${(item.percent / maxPercent) * 100}%` }}
+                    />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
