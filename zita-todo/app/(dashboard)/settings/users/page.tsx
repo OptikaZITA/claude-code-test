@@ -10,7 +10,6 @@ import { EditUserModal, EditUserData } from '@/components/users/edit-user-modal'
 import { useUsersManagement } from '@/lib/hooks/use-users-management'
 import { useCurrentUser } from '@/lib/hooks/use-user-departments'
 import { User, UserRole, UserStatus, Area, canManageUsers } from '@/types'
-import { cn } from '@/lib/utils/cn'
 
 type FilterRole = UserRole | 'all'
 type FilterStatus = UserStatus | 'all'
@@ -41,8 +40,7 @@ export default function UsersManagementPage() {
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [editingUserDepartments, setEditingUserDepartments] = useState<Area[]>([])
-  const [lastInviteLink, setLastInviteLink] = useState<string | null>(null)
-  const [lastInviteEmailSent, setLastInviteEmailSent] = useState<boolean>(false)
+  const [lastInviteEmail, setLastInviteEmail] = useState<string | null>(null)
 
   // Check if current user is admin
   useEffect(() => {
@@ -92,11 +90,9 @@ export default function UsersManagementPage() {
     })
 
   const handleInvite = async (data: InviteUserData) => {
-    const result = await inviteUser(data) as any
-    // Use URL from API response if available, otherwise construct it
-    const link = result.inviteUrl || `${window.location.origin}/invite/${result.id}`
-    setLastInviteLink(link)
-    setLastInviteEmailSent(result.emailSent ?? false)
+    await inviteUser(data)
+    // Supabase sends email automatically
+    setLastInviteEmail(data.email)
   }
 
   const handleSaveUser = async (userId: string, data: EditUserData) => {
@@ -206,57 +202,25 @@ export default function UsersManagementPage() {
           </div>
         </div>
 
-        {/* Last Invite Link */}
-        {lastInviteLink && (
-          <div className={cn(
-            "mb-6 p-4 border rounded-lg",
-            lastInviteEmailSent
-              ? "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800"
-              : "bg-yellow-50 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800"
-          )}>
+        {/* Last Invite Notification */}
+        {lastInviteEmail && (
+          <div className="mb-6 p-4 border rounded-lg bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800">
             <div className="flex items-center justify-between">
               <div>
-                <p className={cn(
-                  "font-medium",
-                  lastInviteEmailSent
-                    ? "text-green-800 dark:text-green-200"
-                    : "text-yellow-800 dark:text-yellow-200"
-                )}>
-                  {lastInviteEmailSent ? 'Pozvánka odoslaná' : 'Pozvánka vytvorená (email nebol odoslaný)'}
+                <p className="font-medium text-green-800 dark:text-green-200">
+                  Pozvánka odoslaná
                 </p>
-                <p className={cn(
-                  "text-sm mt-1",
-                  lastInviteEmailSent
-                    ? "text-green-600 dark:text-green-400"
-                    : "text-yellow-600 dark:text-yellow-400"
-                )}>
-                  {lastInviteEmailSent
-                    ? 'Email s pozvánkou bol odoslaný. Odkaz nižšie môžete tiež skopírovať a poslať ručne:'
-                    : 'Skopírujte odkaz a pošlite ho pozvanému používateľovi ručne:'}
-                </p>
-                <p className="text-sm font-mono bg-white dark:bg-gray-800 px-2 py-1 rounded mt-2 break-all">
-                  {lastInviteLink}
+                <p className="text-sm mt-1 text-green-600 dark:text-green-400">
+                  Email s pozvánkou bol odoslaný na adresu <strong>{lastInviteEmail}</strong>
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(lastInviteLink)
-                  }}
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Kopírovať
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setLastInviteLink(null)}
-                >
-                  Zavrieť
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLastInviteEmail(null)}
+              >
+                Zavrieť
+              </Button>
             </div>
           </div>
         )}

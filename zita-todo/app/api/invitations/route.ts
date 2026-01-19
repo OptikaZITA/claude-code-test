@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendInvitationEmail } from '@/lib/email'
 
-// POST - Create a new invitation and send email
+// POST - Create a new invitation using Supabase Auth (sends email automatically)
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -57,7 +56,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if pending invitation exists
+    // Check if pending invitation exists in our table
     const { data: existingInvitation } = await adminSupabase
       .from('invitations')
       .select('id')
@@ -72,11 +71,49 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Set expiration to 7 days from now
+    // Build redirect URL for after email confirmation
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+    const redirectTo = `${appUrl}/auth/callback`
+
+    // Use Supabase Auth to invite user (sends email automatically)
+    const { data: authData, error: authError } = await adminSupabase.auth.admin.inviteUserByEmail(
+      email,
+      {
+        data: {
+          // Store our custom metadata in user_metadata
+          full_name,
+          nickname,
+          position: position || null,
+          role,
+          departments,
+          organization_id: currentUser.organization_id,
+          invited_by: user.id,
+        },
+        redirectTo,
+      }
+    )
+
+    if (authError) {
+      console.error('Supabase invite error:', authError)
+
+      if (authError.message?.includes('already been registered')) {
+        return NextResponse.json(
+          { error: 'Používateľ s týmto emailom už existuje v systéme' },
+          { status: 400 }
+        )
+      }
+
+      return NextResponse.json(
+        { error: `Chyba pri odosielaní pozvánky: ${authError.message}` },
+        { status: 500 }
+      )
+    }
+
+    // Also store in our invitations table for tracking
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + 7)
 
-    // Create invitation using admin client (to ensure it works)
     const { data: invitation, error: insertError } = await adminSupabase
       .from('invitations')
       .insert({
@@ -86,7 +123,7 @@ export async function POST(request: NextRequest) {
         position: position || null,
         role,
         departments,
-        token: crypto.randomUUID(), // Legacy token field
+        token: authData.user?.id || crypto.randomUUID(), // Use auth user ID as token
         expires_at: expiresAt.toISOString(),
         invited_by: user.id,
         organization_id: currentUser.organization_id,
@@ -96,48 +133,13 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('Insert error:', insertError)
-      return NextResponse.json(
-        { error: 'Chyba pri vytváraní pozvánky' },
-        { status: 500 }
-      )
-    }
-
-    // Get department names for email
-    const { data: deptData } = await adminSupabase
-      .from('areas')
-      .select('name')
-      .in('id', departments)
-
-    const departmentNames = deptData?.map((d: any) => d.name) || []
-
-    // Build invite URL
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000'
-    const inviteUrl = `${appUrl}/invite/${invitation.id}`
-
-    // Send invitation email
-    const inviterName = currentUser.nickname || currentUser.full_name
-    const { success: emailSent, error: emailError } = await sendInvitationEmail({
-      to: email,
-      inviteeName: nickname || full_name,
-      inviterName: inviterName || undefined,
-      inviteUrl,
-      role,
-      departments: departmentNames,
-    })
-
-    if (!emailSent) {
-      console.error('Email sending failed:', emailError)
-      // Don't fail the request - invitation was created successfully
-      // Just note that email wasn't sent
+      // Don't fail - the Supabase invite was sent successfully
     }
 
     return NextResponse.json({
-      invitation,
-      inviteUrl, // Return URL so admin can share manually if email fails
-      emailSent,
-      emailError: emailError || null,
+      invitation: invitation || { id: authData.user?.id, email },
+      emailSent: true, // Supabase sends email automatically
+      userId: authData.user?.id,
     })
   } catch (error) {
     console.error('Create invitation error:', error)
