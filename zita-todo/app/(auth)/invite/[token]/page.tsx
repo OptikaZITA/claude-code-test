@@ -43,14 +43,17 @@ export default function InviteAcceptPage() {
       setLoading(true)
       setError(null)
 
-      // Load invitation by token (id)
-      const { data: inv, error: invError } = await supabase
-        .from('invitations')
-        .select('*')
-        .eq('id', token)
-        .single()
+      // Load invitation via API (bypasses RLS for unauthenticated users)
+      const response = await fetch(`/api/invitations/${token}`)
 
-      if (invError || !inv) {
+      if (!response.ok) {
+        setStatus('not_found')
+        return
+      }
+
+      const { invitation: inv, departments: depts } = await response.json()
+
+      if (!inv) {
         setStatus('not_found')
         return
       }
@@ -69,14 +72,9 @@ export default function InviteAcceptPage() {
         return
       }
 
-      // Load department names if departments array exists
-      if (inv.departments && inv.departments.length > 0) {
-        const { data: depts } = await supabase
-          .from('areas')
-          .select('id, name')
-          .in('id', inv.departments)
-
-        setDepartments(depts || [])
+      // Set departments from API response
+      if (depts && depts.length > 0) {
+        setDepartments(depts)
       }
 
       setStatus('valid')

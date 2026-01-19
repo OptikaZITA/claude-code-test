@@ -42,6 +42,7 @@ export default function UsersManagementPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [editingUserDepartments, setEditingUserDepartments] = useState<Area[]>([])
   const [lastInviteLink, setLastInviteLink] = useState<string | null>(null)
+  const [lastInviteEmailSent, setLastInviteEmailSent] = useState<boolean>(false)
 
   // Check if current user is admin
   useEffect(() => {
@@ -91,10 +92,11 @@ export default function UsersManagementPage() {
     })
 
   const handleInvite = async (data: InviteUserData) => {
-    const invitation = await inviteUser(data)
-    // Show invite link
-    const link = `${window.location.origin}/invite/${invitation.id}`
+    const result = await inviteUser(data) as any
+    // Use URL from API response if available, otherwise construct it
+    const link = result.inviteUrl || `${window.location.origin}/invite/${result.id}`
     setLastInviteLink(link)
+    setLastInviteEmailSent(result.emailSent ?? false)
   }
 
   const handleSaveUser = async (userId: string, data: EditUserData) => {
@@ -206,12 +208,31 @@ export default function UsersManagementPage() {
 
         {/* Last Invite Link */}
         {lastInviteLink && (
-          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
+          <div className={cn(
+            "mb-6 p-4 border rounded-lg",
+            lastInviteEmailSent
+              ? "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800"
+              : "bg-yellow-50 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800"
+          )}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-green-800 dark:text-green-200">Pozvánka vytvorená</p>
-                <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                  Skopírujte odkaz a pošlite ho pozvanému používateľovi:
+                <p className={cn(
+                  "font-medium",
+                  lastInviteEmailSent
+                    ? "text-green-800 dark:text-green-200"
+                    : "text-yellow-800 dark:text-yellow-200"
+                )}>
+                  {lastInviteEmailSent ? 'Pozvánka odoslaná' : 'Pozvánka vytvorená (email nebol odoslaný)'}
+                </p>
+                <p className={cn(
+                  "text-sm mt-1",
+                  lastInviteEmailSent
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-yellow-600 dark:text-yellow-400"
+                )}>
+                  {lastInviteEmailSent
+                    ? 'Email s pozvánkou bol odoslaný. Odkaz nižšie môžete tiež skopírovať a poslať ručne:'
+                    : 'Skopírujte odkaz a pošlite ho pozvanému používateľovi ručne:'}
                 </p>
                 <p className="text-sm font-mono bg-white dark:bg-gray-800 px-2 py-1 rounded mt-2 break-all">
                   {lastInviteLink}
@@ -225,6 +246,7 @@ export default function UsersManagementPage() {
                     navigator.clipboard.writeText(lastInviteLink)
                   }}
                 >
+                  <Copy className="h-4 w-4 mr-2" />
                   Kopírovať
                 </Button>
                 <Button

@@ -194,50 +194,29 @@ export function useUsersManagement(): UseUsersManagementResult {
     return (data || []).map((d: any) => d.areas).filter(Boolean)
   }, [supabase])
 
-  // Invite user
-  const inviteUser = useCallback(async (data: CreateInvitationData): Promise<Invitation> => {
-    // Set expiration to 7 days from now
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 7)
+  // Invite user - uses API endpoint that also sends email
+  const inviteUser = useCallback(async (data: CreateInvitationData): Promise<Invitation & { inviteUrl?: string; emailSent?: boolean }> => {
+    const response = await fetch('/api/invitations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
 
-    // Generate unique token for invitation link
-    const token = crypto.randomUUID()
+    const result = await response.json()
 
-    // Get current user as inviter and their organization
-    const { data: { user: currentUser } } = await supabase.auth.getUser()
-
-    let organizationId = null
-    if (currentUser) {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('organization_id')
-        .eq('id', currentUser.id)
-        .single()
-      organizationId = userData?.organization_id
+    if (!response.ok) {
+      throw new Error(result.error || 'Chyba pri vytváraní pozvánky')
     }
 
-    const { data: invitation, error } = await supabase
-      .from('invitations')
-      .insert({
-        email: data.email,
-        full_name: data.full_name,
-        nickname: data.nickname,
-        position: data.position || null,
-        role: data.role,
-        departments: data.departments,
-        token: token,
-        expires_at: expiresAt.toISOString(),
-        invited_by: currentUser?.id || null,
-        organization_id: organizationId,
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-
     await fetchData()
-    return invitation
-  }, [supabase, fetchData])
+
+    // Return invitation with additional info
+    return {
+      ...result.invitation,
+      inviteUrl: result.inviteUrl,
+      emailSent: result.emailSent,
+    }
+  }, [fetchData])
 
   // Delete invitation
   const deleteInvitation = useCallback(async (invitationId: string) => {
