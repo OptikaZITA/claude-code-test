@@ -237,17 +237,43 @@ export function EditTimeEntryModal({
 
     if (mode === 'duration') {
       // Duration mode - create timestamps from date + duration
-      // Set start at beginning of the day, end based on duration
-      const baseDate = new Date(`${durationDate}T12:00:00`)
+      // Validate durationDate is set
+      if (!durationDate) {
+        console.log('[EDIT_TIME_MODAL] Validation failed: no durationDate')
+        setError('Dátum nie je nastavený')
+        return
+      }
+
+      // Use the original start time if editing, otherwise use noon
+      let baseDate: Date
+      if (isEditMode && entry?.started_at) {
+        // Keep the original start time, just update the date and calculate new end
+        const originalStart = parseISO(entry.started_at)
+        baseDate = new Date(`${durationDate}T${format(originalStart, 'HH:mm:ss')}`)
+      } else {
+        baseDate = new Date(`${durationDate}T12:00:00`)
+      }
+
+      if (isNaN(baseDate.getTime())) {
+        console.log('[EDIT_TIME_MODAL] Invalid baseDate:', durationDate)
+        setError('Neplatný dátum')
+        return
+      }
+
       started_at = baseDate.toISOString()
       stopped_at = new Date(baseDate.getTime() + calculatedDuration * 1000).toISOString()
     } else {
       // Range mode - use exact times
+      if (!startDate || !startTime || !endDate || !endTime) {
+        setError('Vyplňte všetky časové polia')
+        return
+      }
       started_at = new Date(`${startDate}T${startTime}`).toISOString()
       stopped_at = new Date(`${endDate}T${endTime}`).toISOString()
     }
 
     console.log('[EDIT_TIME_MODAL] Calculated timestamps:', {
+      mode,
       started_at,
       stopped_at,
       calculatedDuration,
@@ -261,26 +287,39 @@ export function EditTimeEntryModal({
           started_at,
           stopped_at,
         })
-        await updateTimeEntry(entry.id, {
+        const result = await updateTimeEntry(entry.id, {
           task_id: taskId,
           description: description || undefined,
           started_at,
           stopped_at,
         })
-        console.log('[EDIT_TIME_MODAL] updateTimeEntry completed successfully')
+        console.log('[EDIT_TIME_MODAL] updateTimeEntry result:', result)
+
+        if (!result) {
+          // If result is null, there was an error in the hook
+          console.error('[EDIT_TIME_MODAL] updateTimeEntry returned null - check hook error')
+          setError('Chyba pri ukladaní. Skúste to znova.')
+          return
+        }
       } else {
-        await createTimeEntry({
+        const result = await createTimeEntry({
           task_id: taskId,
           description: description || undefined,
           started_at,
           stopped_at,
         })
+
+        if (!result) {
+          setError('Chyba pri vytváraní. Skúste to znova.')
+          return
+        }
       }
 
       onSuccess?.()
       onClose()
     } catch (err) {
-      setError((err as Error).message)
+      console.error('[EDIT_TIME_MODAL] Error:', err)
+      setError((err as Error).message || 'Nastala neočakávaná chyba')
     }
   }
 

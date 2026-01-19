@@ -80,23 +80,24 @@ export function useCascadingTimeFilters({ filters }: UseCascadingTimeFiltersProp
           .select('id, name, color')
           .order('name')
 
-        // Fetch time entries with their relationships to build the meta
-        // This gives us which users worked on which projects/areas
-        const { data: timeEntriesData } = await supabase
+        // Fetch time entries - simplified query using denormalized fields
+        // project_id and area_id are stored directly on time_entries
+        const { data: timeEntriesData, error: timeEntriesError } = await supabase
           .from('time_entries')
           .select(`
             user_id,
             project_id,
             area_id,
-            tasks!inner(
-              id,
-              project_id,
-              area_id,
-              projects(id, area_id)
-            )
+            task_id
           `)
           .gte('started_at', filters.from)
           .lte('started_at', filters.to)
+          .is('deleted_at', null)
+          .not('duration_seconds', 'is', null)
+
+        if (timeEntriesError) {
+          console.error('Error fetching time entries for filters:', timeEntriesError)
+        }
 
         // Build project to area mapping
         const projectToArea = new Map<string, string>()
@@ -119,12 +120,9 @@ export function useCascadingTimeFilters({ filters }: UseCascadingTimeFiltersProp
 
           usedUserIds.add(userId)
 
-          // Get area and project from task or direct fields
-          // Note: tasks and projects are arrays from Supabase joins, so access first element
-          const task = entry.tasks?.[0]
-          const taskProject = task?.projects?.[0]
-          const areaId = entry.area_id || task?.area_id || taskProject?.area_id
-          const projectId = entry.project_id || task?.project_id
+          // Get area and project directly from time_entries (denormalized)
+          const areaId = entry.area_id
+          const projectId = entry.project_id
 
           if (areaId) {
             usedAreaIds.add(areaId)
@@ -141,7 +139,7 @@ export function useCascadingTimeFilters({ filters }: UseCascadingTimeFiltersProp
             }
             userToProjects.get(userId)!.add(projectId)
 
-            // Also add the project's area
+            // Also add the project's area (from the mapping)
             const projectArea = projectToArea.get(projectId)
             if (projectArea) {
               usedAreaIds.add(projectArea)
