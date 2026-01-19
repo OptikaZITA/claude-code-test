@@ -45,7 +45,7 @@ export function TimerIndicator() {
         )}
       >
         <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-        <span className="font-mono text-sm font-medium text-success tabular-nums">
+        <span className="font-mono text-sm font-medium text-success tabular-nums min-w-[52px] text-right">
           {formatDurationShort(elapsedSeconds)}
         </span>
       </button>
@@ -149,7 +149,7 @@ export function TimerIndicatorCompact() {
       )}
     >
       <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-      <span className="font-mono text-success tabular-nums">{formatDurationShort(elapsedSeconds)}</span>
+      <span className="font-mono text-success tabular-nums min-w-[44px] text-right">{formatDurationShort(elapsedSeconds)}</span>
     </button>
   )
 }
