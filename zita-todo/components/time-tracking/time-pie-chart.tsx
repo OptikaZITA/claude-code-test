@@ -84,14 +84,30 @@ function CustomLegend({ payload, totalSeconds }: CustomLegendProps) {
   )
 }
 
+// Helper to format long names for center display
+function formatCenterName(name: string): { text: string; isLong: boolean } {
+  if (name.length <= 12) {
+    return { text: name, isLong: false }
+  }
+  // For longer names, try to break at a reasonable point
+  if (name.length <= 20) {
+    return { text: name, isLong: true }
+  }
+  // Very long names - truncate with ellipsis
+  return { text: name.substring(0, 18) + '…', isLong: true }
+}
+
 export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChartProps) {
-  const [activeSegment, setActiveSegment] = useState<ChartDataItem | null>(null)
+  const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
   // Assign colors if not provided
   const chartData = data.map((item, index) => ({
     ...item,
     color: item.color || CHART_COLORS[index % CHART_COLORS.length],
   }))
+
+  // Get active segment from index
+  const activeSegment = activeIndex !== null ? chartData[activeIndex] : null
 
   // Empty state
   if (data.length === 0 || totalSeconds === 0) {
@@ -118,8 +134,8 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
             dataKey="value"
             nameKey="name"
             onClick={(data) => onSegmentClick?.(data.id)}
-            onMouseEnter={(_, index) => setActiveSegment(chartData[index])}
-            onMouseLeave={() => setActiveSegment(null)}
+            onMouseOver={(_, index) => setActiveIndex(index)}
+            onMouseOut={() => setActiveIndex(null)}
             style={{ cursor: onSegmentClick ? 'pointer' : 'default' }}
           >
             {chartData.map((entry, index) => (
@@ -129,7 +145,7 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
                 stroke="var(--bg-primary)"
                 strokeWidth={2}
                 style={{
-                  opacity: activeSegment && activeSegment.id !== entry.id ? 0.6 : 1,
+                  opacity: activeIndex !== null && activeIndex !== index ? 0.6 : 1,
                   transition: 'opacity 150ms ease'
                 }}
               />
@@ -146,20 +162,25 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ height: 300 }}>
         <div className="text-center -mt-16 transition-all duration-150">
           {activeSegment ? (
-            <>
-              <div
-                className="text-lg font-bold truncate max-w-[120px]"
-                style={{ color: activeSegment.color }}
-              >
-                {activeSegment.name}
-              </div>
-              <div className="text-xl font-bold text-[var(--text-primary)]">
-                {formatDuration(activeSegment.value)}
-              </div>
-              <div className="text-sm text-[var(--text-secondary)]">
-                {totalSeconds > 0 ? ((activeSegment.value / totalSeconds) * 100).toFixed(1) : '0'}%
-              </div>
-            </>
+            (() => {
+              const { text, isLong } = formatCenterName(activeSegment.name)
+              return (
+                <>
+                  <div
+                    className={`font-bold leading-tight ${isLong ? 'text-sm' : 'text-base'}`}
+                    style={{ color: activeSegment.color, maxWidth: 110 }}
+                  >
+                    {text}
+                  </div>
+                  <div className="text-xl font-bold text-[var(--text-primary)] mt-0.5">
+                    {formatDuration(activeSegment.value)}
+                  </div>
+                  <div className="text-sm text-[var(--text-secondary)]">
+                    {totalSeconds > 0 ? ((activeSegment.value / totalSeconds) * 100).toFixed(1) : '0'}%
+                  </div>
+                </>
+              )
+            })()
           ) : (
             <>
               <div className="text-2xl font-bold text-[var(--text-primary)]">
