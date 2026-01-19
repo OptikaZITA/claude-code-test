@@ -27,74 +27,90 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const searchPattern = `%${query}%`
-
-    // Parallel search queries
+    // Parallel search queries using accent-insensitive RPC functions
     const [tasksResult, projectsResult, areasResult, tagsResult, usersResult] = await Promise.all([
-      // Tasks - search in title and notes
-      supabase
-        .from('tasks')
-        .select(`
-          id,
-          title,
-          notes,
-          status,
-          due_date,
-          deadline,
-          when_type,
-          when_date,
-          area:areas(id, name, color),
-          project:projects(id, name, color)
-        `)
-        .is('deleted_at', null)
-        .or(`title.ilike.${searchPattern},notes.ilike.${searchPattern}`)
-        .order('created_at', { ascending: false })
-        .limit(limit),
+      // Tasks - accent-insensitive search in title and notes
+      supabase.rpc('search_tasks_unaccent', {
+        search_query: query,
+        result_limit: limit
+      }),
 
-      // Projects - search in title and notes
-      supabase
-        .from('projects')
-        .select(`
-          id,
-          name,
-          notes,
-          color,
-          status,
-          area:areas(id, name, color)
-        `)
-        .or(`name.ilike.${searchPattern},notes.ilike.${searchPattern}`)
-        .order('created_at', { ascending: false })
-        .limit(limit),
+      // Projects - accent-insensitive search in name and notes
+      supabase.rpc('search_projects_unaccent', {
+        search_query: query,
+        result_limit: limit
+      }),
 
-      // Areas - search in name (only global areas = departments)
-      supabase
-        .from('areas')
-        .select('id, name, color, icon')
-        .eq('is_global', true)
-        .ilike('name', searchPattern)
-        .order('name', { ascending: true })
-        .limit(limit),
+      // Areas - accent-insensitive search in name (only departments)
+      supabase.rpc('search_areas_unaccent', {
+        search_query: query,
+        result_limit: limit
+      }),
 
-      // Tags - search in name
-      supabase
-        .from('tags')
-        .select('id, name, color')
-        .ilike('name', searchPattern)
-        .order('name', { ascending: true })
-        .limit(limit),
+      // Tags - accent-insensitive search in name
+      supabase.rpc('search_tags_unaccent', {
+        search_query: query,
+        result_limit: limit
+      }),
 
-      // Users - search in full_name, nickname, email
-      supabase
-        .from('users')
-        .select('id, full_name, nickname, email, avatar_url')
-        .or(`full_name.ilike.${searchPattern},nickname.ilike.${searchPattern},email.ilike.${searchPattern}`)
-        .order('full_name', { ascending: true })
-        .limit(limit),
+      // Users - accent-insensitive search in full_name, nickname, email
+      supabase.rpc('search_users_unaccent', {
+        search_query: query,
+        result_limit: limit
+      }),
     ])
 
+    // Transform tasks result to match expected format
+    const tasks = (tasksResult.data || []).map((t: {
+      id: string
+      title: string
+      notes: string | null
+      status: string
+      due_date: string | null
+      deadline: string | null
+      when_type: string | null
+      when_date: string | null
+      area_id: string | null
+      area_name: string | null
+      area_color: string | null
+      project_id: string | null
+      project_name: string | null
+      project_color: string | null
+    }) => ({
+      id: t.id,
+      title: t.title,
+      notes: t.notes,
+      status: t.status,
+      due_date: t.due_date,
+      deadline: t.deadline,
+      when_type: t.when_type,
+      when_date: t.when_date,
+      area: t.area_id ? { id: t.area_id, name: t.area_name, color: t.area_color } : null,
+      project: t.project_id ? { id: t.project_id, name: t.project_name, color: t.project_color } : null,
+    }))
+
+    // Transform projects result to match expected format
+    const projects = (projectsResult.data || []).map((p: {
+      id: string
+      name: string
+      notes: string | null
+      color: string | null
+      status: string
+      area_id: string | null
+      area_name: string | null
+      area_color: string | null
+    }) => ({
+      id: p.id,
+      name: p.name,
+      notes: p.notes,
+      color: p.color,
+      status: p.status,
+      area: p.area_id ? { id: p.area_id, name: p.area_name, color: p.area_color } : null,
+    }))
+
     return NextResponse.json({
-      tasks: tasksResult.data || [],
-      projects: projectsResult.data || [],
+      tasks,
+      projects,
       areas: areasResult.data || [],
       tags: tagsResult.data || [],
       users: usersResult.data || [],
