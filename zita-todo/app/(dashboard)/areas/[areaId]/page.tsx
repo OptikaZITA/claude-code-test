@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Layers, FolderKanban, Star, FolderPlus, Plus, PlusCircle } from 'lucide-react'
+import { Layers, FolderKanban, Star, FolderPlus, Plus } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { TaskList } from '@/components/tasks/task-list'
@@ -80,10 +80,10 @@ function ProjectSection({
         {/* Small add task button */}
         <button
           onClick={() => quickAddRef.current?.activate()}
-          className="p-1 rounded-full hover:bg-primary/10 text-primary transition-colors"
+          className="p-1 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           title="Pridať úlohu"
         >
-          <PlusCircle className="h-5 w-5" />
+          <Plus className="h-4 w-4" />
         </button>
       </div>
 
