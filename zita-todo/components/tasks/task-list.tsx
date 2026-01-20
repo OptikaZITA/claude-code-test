@@ -244,8 +244,16 @@ export function TaskList({
     </div>
   )
 
+  // Handle click on empty space within container to close expanded task
+  const handleContainerClick = (e: React.MouseEvent) => {
+    // Only close if clicking directly on container background (not on a child element)
+    if (e.target === e.currentTarget && expandedTaskId) {
+      setExpandedTaskId(null)
+    }
+  }
+
   return (
-    <div className="space-y-1" ref={containerRef}>
+    <div className="space-y-1" ref={containerRef} onClick={handleContainerClick}>
       {showQuickAdd && <TaskQuickAdd onAdd={(taskData: TaskQuickAddData) => onQuickAdd(taskData.title)} />}
 
       {tasks.length === 0 ? (

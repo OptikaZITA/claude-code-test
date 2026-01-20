@@ -93,20 +93,13 @@ export function TaskItem({
     // Don't trigger click if we just finished swiping
     if (swipeOffset !== 0) return
 
-    if (enableInlineEdit && isMobile) {
-      // Single click on mobile expands
+    if (enableInlineEdit) {
+      // Single click expands (both mobile and desktop)
       onExpand?.()
     } else {
       onClick?.()
     }
-  }, [enableInlineEdit, isMobile, onExpand, onClick, swipeOffset])
-
-  const handleDoubleClick = useCallback(() => {
-    if (enableInlineEdit && !isMobile) {
-      // Double click on desktop expands
-      onExpand?.()
-    }
-  }, [enableInlineEdit, isMobile, onExpand])
+  }, [enableInlineEdit, onExpand, onClick, swipeOffset])
 
   // Touch handlers for swipe
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -237,7 +230,6 @@ export function TaskItem({
           transform: isMobile ? `translateX(-${swipeOffset}px)` : undefined,
         }}
         onClick={handleClick}
-        onDoubleClick={handleDoubleClick}
         onTouchStart={isMobile && onDelete ? handleTouchStart : undefined}
         onTouchMove={isMobile && onDelete ? handleTouchMove : undefined}
         onTouchEnd={isMobile && onDelete ? handleTouchEnd : undefined}
