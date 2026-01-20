@@ -12,6 +12,8 @@ interface KanbanColumnProps {
   tasks: TaskWithRelations[]
   onTaskClick: (task: TaskWithRelations) => void
   onQuickAdd: (title: string) => void
+  /** Hide "Dnes" badge (use on Today page where it's redundant) */
+  hideToday?: boolean
 }
 
 export function KanbanColumn({
@@ -19,6 +21,7 @@ export function KanbanColumn({
   tasks,
   onTaskClick,
   onQuickAdd,
+  hideToday,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
@@ -58,6 +61,7 @@ export function KanbanColumn({
                 key={task.id}
                 task={task}
                 onClick={() => onTaskClick(task)}
+                hideToday={hideToday}
               />
             ))}
           </div>

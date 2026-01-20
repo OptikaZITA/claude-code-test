@@ -17,6 +17,8 @@ interface KanbanCardProps {
   task: TaskWithRelations
   onClick: () => void
   isDragging?: boolean
+  /** Hide "Dnes" badge (use on Today page where it's redundant) */
+  hideToday?: boolean
 }
 
 // Priority flag colors: red (high), yellow (low)
@@ -25,7 +27,7 @@ const priorityFlagColors: Record<TaskPriority, string> = {
   low: 'text-yellow-500',   // #EAB308 - Žltá
 }
 
-export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
+export function KanbanCard({ task, onClick, isDragging, hideToday }: KanbanCardProps) {
   const { setDraggedTask } = useSidebarDrop()
 
   const {
@@ -99,7 +101,7 @@ export function KanbanCard({ task, onClick, isDragging }: KanbanCardProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {/* When badge (Things 3 style) */}
-          <WhenBadge value={task.when_type} whenDate={task.when_date} size="xs" />
+          <WhenBadge value={task.when_type} whenDate={task.when_date} size="xs" hideToday={hideToday} />
 
           {/* Deadline badge */}
           <DeadlineBadge value={task.deadline} size="xs" />

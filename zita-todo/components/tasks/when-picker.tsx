@@ -181,17 +181,26 @@ export function WhenPicker({
 export function WhenBadge({
   value,
   whenDate,
-  size = 'sm'
+  size = 'sm',
+  hideToday = false
 }: {
   value: WhenType | null
   whenDate?: string | null
   size?: 'sm' | 'xs'
+  /** Hide "Dnes" badge (use on Today page where it's redundant) */
+  hideToday?: boolean
 }) {
   // null = Logbook (dokončené úlohy), nezobrazuj badge
   if (!value) return null
 
+  // Don't show badge for inbox or anytime (anytime is redundant)
+  if (value === 'inbox' || value === 'anytime') return null
+
+  // Hide "today" badge if hideToday is true (e.g., on Today page)
+  if (value === 'today' && hideToday) return null
+
   const option = whenOptions.find(opt => opt.value === value)
-  if (!option || value === 'inbox') return null
+  if (!option) return null
 
   const formatDate = (date: string) => {
     try {
@@ -207,8 +216,6 @@ export function WhenBadge({
     switch (value) {
       case 'today':
         return <Star className={cn(iconClass, 'text-white fill-white')} />
-      case 'anytime':
-        return <Clock className={cn(iconClass, 'text-[var(--color-primary)]')} />
       case 'scheduled':
         return <Calendar className={cn(iconClass, 'text-[var(--color-success)]')} />
       default:
@@ -221,7 +228,6 @@ export function WhenBadge({
       "inline-flex items-center gap-1 rounded-full font-medium",
       size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-1.5 py-0.5 text-[10px]',
       value === 'today' && 'bg-primary text-white',
-      value === 'anytime' && 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
       value === 'scheduled' && 'bg-[var(--color-success)]/10 text-[var(--color-success)]',
     )}>
       {getBadgeIcon()}

@@ -329,6 +329,7 @@ export default function TodayPage() {
             onTaskMove={handleKanbanTaskMove}
             onTaskClick={setSelectedTask}
             onQuickAdd={handleKanbanQuickAdd}
+            hideToday
           />
         </div>
       ) : (

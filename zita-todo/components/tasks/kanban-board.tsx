@@ -21,6 +21,8 @@ interface KanbanBoardProps {
   onTaskMove: (taskId: string, newStatus: TaskStatus) => void
   onTaskClick: (task: TaskWithRelations) => void
   onQuickAdd: (title: string, status: TaskStatus) => void
+  /** Hide "Dnes" badge (use on Today page where it's redundant) */
+  hideToday?: boolean
 }
 
 export function KanbanBoard({
@@ -28,6 +30,7 @@ export function KanbanBoard({
   onTaskMove,
   onTaskClick,
   onQuickAdd,
+  hideToday,
 }: KanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null)
   const { dropTarget, handleDrop: handleSidebarDrop, setDropTarget } = useSidebarDrop()
@@ -111,6 +114,7 @@ export function KanbanBoard({
             tasks={getTasksByStatus(column.id)}
             onTaskClick={onTaskClick}
             onQuickAdd={(title) => onQuickAdd(title, column.id)}
+            hideToday={hideToday}
           />
         ))}
       </div>
@@ -121,6 +125,7 @@ export function KanbanBoard({
             task={activeTask}
             onClick={() => {}}
             isDragging
+            hideToday={hideToday}
           />
         )}
       </DragOverlay>
