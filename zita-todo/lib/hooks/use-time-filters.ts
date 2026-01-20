@@ -104,20 +104,35 @@ export function useTimeFilters() {
     }
   }, [searchParams])
 
-  // Detect current period
+  // Get period from URL or detect from dates
   const period: TimePeriod = useMemo(() => {
+    const urlPeriod = searchParams.get('period') as TimePeriod | null
+    if (urlPeriod && ['today', 'week', 'month', 'year', 'custom'].includes(urlPeriod)) {
+      return urlPeriod
+    }
     return detectPeriod(filters.from, filters.to)
-  }, [filters.from, filters.to])
+  }, [searchParams, filters.from, filters.to])
 
-  // Update filters in URL
-  const setFilters = useCallback(
-    (newFilters: Partial<TimeFilters>) => {
+  // Update filters in URL (internal, without period)
+  const updateUrlWithFilters = useCallback(
+    (newFilters: Partial<TimeFilters>, newPeriod?: TimePeriod) => {
       const params = new URLSearchParams()
 
       const merged = { ...filters, ...newFilters }
 
       params.set('from', merged.from)
       params.set('to', merged.to)
+
+      // Always include period in URL to differentiate between same date ranges
+      if (newPeriod) {
+        params.set('period', newPeriod)
+      } else {
+        // Preserve existing period if not changing
+        const existingPeriod = searchParams.get('period')
+        if (existingPeriod) {
+          params.set('period', existingPeriod)
+        }
+      }
 
       if (merged.onlyMine) {
         params.set('onlyMine', 'true')
@@ -134,22 +149,30 @@ export function useTimeFilters() {
 
       router.push(`${pathname}?${params.toString()}`)
     },
-    [filters, pathname, router]
+    [filters, pathname, router, searchParams]
+  )
+
+  // Update filters in URL (public API)
+  const setFilters = useCallback(
+    (newFilters: Partial<TimeFilters>) => {
+      updateUrlWithFilters(newFilters)
+    },
+    [updateUrlWithFilters]
   )
 
   // Set period (convenience method)
   const setPeriod = useCallback(
     (newPeriod: TimePeriod, customFrom?: string, customTo?: string) => {
       const range = getDateRange(newPeriod, customFrom, customTo)
-      setFilters({ from: range.from, to: range.to })
+      updateUrlWithFilters({ from: range.from, to: range.to }, newPeriod)
     },
-    [setFilters]
+    [updateUrlWithFilters]
   )
 
   // Clear all filters
   const clearFilters = useCallback(() => {
     const defaultRange = getDateRange('week')
-    router.push(`${pathname}?from=${defaultRange.from}&to=${defaultRange.to}`)
+    router.push(`${pathname}?from=${defaultRange.from}&to=${defaultRange.to}&period=week`)
   }, [pathname, router])
 
   // Check if any filters are active (besides default period)
