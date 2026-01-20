@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Layers, FolderKanban, Star, FolderPlus, Plus } from 'lucide-react'
+import { Layers, FolderKanban, Star, FolderPlus, Plus, PlusCircle } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { TaskList } from '@/components/tasks/task-list'
@@ -49,31 +49,52 @@ function ProjectSection({
   onQuickAdd,
 }: ProjectSectionProps) {
   const sortedTasks = sortTasksTodayFirst(tasks)
+  const quickAddRef = useRef<TaskQuickAddHandle>(null)
+
+  const handleQuickAdd = (taskData: TaskQuickAddData) => {
+    onQuickAdd(taskData.title, project.id)
+  }
 
   return (
     <div className="mb-6">
       {/* Project Header */}
-      <Link
-        href={`/projects/${project.id}`}
-        className="group flex items-center gap-2 mb-3 hover:opacity-80 transition-opacity"
-      >
-        <FolderKanban
-          className="h-4 w-4"
-          style={{ color: areaColor || 'var(--color-primary)' }}
-        />
-        <h3
-          className="font-bold text-[var(--text-primary)]"
-          style={{ color: areaColor || 'var(--text-primary)' }}
+      <div className="flex items-center gap-2 mb-3">
+        <Link
+          href={`/projects/${project.id}`}
+          className="group flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
-          {project.name}
-        </h3>
-        <span className="text-xs text-[var(--text-secondary)]">
-          ({tasks.length})
-        </span>
-      </Link>
+          <FolderKanban
+            className="h-4 w-4"
+            style={{ color: areaColor || 'var(--color-primary)' }}
+          />
+          <h3
+            className="font-bold text-[var(--text-primary)]"
+            style={{ color: areaColor || 'var(--text-primary)' }}
+          >
+            {project.name}
+          </h3>
+          <span className="text-xs text-[var(--text-secondary)]">
+            ({tasks.length})
+          </span>
+        </Link>
+        {/* Small add task button */}
+        <button
+          onClick={() => quickAddRef.current?.activate()}
+          className="p-1 rounded-full hover:bg-primary/10 text-primary transition-colors"
+          title="Pridať úlohu"
+        >
+          <PlusCircle className="h-5 w-5" />
+        </button>
+      </div>
 
       {/* Project Tasks */}
       <div className="border-l-2 pl-4 ml-2" style={{ borderColor: areaColor || 'var(--border-primary)' }}>
+        <TaskQuickAdd
+          ref={quickAddRef}
+          onAdd={handleQuickAdd}
+          variant="inline"
+          context={{ defaultProjectId: project.id }}
+        />
         <TaskList
           tasks={sortedTasks}
           onTaskComplete={onTaskComplete}
@@ -81,7 +102,7 @@ function ProjectSection({
           onTaskDelete={onTaskDelete}
           onQuickAdd={(title) => onQuickAdd(title, project.id)}
           emptyMessage="Žiadne úlohy v projekte"
-          showQuickAdd={true}
+          showQuickAdd={false}
           showTodayStar={true}
         />
       </div>
