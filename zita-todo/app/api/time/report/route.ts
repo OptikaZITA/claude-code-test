@@ -305,11 +305,6 @@ export async function GET(request: NextRequest): Promise<NextResponse<TimeReport
       byDayMap.set(e.date, current + e.durationSeconds)
     })
 
-    // DEBUG: Log sample entry dates and byDayMap
-    console.log('[DEBUG] Sample entry dates:', entries.slice(0, 3).map(e => ({ date: e.date, started: e.startedAt })))
-    console.log('[DEBUG] byDayMap entries:', Array.from(byDayMap.entries()).slice(0, 5))
-    console.log('[DEBUG] from/to:', { from, to })
-
     // Generate all dates in the range (avoid timezone issues by using local date parts)
     const allDates: string[] = []
     const [startYear, startMonth, startDay] = from.split('-').map(Number)
@@ -326,8 +321,6 @@ export async function GET(request: NextRequest): Promise<NextResponse<TimeReport
       allDates.push(`${year}-${month}-${day}`)
       currentDate.setDate(currentDate.getDate() + 1)
     }
-
-    console.log('[DEBUG] Generated allDates:', allDates.slice(0, 5), '... total:', allDates.length)
 
     // Create byDay array with all dates (0 for days without entries)
     const byDay: DayEntry[] = allDates.map(date => ({

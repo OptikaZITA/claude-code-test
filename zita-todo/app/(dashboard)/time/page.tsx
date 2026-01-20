@@ -154,14 +154,6 @@ function TimeDashboardContent() {
         {/* Summary cards */}
         {data && (
           <>
-            {/* DEBUG: Log data before passing to components */}
-            {console.log('=== DEBUG TimePage data ===', {
-              totalSeconds: data.totalSeconds,
-              entryCount: data.entryCount,
-              byDayLength: data.byDay?.length,
-              byDayFirst3: data.byDay?.slice(0, 3),
-              summaryLength: data.summary?.length,
-            })}
             <TimeDashboardSummary
               totalSeconds={data.totalSeconds}
               entryCount={data.entryCount}

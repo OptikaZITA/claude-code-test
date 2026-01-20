@@ -20,26 +20,36 @@ export type TimePeriod = 'today' | 'week' | 'month' | 'year' | 'custom'
 
 function getDateRange(period: TimePeriod, customFrom?: string, customTo?: string): { from: string; to: string } {
   const today = new Date()
+  // "to" is exclusive, so tomorrow = today's data included
+  const tomorrow = addDays(today, 1)
+  const tomorrowStr = format(tomorrow, 'yyyy-MM-dd')
 
   switch (period) {
     case 'today':
       const todayStr = format(today, 'yyyy-MM-dd')
-      return { from: todayStr, to: format(addDays(today, 1), 'yyyy-MM-dd') }
-    case 'week':
+      return { from: todayStr, to: tomorrowStr }
+    case 'week': {
+      const weekStart = startOfWeek(today, { locale: sk, weekStartsOn: 1 })
+      // End at tomorrow (today included), not end of week (which might be in the future)
       return {
-        from: format(startOfWeek(today, { locale: sk, weekStartsOn: 1 }), 'yyyy-MM-dd'),
-        to: format(addDays(endOfWeek(today, { locale: sk, weekStartsOn: 1 }), 1), 'yyyy-MM-dd'),
+        from: format(weekStart, 'yyyy-MM-dd'),
+        to: tomorrowStr,
       }
-    case 'month':
+    }
+    case 'month': {
+      // Start of month to tomorrow (today included)
       return {
         from: format(startOfMonth(today), 'yyyy-MM-dd'),
-        to: format(addDays(endOfMonth(today), 1), 'yyyy-MM-dd'),
+        to: tomorrowStr,
       }
-    case 'year':
+    }
+    case 'year': {
+      // Start of year to tomorrow (today included)
       return {
         from: format(startOfYear(today), 'yyyy-MM-dd'),
-        to: format(addDays(endOfYear(today), 1), 'yyyy-MM-dd'),
+        to: tomorrowStr,
       }
+    }
     case 'custom':
       if (customFrom && customTo) {
         return { from: customFrom, to: customTo }
@@ -47,12 +57,12 @@ function getDateRange(period: TimePeriod, customFrom?: string, customTo?: string
       // Default to this week
       return {
         from: format(startOfWeek(today, { locale: sk, weekStartsOn: 1 }), 'yyyy-MM-dd'),
-        to: format(addDays(endOfWeek(today, { locale: sk, weekStartsOn: 1 }), 1), 'yyyy-MM-dd'),
+        to: tomorrowStr,
       }
     default:
       return {
         from: format(startOfWeek(today, { locale: sk, weekStartsOn: 1 }), 'yyyy-MM-dd'),
-        to: format(addDays(endOfWeek(today, { locale: sk, weekStartsOn: 1 }), 1), 'yyyy-MM-dd'),
+        to: tomorrowStr,
       }
   }
 }
@@ -62,16 +72,14 @@ function detectPeriod(from: string, to: string): TimePeriod {
   const todayStr = format(today, 'yyyy-MM-dd')
   const tomorrowStr = format(addDays(today, 1), 'yyyy-MM-dd')
   const weekStart = format(startOfWeek(today, { locale: sk, weekStartsOn: 1 }), 'yyyy-MM-dd')
-  const weekEnd = format(addDays(endOfWeek(today, { locale: sk, weekStartsOn: 1 }), 1), 'yyyy-MM-dd')
   const monthStart = format(startOfMonth(today), 'yyyy-MM-dd')
-  const monthEnd = format(addDays(endOfMonth(today), 1), 'yyyy-MM-dd')
   const yearStart = format(startOfYear(today), 'yyyy-MM-dd')
-  const yearEnd = format(addDays(endOfYear(today), 1), 'yyyy-MM-dd')
 
+  // All periods now end at tomorrow (today included)
   if (from === todayStr && to === tomorrowStr) return 'today'
-  if (from === weekStart && to === weekEnd) return 'week'
-  if (from === monthStart && to === monthEnd) return 'month'
-  if (from === yearStart && to === yearEnd) return 'year'
+  if (from === weekStart && to === tomorrowStr) return 'week'
+  if (from === monthStart && to === tomorrowStr) return 'month'
+  if (from === yearStart && to === tomorrowStr) return 'year'
   return 'custom'
 }
 

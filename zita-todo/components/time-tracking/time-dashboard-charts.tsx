@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { ChevronDown, Users, Building2, FolderKanban, BarChart3, PieChartIcon } from 'lucide-react'
-import { format, parseISO, isWeekend } from 'date-fns'
+import { format, parseISO, isWeekend, getWeek, getMonth } from 'date-fns'
 import { sk } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
 import { TimePieChart } from './time-pie-chart'
@@ -41,12 +41,74 @@ function formatDuration(seconds: number): string {
   return `${hours}h ${minutes}m`
 }
 
-function DayChart({ byDay }: { byDay: DayEntry[] }) {
-  // DEBUG: Log incoming data
-  console.log('[DEBUG DayChart] byDay:', byDay)
-  console.log('[DEBUG DayChart] byDay length:', byDay.length)
-  console.log('[DEBUG DayChart] sample values:', byDay.slice(0, 3).map(d => ({ date: d.date, seconds: d.totalSeconds })))
+// Aggregate data by week
+interface AggregatedEntry {
+  key: string
+  label: string
+  totalSeconds: number
+  tooltip: string
+}
 
+function aggregateByWeek(byDay: DayEntry[]): AggregatedEntry[] {
+  const weekMap = new Map<number, { totalSeconds: number; days: string[] }>()
+
+  byDay.forEach(day => {
+    const date = parseISO(day.date)
+    const weekNum = getWeek(date, { locale: sk, weekStartsOn: 1 })
+
+    const existing = weekMap.get(weekNum) || { totalSeconds: 0, days: [] }
+    existing.totalSeconds += day.totalSeconds
+    existing.days.push(format(date, 'd.M.', { locale: sk }))
+    weekMap.set(weekNum, existing)
+  })
+
+  return Array.from(weekMap.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([weekNum, data]) => ({
+      key: `week-${weekNum}`,
+      label: `T${weekNum}`,
+      totalSeconds: data.totalSeconds,
+      tooltip: `Týždeň ${weekNum} (${data.days[0]} - ${data.days[data.days.length - 1]}): ${formatDuration(data.totalSeconds)}`,
+    }))
+}
+
+// Aggregate data by month
+function aggregateByMonth(byDay: DayEntry[]): AggregatedEntry[] {
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Máj', 'Jún', 'Júl', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
+  const monthMap = new Map<string, { totalSeconds: number; monthIdx: number }>()
+
+  byDay.forEach(day => {
+    const date = parseISO(day.date)
+    const monthIdx = getMonth(date)
+    const year = date.getFullYear()
+    const key = `${year}-${monthIdx}`
+
+    const existing = monthMap.get(key) || { totalSeconds: 0, monthIdx }
+    existing.totalSeconds += day.totalSeconds
+    monthMap.set(key, existing)
+  })
+
+  return Array.from(monthMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, data]) => ({
+      key,
+      label: monthNames[data.monthIdx],
+      totalSeconds: data.totalSeconds,
+      tooltip: `${monthNames[data.monthIdx]}: ${formatDuration(data.totalSeconds)}`,
+    }))
+}
+
+// Determine display mode based on day count
+type DisplayMode = 'dayWithName' | 'dateOnly' | 'weekly' | 'monthly'
+
+function getDisplayMode(dayCount: number): DisplayMode {
+  if (dayCount <= 7) return 'dayWithName'
+  if (dayCount <= 14) return 'dateOnly'
+  if (dayCount <= 31) return 'weekly'
+  return 'monthly'
+}
+
+function DayChart({ byDay }: { byDay: DayEntry[] }) {
   if (byDay.length === 0) {
     return (
       <div className="flex items-center justify-center h-40 text-[var(--text-secondary)]">
@@ -55,49 +117,78 @@ function DayChart({ byDay }: { byDay: DayEntry[] }) {
     )
   }
 
-  const maxSeconds = Math.max(...byDay.map(d => d.totalSeconds), 1)
-  console.log('[DEBUG DayChart] maxSeconds:', maxSeconds)
+  const displayMode = getDisplayMode(byDay.length)
+
+  // For weekly/monthly views, aggregate the data
+  let chartData: AggregatedEntry[]
+
+  if (displayMode === 'weekly') {
+    chartData = aggregateByWeek(byDay)
+  } else if (displayMode === 'monthly') {
+    chartData = aggregateByMonth(byDay)
+  } else {
+    // Daily view - convert to same format
+    chartData = byDay.map(day => {
+      const date = parseISO(day.date)
+      return {
+        key: day.date,
+        label: displayMode === 'dayWithName'
+          ? format(date, 'EE d.M.', { locale: sk })
+          : format(date, 'd.M.', { locale: sk }),
+        totalSeconds: day.totalSeconds,
+        tooltip: `${format(date, 'EEEE d.M.', { locale: sk })}: ${formatDuration(day.totalSeconds)}`,
+      }
+    })
+  }
+
+  const maxSeconds = Math.max(...chartData.map(d => d.totalSeconds), 1)
 
   return (
     <div className="space-y-2">
       <div className="flex items-end gap-1 h-40">
-        {byDay.map(day => {
-          const height = (day.totalSeconds / maxSeconds) * 100
-          const date = parseISO(day.date)
-          const isWeekendDay = isWeekend(date)
+        {chartData.map((item, index) => {
+          const height = (item.totalSeconds / maxSeconds) * 100
+          // For daily view, check if weekend
+          const isWeekendDay = displayMode !== 'weekly' && displayMode !== 'monthly' && byDay[index]
+            ? isWeekend(parseISO(byDay[index].date))
+            : false
 
           return (
             <div
-              key={day.date}
-              className="flex-1 flex flex-col justify-end h-full"
+              key={item.key}
+              className="flex-1 flex flex-col justify-end h-full group relative"
             >
               <div
                 className={cn(
-                  'w-full rounded-t transition-all',
+                  'w-full rounded-t transition-all cursor-pointer hover:opacity-80',
                   isWeekendDay
                     ? 'bg-[var(--color-warning)]/60'
                     : 'bg-[var(--color-primary)]'
                 )}
                 style={{ height: `${Math.max(height, 2)}%` }}
-                title={`${format(date, 'd.M.', { locale: sk })}: ${formatDuration(day.totalSeconds)}`}
+                title={item.tooltip}
               />
+              {/* Hover tooltip */}
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded shadow-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                {item.tooltip}
+              </div>
             </div>
           )
         })}
       </div>
 
       <div className="flex gap-1">
-        {byDay.map(day => {
-          const date = parseISO(day.date)
-          return (
-            <div
-              key={day.date}
-              className="flex-1 text-center text-[10px] text-[var(--text-secondary)] truncate"
-            >
-              {format(date, 'EE', { locale: sk })}
-            </div>
-          )
-        })}
+        {chartData.map(item => (
+          <div
+            key={`label-${item.key}`}
+            className={cn(
+              'flex-1 text-center text-[var(--text-secondary)] truncate',
+              chartData.length > 14 ? 'text-[8px]' : 'text-[10px]'
+            )}
+          >
+            {item.label}
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -264,13 +355,6 @@ export function TimeDashboardCharts({
   onGroupByChange,
   onDrilldown,
 }: TimeDashboardChartsProps) {
-  // DEBUG: Log at parent level
-  console.log('=== DEBUG TimeDashboardCharts ===')
-  console.log('byDay received:', byDay)
-  console.log('byDay.length:', byDay?.length)
-  console.log('byDay first 3:', byDay?.slice(0, 3))
-  console.log('summary.length:', summary?.length)
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Time by day chart */}
