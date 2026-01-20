@@ -196,9 +196,14 @@ export async function GET(request: NextRequest): Promise<NextResponse<TimeReport
         ? '🔒 Súkromná úloha'
         : (taskData?.title || '')
 
+      // Extract date - handle both ISO format (with T) and Postgres format (with space)
+      const dateStr = e.started_at.includes('T')
+        ? e.started_at.split('T')[0]
+        : e.started_at.split(' ')[0]
+
       return {
         id: e.id,
-        date: e.started_at.split('T')[0],
+        date: dateStr,
         startedAt: e.started_at,  // Full timestamp for time display
         endedAt: e.ended_at,  // Full timestamp for end time
         userId: e.user_id,
@@ -291,15 +296,44 @@ export async function GET(request: NextRequest): Promise<NextResponse<TimeReport
     // Sort summary by totalSeconds descending
     summary.sort((a, b) => b.totalSeconds - a.totalSeconds)
 
-    // Calculate byDay
+    // Calculate byDay - include ALL days in the range, even with 0 hours
     const byDayMap = new Map<string, number>()
+
+    // First, populate with actual entry data
     entries.forEach(e => {
       const current = byDayMap.get(e.date) || 0
       byDayMap.set(e.date, current + e.durationSeconds)
     })
-    const byDay: DayEntry[] = Array.from(byDayMap.entries())
-      .map(([date, totalSeconds]) => ({ date, totalSeconds }))
-      .sort((a, b) => a.date.localeCompare(b.date))
+
+    // DEBUG: Log sample entry dates and byDayMap
+    console.log('[DEBUG] Sample entry dates:', entries.slice(0, 3).map(e => ({ date: e.date, started: e.startedAt })))
+    console.log('[DEBUG] byDayMap entries:', Array.from(byDayMap.entries()).slice(0, 5))
+    console.log('[DEBUG] from/to:', { from, to })
+
+    // Generate all dates in the range (avoid timezone issues by using local date parts)
+    const allDates: string[] = []
+    const [startYear, startMonth, startDay] = from.split('-').map(Number)
+    const [endYear, endMonth, endDay] = to.split('-').map(Number)
+
+    // Use local dates to avoid UTC conversion issues
+    const currentDate = new Date(startYear, startMonth - 1, startDay)
+    const endDate = new Date(endYear, endMonth - 1, endDay)
+
+    while (currentDate < endDate) {
+      const year = currentDate.getFullYear()
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0')
+      const day = String(currentDate.getDate()).padStart(2, '0')
+      allDates.push(`${year}-${month}-${day}`)
+      currentDate.setDate(currentDate.getDate() + 1)
+    }
+
+    console.log('[DEBUG] Generated allDates:', allDates.slice(0, 5), '... total:', allDates.length)
+
+    // Create byDay array with all dates (0 for days without entries)
+    const byDay: DayEntry[] = allDates.map(date => ({
+      date,
+      totalSeconds: byDayMap.get(date) || 0,
+    }))
 
     return NextResponse.json({
       totalSeconds,

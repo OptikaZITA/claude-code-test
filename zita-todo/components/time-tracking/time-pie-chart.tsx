@@ -97,11 +97,73 @@ function formatCenterName(name: string): { text: string; isLong: boolean } {
   return { text: name.substring(0, 18) + '…', isLong: true }
 }
 
+// Configuration for grouping small segments
+const TOP_N = 6 // Maximum number of segments before grouping
+const MIN_PERCENT_THRESHOLD = 3 // Minimum percentage to show as separate segment
+
+// Group small segments into "Ostatné"
+function groupSmallSegments(
+  data: ChartDataItem[],
+  totalSeconds: number
+): ChartDataItem[] {
+  if (data.length <= TOP_N) {
+    return data
+  }
+
+  // Sort by value descending
+  const sorted = [...data].sort((a, b) => b.value - a.value)
+
+  // Keep items that are either in top N or above threshold
+  const threshold = totalSeconds * (MIN_PERCENT_THRESHOLD / 100)
+  const significantItems: ChartDataItem[] = []
+  const smallItems: ChartDataItem[] = []
+
+  sorted.forEach((item, index) => {
+    // Keep if in top (N-1) to leave room for "Ostatné", OR if above threshold
+    if (index < TOP_N - 1 || item.value >= threshold) {
+      significantItems.push(item)
+    } else {
+      smallItems.push(item)
+    }
+  })
+
+  // If we have small items, group them
+  if (smallItems.length > 0) {
+    const othersValue = smallItems.reduce((sum, item) => sum + item.value, 0)
+    const othersPercent = totalSeconds > 0
+      ? Math.round((othersValue / totalSeconds) * 1000) / 10
+      : 0
+
+    // Limit significant items to TOP_N - 1 to make room for "Ostatné"
+    const finalSignificant = significantItems.slice(0, TOP_N - 1)
+
+    // Add remaining significant items to "Ostatné"
+    const extraItems = significantItems.slice(TOP_N - 1)
+    const extraValue = extraItems.reduce((sum, item) => sum + item.value, 0)
+
+    return [
+      ...finalSignificant,
+      {
+        id: 'others',
+        name: `Ostatné (${smallItems.length + extraItems.length})`,
+        value: othersValue + extraValue,
+        percent: othersPercent + extraItems.reduce((sum, item) => sum + item.percent, 0),
+        color: '#8E8E93', // Gray for "others"
+      },
+    ]
+  }
+
+  return significantItems
+}
+
 export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChartProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
+  // Group small segments into "Ostatné" for better readability
+  const groupedData = groupSmallSegments(data, totalSeconds)
+
   // Assign colors if not provided
-  const chartData = data.map((item, index) => ({
+  const chartData = groupedData.map((item, index) => ({
     ...item,
     color: item.color || CHART_COLORS[index % CHART_COLORS.length],
   }))
@@ -133,7 +195,7 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
             paddingAngle={2}
             dataKey="value"
             nameKey="name"
-            onClick={(data) => onSegmentClick?.(data.id)}
+            onClick={(data) => data.id !== 'others' && onSegmentClick?.(data.id)}
             onMouseOver={(_, index) => setActiveIndex(index)}
             style={{ cursor: onSegmentClick ? 'pointer' : 'default', outline: 'none' }}
           >

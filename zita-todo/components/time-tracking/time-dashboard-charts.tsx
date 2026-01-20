@@ -42,6 +42,11 @@ function formatDuration(seconds: number): string {
 }
 
 function DayChart({ byDay }: { byDay: DayEntry[] }) {
+  // DEBUG: Log incoming data
+  console.log('[DEBUG DayChart] byDay:', byDay)
+  console.log('[DEBUG DayChart] byDay length:', byDay.length)
+  console.log('[DEBUG DayChart] sample values:', byDay.slice(0, 3).map(d => ({ date: d.date, seconds: d.totalSeconds })))
+
   if (byDay.length === 0) {
     return (
       <div className="flex items-center justify-center h-40 text-[var(--text-secondary)]">
@@ -51,6 +56,7 @@ function DayChart({ byDay }: { byDay: DayEntry[] }) {
   }
 
   const maxSeconds = Math.max(...byDay.map(d => d.totalSeconds), 1)
+  console.log('[DEBUG DayChart] maxSeconds:', maxSeconds)
 
   return (
     <div className="space-y-2">
@@ -63,7 +69,7 @@ function DayChart({ byDay }: { byDay: DayEntry[] }) {
           return (
             <div
               key={day.date}
-              className="flex-1 flex flex-col items-center gap-1"
+              className="flex-1 flex flex-col justify-end h-full"
             >
               <div
                 className={cn(
@@ -258,6 +264,13 @@ export function TimeDashboardCharts({
   onGroupByChange,
   onDrilldown,
 }: TimeDashboardChartsProps) {
+  // DEBUG: Log at parent level
+  console.log('=== DEBUG TimeDashboardCharts ===')
+  console.log('byDay received:', byDay)
+  console.log('byDay.length:', byDay?.length)
+  console.log('byDay first 3:', byDay?.slice(0, 3))
+  console.log('summary.length:', summary?.length)
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Time by day chart */}
