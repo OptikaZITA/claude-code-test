@@ -85,10 +85,12 @@ export async function POST(request: NextRequest) {
 
     const userId = authUser.user.id
 
-    // 3. Create users table entry
+    // 3. Create/Update users table entry
+    // Note: A trigger (handle_new_user) may have already created a basic record,
+    // so we use UPSERT to update it with full invitation data
     const { error: userError } = await supabase
       .from('users')
-      .insert({
+      .upsert({
         id: userId,
         email: invitation.email,
         full_name: invitation.full_name || null,
@@ -99,6 +101,8 @@ export async function POST(request: NextRequest) {
         status: 'active',
         invited_by: invitation.invited_by,
         invited_at: invitation.created_at,
+      }, {
+        onConflict: 'id',
       })
 
     if (userError) {
@@ -110,9 +114,7 @@ export async function POST(request: NextRequest) {
 
       // Return more specific error message
       let errorMessage = 'Chyba pri vytváraní používateľského profilu'
-      if (userError.code === '23505') {
-        errorMessage = 'Používateľ s týmto emailom už existuje v systéme'
-      } else if (userError.code === '23503') {
+      if (userError.code === '23503') {
         errorMessage = 'Neplatná referencia na organizáciu alebo oddelenie'
       } else if (userError.message) {
         errorMessage = `Chyba: ${userError.message}`
