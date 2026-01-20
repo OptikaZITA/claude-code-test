@@ -70,9 +70,7 @@ export function GlobalSearch() {
   const handleSelect = useCallback((result: FlatResult) => {
     switch (result.type) {
       case 'task':
-        // For now, navigate to today page where task might be
-        // In future: open task detail panel
-        window.dispatchEvent(new CustomEvent('search:select-task', { detail: result.item }))
+        router.push(`/tasks/${result.id}`)
         break
       case 'project':
         router.push(`/projects/${result.id}`)
