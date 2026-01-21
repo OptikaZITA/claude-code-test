@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Tag, FolderOpen, Layers, Flag, User, X, Trash2, Clock, Repeat, Lock, LockOpen } from 'lucide-react'
+import { Tag, FolderOpen, Layers, Flag, User, X, Trash2, Clock, Repeat, Lock, LockOpen, Calendar } from 'lucide-react'
+import { format, formatDistanceToNow } from 'date-fns'
+import { sk } from 'date-fns/locale'
 import { TaskWithRelations, RecurrenceRule, TaskPriority } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar } from '@/components/ui/avatar'
@@ -347,6 +349,20 @@ export function TaskItemExpanded({
           <TagChipList tags={task.tags.slice(0, 3)} size="sm" />
         )}
       </div>
+
+      {/* Row 5: Creation date */}
+      {task.created_at && (
+        <div className="mt-2 pl-8 flex items-center justify-end text-[11px] text-muted-foreground/70">
+          <Calendar className="h-3 w-3 mr-1" />
+          <span>
+            Vytvorené: {format(new Date(task.created_at), 'd.M.yyyy', { locale: sk })}
+            {' '}
+            <span className="opacity-70">
+              ({formatDistanceToNow(new Date(task.created_at), { locale: sk, addSuffix: true })})
+            </span>
+          </span>
+        </div>
+      )}
 
       {/* Recurrence Modal */}
       <RecurrenceConfigModal
