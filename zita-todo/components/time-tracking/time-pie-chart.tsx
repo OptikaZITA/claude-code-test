@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts'
-import { Clock } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
+import { Clock, Check } from 'lucide-react'
+import { cn } from '@/lib/utils/cn'
 
 // ZITA TODO color palette
 const CHART_COLORS = [
@@ -44,42 +45,93 @@ function formatDuration(seconds: number): string {
 }
 
 interface CustomLegendProps {
-  payload?: Array<{
-    value: string
-    color: string
-    payload: ChartDataItem
-  }>
-  totalSeconds: number
+  items: ChartDataItem[]
+  visibleItems: Set<string>
+  visibleTotalSeconds: number
+  onToggle: (id: string) => void
 }
 
-function CustomLegend({ payload, totalSeconds }: CustomLegendProps) {
-  if (!payload) return null
+function CustomLegend({ items, visibleItems, visibleTotalSeconds, onToggle }: CustomLegendProps) {
+  if (!items || items.length === 0) return null
 
   return (
-    <div className="flex flex-col gap-2 mt-4">
-      {payload.map((entry, index) => {
-        const percent = totalSeconds > 0
-          ? ((entry.payload.value / totalSeconds) * 100).toFixed(0)
-          : '0'
+    <div className="flex flex-col gap-1 mt-4">
+      {items.map((item, index) => {
+        const isVisible = visibleItems.has(item.id)
+        const percent = isVisible && visibleTotalSeconds > 0
+          ? ((item.value / visibleTotalSeconds) * 100).toFixed(0)
+          : null
 
         return (
-          <div key={`legend-${index}`} className="flex items-center gap-2 text-sm">
+          <button
+            key={`legend-${index}`}
+            onClick={() => onToggle(item.id)}
+            className={cn(
+              'flex items-center gap-2 text-sm py-1.5 px-2 -mx-2 rounded-lg transition-colors',
+              'hover:bg-[var(--bg-tertiary)]',
+              !isVisible && 'opacity-60'
+            )}
+          >
+            {/* Checkbox indicator */}
             <div
-              className="w-3 h-3 rounded-full shrink-0"
-              style={{ backgroundColor: entry.color }}
+              className={cn(
+                'w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors',
+                isVisible
+                  ? 'border-transparent'
+                  : 'border-[var(--border-primary)] bg-transparent'
+              )}
+              style={{ backgroundColor: isVisible ? item.color : 'transparent' }}
+            >
+              {isVisible && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+            </div>
+
+            {/* Color dot */}
+            <div
+              className={cn(
+                'w-3 h-3 rounded-full shrink-0 transition-colors',
+                !isVisible && 'bg-[var(--text-secondary)]'
+              )}
+              style={{ backgroundColor: isVisible ? item.color : undefined }}
             />
-            <span className="text-[var(--text-primary)] truncate flex-1">
-              {entry.value}
+
+            {/* Name */}
+            <span className={cn(
+              'truncate flex-1 text-left transition-colors',
+              isVisible ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'
+            )}>
+              {item.name}
             </span>
+
+            {/* Duration */}
             <span className="text-[var(--text-secondary)] whitespace-nowrap">
-              {formatDuration(entry.payload.value)}
+              {formatDuration(item.value)}
             </span>
-            <span className="text-[var(--text-secondary)] w-10 text-right">
-              {percent}%
+
+            {/* Percentage - only show for visible items */}
+            <span className={cn(
+              'w-10 text-right whitespace-nowrap',
+              isVisible ? 'text-[var(--text-secondary)]' : 'text-[var(--text-secondary)]/50'
+            )}>
+              {percent !== null ? `${percent}%` : '-'}
             </span>
-          </div>
+          </button>
         )
       })}
+
+      {/* Total row */}
+      <div className="flex items-center gap-2 text-sm py-1.5 px-2 -mx-2 border-t border-[var(--border-primary)] mt-2 pt-3">
+        <div className="w-4 h-4 shrink-0" /> {/* Spacer for checkbox */}
+        <div className="w-3 h-3 shrink-0" /> {/* Spacer for dot */}
+        <span className="truncate flex-1 text-left font-medium text-[var(--text-primary)]">
+          Celkom v grafe
+        </span>
+        <span className="text-[var(--text-primary)] font-medium whitespace-nowrap">
+          {formatDuration(visibleTotalSeconds)}
+        </span>
+        <span className="w-10 text-right text-[var(--text-secondary)]">
+          100%
+        </span>
+      </div>
     </div>
   )
 }
@@ -159,17 +211,52 @@ function groupSmallSegments(
 export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChartProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
+  // State for visible items (toggle functionality)
+  const [visibleItems, setVisibleItems] = useState<Set<string>>(() => new Set(data.map(item => item.id)))
+
+  // Reset visible items when data changes (e.g., when groupBy changes)
+  useEffect(() => {
+    setVisibleItems(new Set(data.map(item => item.id)))
+  }, [data.map(d => d.id).join(',')])
+
+  // Toggle item visibility
+  const toggleItem = (itemId: string) => {
+    setVisibleItems(prev => {
+      const next = new Set(prev)
+      if (next.has(itemId)) {
+        // Don't allow unchecking if it's the last visible item
+        if (next.size <= 1) return prev
+        next.delete(itemId)
+      } else {
+        next.add(itemId)
+      }
+      return next
+    })
+  }
+
   // Group small segments into "Ostatné" for better readability
   const groupedData = groupSmallSegments(data, totalSeconds)
 
   // Assign colors if not provided
-  const chartData = groupedData.map((item, index) => ({
+  const allChartData = useMemo(() => groupedData.map((item, index) => ({
     ...item,
     color: item.color || CHART_COLORS[index % CHART_COLORS.length],
-  }))
+  })), [groupedData])
 
-  // Get active segment from index
-  const activeSegment = activeIndex !== null ? chartData[activeIndex] : null
+  // Filter to only visible items for the pie chart
+  const visibleChartData = useMemo(() =>
+    allChartData.filter(item => visibleItems.has(item.id)),
+    [allChartData, visibleItems]
+  )
+
+  // Calculate total for visible items only
+  const visibleTotalSeconds = useMemo(() =>
+    visibleChartData.reduce((sum, item) => sum + item.value, 0),
+    [visibleChartData]
+  )
+
+  // Get active segment from index (within visible data)
+  const activeSegment = activeIndex !== null ? visibleChartData[activeIndex] : null
 
   // Empty state
   if (data.length === 0 || totalSeconds === 0) {
@@ -182,12 +269,28 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
     )
   }
 
+  // No visible items state
+  if (visibleChartData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[300px] text-[var(--text-secondary)]">
+        <Clock className="h-12 w-12 mb-4 opacity-50" />
+        <p>Vyberte aspoň jednu položku</p>
+        <CustomLegend
+          items={allChartData}
+          visibleItems={visibleItems}
+          visibleTotalSeconds={0}
+          onToggle={toggleItem}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="relative" onMouseLeave={() => setActiveIndex(null)}>
       <ResponsiveContainer width="100%" height={300}>
         <PieChart onMouseLeave={() => setActiveIndex(null)}>
           <Pie
-            data={chartData}
+            data={visibleChartData}
             cx="50%"
             cy="50%"
             innerRadius={60}
@@ -199,7 +302,7 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
             onMouseOver={(_, index) => setActiveIndex(index)}
             style={{ cursor: onSegmentClick ? 'pointer' : 'default', outline: 'none' }}
           >
-            {chartData.map((entry, index) => (
+            {visibleChartData.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
                 fill={entry.color}
@@ -213,19 +316,18 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
               />
             ))}
           </Pie>
-          <Legend
-            content={<CustomLegend totalSeconds={totalSeconds} />}
-            verticalAlign="bottom"
-          />
         </PieChart>
       </ResponsiveContainer>
 
-      {/* Central value - shows hovered segment or total */}
+      {/* Central value - shows hovered segment or total of VISIBLE items */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ height: 300 }}>
         <div className="text-center -mt-16 transition-all duration-150">
           {activeSegment ? (
             (() => {
               const { text, isLong } = formatCenterName(activeSegment.name)
+              const segmentPercent = visibleTotalSeconds > 0
+                ? ((activeSegment.value / visibleTotalSeconds) * 100).toFixed(1)
+                : '0'
               return (
                 <>
                   <div
@@ -238,7 +340,7 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
                     {formatDuration(activeSegment.value)}
                   </div>
                   <div className="text-sm text-[var(--text-secondary)]">
-                    {totalSeconds > 0 ? ((activeSegment.value / totalSeconds) * 100).toFixed(1) : '0'}%
+                    {segmentPercent}%
                   </div>
                 </>
               )
@@ -246,7 +348,7 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
           ) : (
             <>
               <div className="text-2xl font-bold text-[var(--text-primary)]">
-                {formatDuration(totalSeconds)}
+                {formatDuration(visibleTotalSeconds)}
               </div>
               <div className="text-sm text-[var(--text-secondary)]">
                 celkovo
@@ -254,6 +356,16 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
             </>
           )}
         </div>
+      </div>
+
+      {/* Custom Legend with toggle functionality */}
+      <div className="mt-4">
+        <CustomLegend
+          items={allChartData}
+          visibleItems={visibleItems}
+          visibleTotalSeconds={visibleTotalSeconds}
+          onToggle={toggleItem}
+        />
       </div>
     </div>
   )
