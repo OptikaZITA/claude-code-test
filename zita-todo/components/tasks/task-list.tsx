@@ -71,6 +71,7 @@ export function TaskList({
     handleTaskClick: handleMultiSelectClick,
     setCurrentTasks,
     selectAll,
+    selectTask,
     clearSelection,
     hasSelection,
   } = useMultiSelectContext()
@@ -104,6 +105,11 @@ export function TaskList({
   const handleModifierClick = useCallback((taskId: string, event: React.MouseEvent) => {
     handleMultiSelectClick(taskId, event)
   }, [handleMultiSelectClick])
+
+  // Handle single click selection (Things 3 style - selects one task, replaces previous selection)
+  const handleSelect = useCallback((taskId: string) => {
+    selectTask(taskId)
+  }, [selectTask])
 
   // Sensors for drag and drop
   const sensors = useSensors(
@@ -249,6 +255,7 @@ export function TaskList({
           showTodayStar={showTodayStar}
           isSelected={taskIsSelected}
           onModifierClick={(e) => handleModifierClick(task.id, e)}
+          onSelect={() => handleSelect(task.id)}
         />
       )
     }
@@ -272,6 +279,7 @@ export function TaskList({
         showTodayStar={showTodayStar}
         isSelected={taskIsSelected}
         onModifierClick={(e) => handleModifierClick(task.id, e)}
+        onSelect={() => handleSelect(task.id)}
       />
     )
 

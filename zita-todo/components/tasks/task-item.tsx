@@ -34,6 +34,8 @@ interface TaskItemProps {
   isSelected?: boolean
   /** Callback for modifier key clicks (shift/cmd/ctrl) */
   onModifierClick?: (event: React.MouseEvent) => void
+  /** Callback for single click selection (Things 3 style) */
+  onSelect?: () => void
 }
 
 // Priority flag colors: red (high), yellow (low)
@@ -83,6 +85,7 @@ export function TaskItem({
   isNew = false,
   isSelected = false,
   onModifierClick,
+  onSelect,
 }: TaskItemProps) {
   const isCompleted = task.status === 'done'
   const isMobile = useIsMobile()
@@ -108,13 +111,18 @@ export function TaskItem({
       return
     }
 
-    if (enableInlineEdit && isMobile) {
-      // Single click on mobile expands
-      onExpand?.()
+    if (isMobile) {
+      // Single click on mobile expands (keeps existing behavior)
+      if (enableInlineEdit) {
+        onExpand?.()
+      } else {
+        onClick?.()
+      }
     } else {
-      onClick?.()
+      // Single click on desktop selects (Things 3 style)
+      onSelect?.()
     }
-  }, [enableInlineEdit, isMobile, onExpand, onClick, swipeOffset, onModifierClick])
+  }, [enableInlineEdit, isMobile, onExpand, onClick, swipeOffset, onModifierClick, onSelect])
 
   const handleDoubleClick = useCallback(() => {
     if (enableInlineEdit && !isMobile) {

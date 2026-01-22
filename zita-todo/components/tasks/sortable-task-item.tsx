@@ -27,6 +27,8 @@ interface SortableTaskItemProps {
   isSelected?: boolean
   /** Callback for modifier key clicks (shift/cmd/ctrl) */
   onModifierClick?: (event: React.MouseEvent) => void
+  /** Callback for single click selection (Things 3 style) */
+  onSelect?: () => void
 }
 
 export function SortableTaskItem({
@@ -44,6 +46,7 @@ export function SortableTaskItem({
   showTodayStar = false,
   isSelected = false,
   onModifierClick,
+  onSelect,
 }: SortableTaskItemProps) {
   const { setDraggedTask } = useSidebarDrop()
 
@@ -90,6 +93,7 @@ export function SortableTaskItem({
         showTodayStar={showTodayStar}
         isSelected={isSelected}
         onModifierClick={onModifierClick}
+        onSelect={onSelect}
       />
     )
   }
@@ -119,6 +123,7 @@ export function SortableTaskItem({
         showTodayStar={showTodayStar}
         isSelected={isSelected}
         onModifierClick={onModifierClick}
+        onSelect={onSelect}
       />
     </div>
   )
