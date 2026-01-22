@@ -24,7 +24,7 @@ export interface TimeEntry {
 export interface SummaryItem {
   id: string
   label: string
-  type: 'user' | 'area' | 'project'
+  type: 'user' | 'area' | 'project' | 'tag'
   totalSeconds: number
   percent: number
 }
@@ -51,7 +51,7 @@ export interface TimeReportFilters {
   projectIds?: string[]
   tagIds?: string[]
   onlyMine?: boolean
-  groupBy?: 'user' | 'area' | 'project' | 'none'
+  groupBy?: 'user' | 'area' | 'project' | 'tag' | 'none'
 }
 
 export function useTimeReport(filters: TimeReportFilters) {

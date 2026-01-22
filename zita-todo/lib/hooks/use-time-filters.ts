@@ -13,7 +13,7 @@ export interface TimeFilters {
   userIds: string[]
   tagIds: string[]
   onlyMine: boolean
-  groupBy: 'user' | 'area' | 'project'
+  groupBy: 'user' | 'area' | 'project' | 'tag'
 }
 
 export type TimePeriod = 'today' | 'week' | 'month' | 'year' | 'custom'
@@ -100,7 +100,7 @@ export function useTimeFilters() {
       userIds: searchParams.getAll('userId'),
       tagIds: searchParams.getAll('tagId'),
       onlyMine: searchParams.get('onlyMine') === 'true',
-      groupBy: (searchParams.get('groupBy') as 'user' | 'area' | 'project') || 'user',
+      groupBy: (searchParams.get('groupBy') as 'user' | 'area' | 'project' | 'tag') || 'user',
     }
   }, [searchParams])
 

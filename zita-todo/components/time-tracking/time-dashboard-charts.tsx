@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Users, Building2, FolderKanban, BarChart3, PieChartIcon } from 'lucide-react'
+import { ChevronDown, Users, Building2, FolderKanban, BarChart3, PieChartIcon, Tag } from 'lucide-react'
 import { format, parseISO, isWeekend, getWeek, getMonth } from 'date-fns'
 import { sk } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
@@ -15,7 +15,7 @@ interface DayEntry {
 interface SummaryItem {
   id: string
   label: string
-  type: 'user' | 'area' | 'project'
+  type: 'user' | 'area' | 'project' | 'tag'
   totalSeconds: number
   percent: number
 }
@@ -23,8 +23,8 @@ interface SummaryItem {
 interface TimeDashboardChartsProps {
   byDay: DayEntry[]
   summary: SummaryItem[]
-  groupBy: 'user' | 'area' | 'project'
-  onGroupByChange: (groupBy: 'user' | 'area' | 'project') => void
+  groupBy: 'user' | 'area' | 'project' | 'tag'
+  onGroupByChange: (groupBy: 'user' | 'area' | 'project' | 'tag') => void
   onDrilldown?: (id: string, type: string) => void
 }
 
@@ -201,8 +201,8 @@ function GroupByChart({
   onDrilldown,
 }: {
   summary: SummaryItem[]
-  groupBy: 'user' | 'area' | 'project'
-  onGroupByChange: (groupBy: 'user' | 'area' | 'project') => void
+  groupBy: 'user' | 'area' | 'project' | 'tag'
+  onGroupByChange: (groupBy: 'user' | 'area' | 'project' | 'tag') => void
   onDrilldown?: (id: string, type: string) => void
 }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -212,6 +212,7 @@ function GroupByChart({
     { value: 'user', label: 'Používateľ', icon: Users },
     { value: 'area', label: 'Oddelenie', icon: Building2 },
     { value: 'project', label: 'Projekt', icon: FolderKanban },
+    { value: 'tag', label: 'Tag', icon: Tag },
   ] as const
 
   const currentOption = groupByOptions.find(o => o.value === groupBy) || groupByOptions[0]

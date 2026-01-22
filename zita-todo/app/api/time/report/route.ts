@@ -23,7 +23,7 @@ interface TimeEntry {
 interface SummaryItem {
   id: string
   label: string
-  type: 'user' | 'area' | 'project'
+  type: 'user' | 'area' | 'project' | 'tag'
   totalSeconds: number
   percent: number
 }
@@ -285,6 +285,31 @@ export async function GET(request: NextRequest): Promise<NextResponse<TimeReport
           id: key,
           label: value.label,
           type: 'project',
+          totalSeconds: value.total,
+          percent: totalSeconds > 0 ? Math.round((value.total / totalSeconds) * 1000) / 10 : 0,
+        })
+      })
+    } else if (groupBy === 'tag') {
+      const byTag = new Map<string, { label: string; total: number }>()
+      entries.forEach(e => {
+        if (e.tags && e.tags.length > 0) {
+          // Entry can have multiple tags - add duration to each tag
+          e.tags.forEach(tagName => {
+            const current = byTag.get(tagName) || { label: tagName, total: 0 }
+            current.total += e.durationSeconds
+            byTag.set(tagName, current)
+          })
+        } else {
+          const current = byTag.get('none') || { label: 'Bez tagu', total: 0 }
+          current.total += e.durationSeconds
+          byTag.set('none', current)
+        }
+      })
+      byTag.forEach((value, key) => {
+        summary.push({
+          id: key,
+          label: value.label,
+          type: 'tag',
           totalSeconds: value.total,
           percent: totalSeconds > 0 ? Math.round((value.total / totalSeconds) * 1000) / 10 : 0,
         })
