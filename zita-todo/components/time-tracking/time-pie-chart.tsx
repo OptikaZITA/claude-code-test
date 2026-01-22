@@ -72,7 +72,7 @@ function CustomLegend({ items, visibleItems, visibleTotalSeconds, onToggle }: Cu
               !isVisible && 'opacity-60'
             )}
           >
-            {/* Checkbox indicator */}
+            {/* Checkbox indicator - colored when checked */}
             <div
               className={cn(
                 'w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors',
@@ -84,15 +84,6 @@ function CustomLegend({ items, visibleItems, visibleTotalSeconds, onToggle }: Cu
             >
               {isVisible && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
             </div>
-
-            {/* Color dot */}
-            <div
-              className={cn(
-                'w-3 h-3 rounded-full shrink-0 transition-colors',
-                !isVisible && 'bg-[var(--text-secondary)]'
-              )}
-              style={{ backgroundColor: isVisible ? item.color : undefined }}
-            />
 
             {/* Name */}
             <span className={cn(
@@ -121,7 +112,6 @@ function CustomLegend({ items, visibleItems, visibleTotalSeconds, onToggle }: Cu
       {/* Total row */}
       <div className="flex items-center gap-2 text-sm py-1.5 px-2 -mx-2 border-t border-[var(--border-primary)] mt-2 pt-3">
         <div className="w-4 h-4 shrink-0" /> {/* Spacer for checkbox */}
-        <div className="w-3 h-3 shrink-0" /> {/* Spacer for dot */}
         <span className="truncate flex-1 text-left font-medium text-[var(--text-primary)]">
           Celkom v grafe
         </span>
