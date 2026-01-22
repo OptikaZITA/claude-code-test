@@ -127,6 +127,7 @@ export default function AreaDetailPage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
   const [showProjectModal, setShowProjectModal] = useState(false)
   const inlineFormRef = useRef<TaskQuickAddHandle>(null)
+  const looseTasksQuickAddRef = useRef<TaskQuickAddHandle>(null)
   const { areas } = useAreas()
   const { tags: allTags } = useTags()
   const { users: organizationUsers } = useOrganizationUsers()
@@ -517,7 +518,21 @@ export default function AreaDetailPage() {
                 <span className="text-xs text-[var(--text-secondary)]">
                   ({looseTasks.length})
                 </span>
+                {/* Small add task button - same as projects */}
+                <button
+                  onClick={() => looseTasksQuickAddRef.current?.activate()}
+                  className="p-1 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  title="Pridať úlohu"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
               </div>
+              <TaskQuickAdd
+                ref={looseTasksQuickAddRef}
+                onAdd={handleQuickAdd}
+                variant="inline"
+                context={{ defaultWhenType: 'anytime', defaultAreaId: areaId }}
+              />
               <TaskList
                 tasks={looseTasks}
                 onTaskComplete={handleTaskComplete}
@@ -525,7 +540,7 @@ export default function AreaDetailPage() {
                 onTaskDelete={handleTaskDelete}
                 onQuickAdd={(title) => handleSimpleQuickAdd(title)}
                 emptyMessage=""
-                showQuickAdd={true}
+                showQuickAdd={false}
                 showTodayStar={true}
               />
             </div>
