@@ -14,6 +14,10 @@ interface KanbanColumnProps {
   onQuickAdd: (title: string) => void
   /** Hide "Dnes" badge (use on Today page where it's redundant) */
   hideToday?: boolean
+  /** Check if task is selected */
+  isTaskSelected?: (taskId: string) => boolean
+  /** Handle modifier click for multi-select */
+  onModifierClick?: (taskId: string, event: React.MouseEvent) => void
 }
 
 export function KanbanColumn({
@@ -22,6 +26,8 @@ export function KanbanColumn({
   onTaskClick,
   onQuickAdd,
   hideToday,
+  isTaskSelected,
+  onModifierClick,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
@@ -62,6 +68,8 @@ export function KanbanColumn({
                 task={task}
                 onClick={() => onTaskClick(task)}
                 hideToday={hideToday}
+                isSelected={isTaskSelected?.(task.id) ?? false}
+                onModifierClick={(e) => onModifierClick?.(task.id, e)}
               />
             ))}
           </div>

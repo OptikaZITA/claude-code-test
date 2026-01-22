@@ -19,6 +19,10 @@ interface KanbanCardProps {
   isDragging?: boolean
   /** Hide "Dnes" badge (use on Today page where it's redundant) */
   hideToday?: boolean
+  /** Je task oznaceny (multi-select) */
+  isSelected?: boolean
+  /** Callback for modifier key clicks (shift/cmd/ctrl) */
+  onModifierClick?: (event: React.MouseEvent) => void
 }
 
 // Priority flag colors: red (high), yellow (low)
@@ -27,7 +31,7 @@ const priorityFlagColors: Record<TaskPriority, string> = {
   low: 'text-yellow-500',   // #EAB308 - Žltá
 }
 
-export function KanbanCard({ task, onClick, isDragging, hideToday }: KanbanCardProps) {
+export function KanbanCard({ task, onClick, isDragging, hideToday, isSelected = false, onModifierClick }: KanbanCardProps) {
   const { setDraggedTask } = useSidebarDrop()
 
   const {
@@ -56,17 +60,30 @@ export function KanbanCard({ task, onClick, isDragging, hideToday }: KanbanCardP
 
   const isCompleted = task.status === 'done'
 
+  const handleClick = (e: React.MouseEvent) => {
+    // Check for modifier keys (shift, cmd, ctrl)
+    const hasModifier = e.shiftKey || e.metaKey || e.ctrlKey
+    if (hasModifier && onModifierClick) {
+      e.preventDefault()
+      e.stopPropagation()
+      onModifierClick(e)
+      return
+    }
+    onClick()
+  }
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
-      onClick={onClick}
+      onClick={handleClick}
       className={cn(
         'cursor-pointer rounded-[var(--radius-md)] bg-card p-3 shadow-sm transition-all hover:shadow-md border border-[var(--border)]',
         (isDragging || isSortableDragging) && 'opacity-50 shadow-lg rotate-2 scale-105',
-        isCompleted && 'opacity-60'
+        isCompleted && 'opacity-60',
+        isSelected && 'ring-2 ring-primary bg-primary/5'
       )}
     >
       {/* Priority flag + tags - zobrazuje sa LEN pre definované priority */}

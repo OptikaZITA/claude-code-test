@@ -10,8 +10,10 @@ import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts'
 import { SidebarDropProvider } from '@/lib/contexts/sidebar-drop-context'
 import { GlobalTimerProvider } from '@/lib/contexts/global-timer-context'
 import { SidebarProvider } from '@/lib/contexts/sidebar-context'
+import { MultiSelectProvider } from '@/lib/contexts/multi-select-context'
 import { ProjectFormModal } from '@/components/projects/project-form-modal'
 import { CalendarDropPicker } from '@/components/layout/calendar-drop-picker'
+import { BulkActionToolbar } from '@/components/tasks/bulk-action-toolbar'
 
 interface User {
   full_name: string | null
@@ -168,46 +170,51 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   return (
     <GlobalTimerProvider>
       <SidebarDropProvider>
-        <div className="min-h-screen bg-background">
-          {/* Sidebar - vždy viditeľný, fixed vľavo (skrytý na mobile) */}
-          <aside className="fixed left-0 top-0 h-full w-64 bg-card border-r border-[var(--border)] z-30 hidden lg:block">
-            <Sidebar
-              user={user}
-              areas={areas}
-              onLogout={handleLogout}
-              onCreateProject={handleCreateProject}
+        <MultiSelectProvider>
+          <div className="min-h-screen bg-background">
+            {/* Sidebar - vždy viditeľný, fixed vľavo (skrytý na mobile) */}
+            <aside className="fixed left-0 top-0 h-full w-64 bg-card border-r border-[var(--border)] z-30 hidden lg:block">
+              <Sidebar
+                user={user}
+                areas={areas}
+                onLogout={handleLogout}
+                onCreateProject={handleCreateProject}
+              />
+            </aside>
+
+            {/* Mobile Navigation (bottom bar) */}
+            <MobileNav />
+
+            {/* Main Content - odsadený o šírku sidebaru na desktop */}
+            <main className="min-h-screen lg:ml-64 pb-16 lg:pb-0">
+              {children}
+            </main>
+
+            {/* Bulk Action Toolbar - shows when tasks are selected */}
+            <BulkActionToolbar />
+
+            {/* Keyboard Shortcuts Modal */}
+            <KeyboardShortcutsModal
+              isOpen={showHelp}
+              onClose={() => setShowHelp(false)}
+              shortcuts={shortcuts}
             />
-          </aside>
 
-          {/* Mobile Navigation (bottom bar) */}
-          <MobileNav />
+            {/* Project Form Modal */}
+            <ProjectFormModal
+              isOpen={showProjectForm}
+              onClose={() => {
+                setShowProjectForm(false)
+                setSelectedAreaIdForProject(undefined)
+              }}
+              onSuccess={refetchAreas}
+              preselectedAreaId={selectedAreaIdForProject}
+            />
 
-          {/* Main Content - odsadený o šírku sidebaru na desktop */}
-          <main className="min-h-screen lg:ml-64 pb-16 lg:pb-0">
-            {children}
-          </main>
-
-          {/* Keyboard Shortcuts Modal */}
-          <KeyboardShortcutsModal
-            isOpen={showHelp}
-            onClose={() => setShowHelp(false)}
-            shortcuts={shortcuts}
-          />
-
-          {/* Project Form Modal */}
-          <ProjectFormModal
-            isOpen={showProjectForm}
-            onClose={() => {
-              setShowProjectForm(false)
-              setSelectedAreaIdForProject(undefined)
-            }}
-            onSuccess={refetchAreas}
-            preselectedAreaId={selectedAreaIdForProject}
-          />
-
-          {/* Calendar Drop Picker Modal */}
-          <CalendarDropPicker />
-        </div>
+            {/* Calendar Drop Picker Modal */}
+            <CalendarDropPicker />
+          </div>
+        </MultiSelectProvider>
       </SidebarDropProvider>
     </GlobalTimerProvider>
   )

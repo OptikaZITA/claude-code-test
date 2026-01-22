@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   DndContext,
   DragEndEvent,
@@ -23,6 +23,7 @@ import { TaskQuickAdd, TaskQuickAddData } from './task-quick-add'
 import { SortableTaskItem } from './sortable-task-item'
 import { DraggableTask } from './draggable-task'
 import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
+import { useMultiSelectContext } from '@/lib/contexts/multi-select-context'
 
 interface TaskListProps {
   tasks: TaskWithRelations[]
@@ -63,6 +64,46 @@ export function TaskList({
   const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const { dropTarget, handleDrop: handleSidebarDrop, setDropTarget } = useSidebarDrop()
+
+  // Multi-select context
+  const {
+    isSelected,
+    handleTaskClick: handleMultiSelectClick,
+    setCurrentTasks,
+    selectAll,
+    clearSelection,
+    hasSelection,
+  } = useMultiSelectContext()
+
+  // Update current tasks in context when tasks change
+  useEffect(() => {
+    setCurrentTasks(tasks)
+  }, [tasks, setCurrentTasks])
+
+  // Keyboard shortcut: Cmd/Ctrl + A to select all
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if typing in input
+      if (['INPUT', 'TEXTAREA'].includes((e.target as Element).tagName)) return
+
+      if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+        e.preventDefault()
+        selectAll()
+      }
+
+      if (e.key === 'Escape' && hasSelection) {
+        clearSelection()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [selectAll, clearSelection, hasSelection])
+
+  // Handle modifier click for multi-select
+  const handleModifierClick = useCallback((taskId: string, event: React.MouseEvent) => {
+    handleMultiSelectClick(taskId, event)
+  }, [handleMultiSelectClick])
 
   // Sensors for drag and drop
   const sensors = useSensors(
@@ -185,6 +226,7 @@ export function TaskList({
   const renderTaskItem = (task: TaskWithRelations) => {
     const isExpanded = expandedTaskId === task.id
     const taskIsNew = isTaskNew ? isTaskNew(task) : false
+    const taskIsSelected = isSelected(task.id)
 
     if (shouldUseSortable) {
       return (
@@ -205,6 +247,8 @@ export function TaskList({
           enableInlineEdit={enableInlineEdit}
           isNew={taskIsNew}
           showTodayStar={showTodayStar}
+          isSelected={taskIsSelected}
+          onModifierClick={(e) => handleModifierClick(task.id, e)}
         />
       )
     }
@@ -226,6 +270,8 @@ export function TaskList({
         enableInlineEdit={enableInlineEdit}
         isNew={taskIsNew}
         showTodayStar={showTodayStar}
+        isSelected={taskIsSelected}
+        onModifierClick={(e) => handleModifierClick(task.id, e)}
       />
     )
 

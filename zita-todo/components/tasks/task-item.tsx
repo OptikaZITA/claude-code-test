@@ -30,6 +30,10 @@ interface TaskItemProps {
   showTodayStar?: boolean
   /** Je task "novy" - zobrazit zltu bodku (pouziva sa len na Today stranke) */
   isNew?: boolean
+  /** Je task oznaceny (multi-select) */
+  isSelected?: boolean
+  /** Callback for modifier key clicks (shift/cmd/ctrl) */
+  onModifierClick?: (event: React.MouseEvent) => void
 }
 
 // Priority flag colors: red (high), yellow (low)
@@ -77,6 +81,8 @@ export function TaskItem({
   enableInlineEdit = true,
   showTodayStar = false,
   isNew = false,
+  isSelected = false,
+  onModifierClick,
 }: TaskItemProps) {
   const isCompleted = task.status === 'done'
   const isMobile = useIsMobile()
@@ -89,9 +95,18 @@ export function TaskItem({
   const touchStartY = useRef(0)
   const isHorizontalSwipe = useRef<boolean | null>(null)
 
-  const handleClick = useCallback(() => {
+  const handleClick = useCallback((e: React.MouseEvent) => {
     // Don't trigger click if we just finished swiping
     if (swipeOffset !== 0) return
+
+    // Check for modifier keys (shift, cmd, ctrl)
+    const hasModifier = e.shiftKey || e.metaKey || e.ctrlKey
+    if (hasModifier && onModifierClick) {
+      e.preventDefault()
+      e.stopPropagation()
+      onModifierClick(e)
+      return
+    }
 
     if (enableInlineEdit && isMobile) {
       // Single click on mobile expands
@@ -99,7 +114,7 @@ export function TaskItem({
     } else {
       onClick?.()
     }
-  }, [enableInlineEdit, isMobile, onExpand, onClick, swipeOffset])
+  }, [enableInlineEdit, isMobile, onExpand, onClick, swipeOffset, onModifierClick])
 
   const handleDoubleClick = useCallback(() => {
     if (enableInlineEdit && !isMobile) {
@@ -231,7 +246,8 @@ export function TaskItem({
           'transition-all duration-200',
           isCompleted && 'opacity-60',
           !isSwiping && 'transition-transform',
-          !isMobile && 'hover:bg-accent/50'
+          !isMobile && 'hover:bg-accent/50',
+          isSelected && 'ring-2 ring-primary bg-primary/5'
         )}
         style={{
           transform: isMobile ? `translateX(-${swipeOffset}px)` : undefined,

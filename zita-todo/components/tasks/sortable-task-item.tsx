@@ -23,6 +23,10 @@ interface SortableTaskItemProps {
   isNew?: boolean
   /** Zobrazit hviezdicku pre tasky v "Dnes" */
   showTodayStar?: boolean
+  /** Je task oznaceny (multi-select) */
+  isSelected?: boolean
+  /** Callback for modifier key clicks (shift/cmd/ctrl) */
+  onModifierClick?: (event: React.MouseEvent) => void
 }
 
 export function SortableTaskItem({
@@ -38,6 +42,8 @@ export function SortableTaskItem({
   isDragDisabled = false,
   isNew = false,
   showTodayStar = false,
+  isSelected = false,
+  onModifierClick,
 }: SortableTaskItemProps) {
   const { setDraggedTask } = useSidebarDrop()
 
@@ -82,6 +88,8 @@ export function SortableTaskItem({
         enableInlineEdit={enableInlineEdit}
         isNew={isNew}
         showTodayStar={showTodayStar}
+        isSelected={isSelected}
+        onModifierClick={onModifierClick}
       />
     )
   }
@@ -109,6 +117,8 @@ export function SortableTaskItem({
         enableInlineEdit={enableInlineEdit}
         isNew={isNew}
         showTodayStar={showTodayStar}
+        isSelected={isSelected}
+        onModifierClick={onModifierClick}
       />
     </div>
   )

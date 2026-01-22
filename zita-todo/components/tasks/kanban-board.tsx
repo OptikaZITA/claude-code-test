@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   DndContext,
   DragEndEvent,
@@ -15,6 +15,7 @@ import { TaskWithRelations, TaskStatus, DEFAULT_KANBAN_COLUMNS } from '@/types'
 import { KanbanColumn as KanbanColumnComponent } from './kanban-column'
 import { KanbanCard } from './kanban-card'
 import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
+import { useMultiSelectContext } from '@/lib/contexts/multi-select-context'
 
 interface KanbanBoardProps {
   tasks: TaskWithRelations[]
@@ -34,6 +35,23 @@ export function KanbanBoard({
 }: KanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null)
   const { dropTarget, handleDrop: handleSidebarDrop, setDropTarget } = useSidebarDrop()
+
+  // Multi-select context
+  const {
+    isSelected,
+    handleTaskClick: handleMultiSelectClick,
+    setCurrentTasks,
+  } = useMultiSelectContext()
+
+  // Update current tasks in context when tasks change
+  useEffect(() => {
+    setCurrentTasks(tasks)
+  }, [tasks, setCurrentTasks])
+
+  // Handle modifier click for multi-select
+  const handleModifierClick = useCallback((taskId: string, event: React.MouseEvent) => {
+    handleMultiSelectClick(taskId, event)
+  }, [handleMultiSelectClick])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -115,6 +133,8 @@ export function KanbanBoard({
             onTaskClick={onTaskClick}
             onQuickAdd={(title) => onQuickAdd(title, column.id)}
             hideToday={hideToday}
+            isTaskSelected={isSelected}
+            onModifierClick={handleModifierClick}
           />
         ))}
       </div>
