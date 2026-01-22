@@ -4,6 +4,37 @@ História všetkých zmien v projekte.
 
 ---
 
+### v2.43 (22. januára 2026)
+**Time Dashboard - Tag Grouping & Fixes:**
+
+Vylepšenia Časovača s možnosťou zoskupovania podľa tagov a opravy filtrovania.
+
+**1. Nová možnosť zoskupenia podľa tagov:**
+- ✅ Pridaná možnosť "Tag" do dropdown "Čas podľa" (groupBy)
+- ✅ Záznamy s viacerými tagmi sa započítajú ku každému tagu
+- ✅ Záznamy bez tagov sa zobrazujú ako "Bez tagu"
+- ✅ Plná podpora v pie chart aj bar chart zobrazení
+
+**2. Oprava filtrovania podľa tagov:**
+- ✅ Opravená chyba kde filter tagov vracal 0 výsledkov
+- ✅ API používalo neexistujúcu tabuľku `item_tags` namiesto `task_tags`
+- ✅ Opravené názvy stĺpcov (`item_id` → `task_id`)
+
+**3. Vylepšenia pie chart:**
+- ✅ Interaktívne prepínanie položiek v legende (toggle on/off)
+- ✅ Fixná veľkosť grafu 200x200px pre konzistentný vzhľad
+- ✅ Opravené centrovanie textu v strede donut chartu
+- ✅ Zjednodušená legenda - odstránená redundantná farebná bodka
+
+**Upravené súbory:**
+- `app/api/time/report/route.ts` - Pridaná podpora groupBy=tag, oprava tag filtrovania
+- `components/time-tracking/time-dashboard-charts.tsx` - Pridaná Tag možnosť do dropdown
+- `components/time-tracking/time-pie-chart.tsx` - Interaktívny toggle, vizuálne opravy
+- `lib/hooks/use-time-filters.ts` - Aktualizovaný typ groupBy
+- `lib/hooks/use-time-report.ts` - Aktualizované typy SummaryItem a TimeReportFilters
+
+---
+
 ### v2.42 (18. januára 2026)
 **List View Layout + Slack Tasks Fix:**
 

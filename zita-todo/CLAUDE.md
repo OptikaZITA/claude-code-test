@@ -5,8 +5,8 @@
 ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zobrazením, sledovaním času a Toggl-style time trackingom. Určená pre ~20 členný tím s podporou osobnej aj tímovej produktivity.
 
 **Dátum vytvorenia**: 2. januára 2026
-**Posledná aktualizácia**: 18. januára 2026
-**Verzia špecifikácie**: 2.42 (List View Layout + Slack Tasks Fix)
+**Posledná aktualizácia**: 22. januára 2026
+**Verzia špecifikácie**: 2.43 (Time Dashboard - Tag Grouping & Fixes)
 
 ---
 
@@ -1303,6 +1303,14 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
   - [x] Detekcia konfliktov s Google Calendar eventmi
   - [x] Integrácia do Task Detail ("Čas práce" sekcia)
 
+### Funkcie v2.43 - VŠETKY DOKONČENÉ ✅
+- [x] **Tag groupBy v Time Dashboard** - Zoskupovanie časových záznamov podľa tagov
+  - [x] Pridaná možnosť "Tag" do dropdown "Čas podľa"
+  - [x] Záznamy s viacerými tagmi sa započítajú ku každému tagu
+  - [x] Záznamy bez tagov zobrazené ako "Bez tagu"
+- [x] **Oprava tag filtrovania** - Filter tagov v Časovači teraz funguje správne
+- [x] **Vylepšenia pie chart** - Interaktívny toggle, fixná veľkosť, opravené centrovanie
+
 ---
 
 ## Známe problémy a riešenia
@@ -1328,6 +1336,11 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 **Problém:** Vytváranie tagov zlyhávalo
 **Príčina:** `undefined` namiesto `null` pre `organization_id`
 **Riešenie:** Použitie `?? null` namiesto `?.` operátora
+
+### 6. Tag filter v Časovači vracal 0 výsledkov (OPRAVENÉ v2.43)
+**Problém:** Filtrovanie podľa tagov v Time Dashboard vracalo vždy 0 záznamov
+**Príčina:** API používalo neexistujúcu tabuľku `item_tags` namiesto skutočnej `task_tags`
+**Riešenie:** Opravené názvy tabuľky a stĺpcov v `app/api/time/report/route.ts`
 
 ---
 
