@@ -326,7 +326,7 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
         <div
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
         >
-          <div className="text-center transition-all duration-150">
+          <div className="flex flex-col items-center justify-center text-center transition-all duration-150">
             {activeSegment ? (
               (() => {
                 const { text, isLong } = formatCenterName(activeSegment.name)
@@ -337,17 +337,17 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
                   <>
                     <div
                       className={cn(
-                        'font-bold leading-tight max-w-[90px] mx-auto',
+                        'font-bold leading-tight max-w-[90px] text-center',
                         isLong ? 'text-xs' : 'text-sm'
                       )}
                       style={{ color: activeSegment.color }}
                     >
                       {text}
                     </div>
-                    <div className="text-base font-bold text-[var(--text-primary)] mt-0.5">
+                    <div className="text-base font-bold text-[var(--text-primary)] mt-0.5 text-center">
                       {formatDuration(activeSegment.value)}
                     </div>
-                    <div className="text-xs text-[var(--text-secondary)]">
+                    <div className="text-xs text-[var(--text-secondary)] text-center">
                       {segmentPercent}%
                     </div>
                   </>
@@ -355,10 +355,10 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
               })()
             ) : (
               <>
-                <div className="text-xl font-bold text-[var(--text-primary)]">
+                <div className="text-xl font-bold text-[var(--text-primary)] text-center">
                   {formatDuration(visibleTotalSeconds)}
                 </div>
-                <div className="text-xs text-[var(--text-secondary)]">
+                <div className="text-xs text-[var(--text-secondary)] text-center">
                   celkovo
                 </div>
               </>
