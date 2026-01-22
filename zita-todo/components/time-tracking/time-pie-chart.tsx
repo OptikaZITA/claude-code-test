@@ -289,6 +289,7 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
         <PieChart
           width={chartSize}
           height={chartSize}
+          margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
           onMouseLeave={() => setActiveIndex(null)}
         >
           <Pie
@@ -326,7 +327,11 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
         <div
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
         >
-          <div className="flex flex-col items-center justify-center text-center transition-all duration-150">
+          {/* Inner text container - sized to fit within donut hole (innerRadius * 2 - padding) */}
+          <div
+            className="flex flex-col items-center justify-center text-center transition-all duration-150"
+            style={{ width: innerRadius * 2 - 20, maxWidth: innerRadius * 2 - 20 }}
+          >
             {activeSegment ? (
               (() => {
                 const { text, isLong } = formatCenterName(activeSegment.name)
@@ -337,7 +342,7 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
                   <>
                     <div
                       className={cn(
-                        'font-bold leading-tight max-w-[90px] text-center',
+                        'font-bold leading-tight text-center w-full',
                         isLong ? 'text-xs' : 'text-sm'
                       )}
                       style={{ color: activeSegment.color }}
