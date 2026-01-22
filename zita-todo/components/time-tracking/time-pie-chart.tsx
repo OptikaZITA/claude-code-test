@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell } from 'recharts'
 import { Clock, Check } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
@@ -261,7 +261,7 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
   // Empty state
   if (data.length === 0 || totalSeconds === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[300px] text-[var(--text-secondary)]">
+      <div className="flex flex-col items-center py-8 text-[var(--text-secondary)]">
         <Clock className="h-12 w-12 mb-4 opacity-50" />
         <p>Žiadne dáta</p>
         <p className="text-sm">pre vybrané obdobie</p>
@@ -272,32 +272,46 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
   // No visible items state
   if (visibleChartData.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[300px] text-[var(--text-secondary)]">
-        <Clock className="h-12 w-12 mb-4 opacity-50" />
-        <p>Vyberte aspoň jednu položku</p>
-        <CustomLegend
-          items={allChartData}
-          visibleItems={visibleItems}
-          visibleTotalSeconds={0}
-          onToggle={toggleItem}
-        />
+      <div className="flex flex-col items-center py-8">
+        <Clock className="h-12 w-12 mb-4 opacity-50 text-[var(--text-secondary)]" />
+        <p className="text-[var(--text-secondary)] mb-4">Vyberte aspoň jednu položku</p>
+        <div className="w-full max-h-[250px] overflow-y-auto">
+          <CustomLegend
+            items={allChartData}
+            visibleItems={visibleItems}
+            visibleTotalSeconds={0}
+            onToggle={toggleItem}
+          />
+        </div>
       </div>
     )
   }
 
+  // Chart dimensions - fixed size for consistent appearance
+  const chartSize = 200
+  const innerRadius = 55
+  const outerRadius = 85
+
   return (
-    <div className="relative" onMouseLeave={() => setActiveIndex(null)}>
-      <ResponsiveContainer width="100%" height={300}>
-        <PieChart onMouseLeave={() => setActiveIndex(null)}>
+    <div className="flex flex-col items-center" onMouseLeave={() => setActiveIndex(null)}>
+      {/* Chart container - fixed size, centered */}
+      <div className="relative" style={{ width: chartSize, height: chartSize }}>
+        <PieChart
+          width={chartSize}
+          height={chartSize}
+          onMouseLeave={() => setActiveIndex(null)}
+        >
           <Pie
             data={visibleChartData}
-            cx="50%"
-            cy="50%"
-            innerRadius={60}
-            outerRadius={100}
+            cx={chartSize / 2}
+            cy={chartSize / 2}
+            innerRadius={innerRadius}
+            outerRadius={outerRadius}
             paddingAngle={2}
             dataKey="value"
             nameKey="name"
+            startAngle={90}
+            endAngle={-270}
             onClick={(data) => data.id !== 'others' && onSegmentClick?.(data.id)}
             onMouseOver={(_, index) => setActiveIndex(index)}
             style={{ cursor: onSegmentClick ? 'pointer' : 'default', outline: 'none' }}
@@ -317,49 +331,54 @@ export function TimePieChart({ data, totalSeconds, onSegmentClick }: TimePieChar
             ))}
           </Pie>
         </PieChart>
-      </ResponsiveContainer>
 
-      {/* Central value - shows hovered segment or total of VISIBLE items */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ height: 300 }}>
-        <div className="text-center -mt-16 transition-all duration-150">
-          {activeSegment ? (
-            (() => {
-              const { text, isLong } = formatCenterName(activeSegment.name)
-              const segmentPercent = visibleTotalSeconds > 0
-                ? ((activeSegment.value / visibleTotalSeconds) * 100).toFixed(1)
-                : '0'
-              return (
-                <>
-                  <div
-                    className={`font-bold leading-tight ${isLong ? 'text-sm' : 'text-base'}`}
-                    style={{ color: activeSegment.color, maxWidth: 110 }}
-                  >
-                    {text}
-                  </div>
-                  <div className="text-xl font-bold text-[var(--text-primary)] mt-0.5">
-                    {formatDuration(activeSegment.value)}
-                  </div>
-                  <div className="text-sm text-[var(--text-secondary)]">
-                    {segmentPercent}%
-                  </div>
-                </>
-              )
-            })()
-          ) : (
-            <>
-              <div className="text-2xl font-bold text-[var(--text-primary)]">
-                {formatDuration(visibleTotalSeconds)}
-              </div>
-              <div className="text-sm text-[var(--text-secondary)]">
-                celkovo
-              </div>
-            </>
-          )}
+        {/* Central value - absolutely positioned in the center of the donut hole */}
+        <div
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+        >
+          <div className="text-center transition-all duration-150">
+            {activeSegment ? (
+              (() => {
+                const { text, isLong } = formatCenterName(activeSegment.name)
+                const segmentPercent = visibleTotalSeconds > 0
+                  ? ((activeSegment.value / visibleTotalSeconds) * 100).toFixed(1)
+                  : '0'
+                return (
+                  <>
+                    <div
+                      className={cn(
+                        'font-bold leading-tight max-w-[90px] mx-auto',
+                        isLong ? 'text-xs' : 'text-sm'
+                      )}
+                      style={{ color: activeSegment.color }}
+                    >
+                      {text}
+                    </div>
+                    <div className="text-base font-bold text-[var(--text-primary)] mt-0.5">
+                      {formatDuration(activeSegment.value)}
+                    </div>
+                    <div className="text-xs text-[var(--text-secondary)]">
+                      {segmentPercent}%
+                    </div>
+                  </>
+                )
+              })()
+            ) : (
+              <>
+                <div className="text-xl font-bold text-[var(--text-primary)]">
+                  {formatDuration(visibleTotalSeconds)}
+                </div>
+                <div className="text-xs text-[var(--text-secondary)]">
+                  celkovo
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Custom Legend with toggle functionality */}
-      <div className="mt-4">
+      {/* Custom Legend with toggle functionality - scrollable if many items */}
+      <div className="w-full mt-4 max-h-[250px] overflow-y-auto">
         <CustomLegend
           items={allChartData}
           visibleItems={visibleItems}
