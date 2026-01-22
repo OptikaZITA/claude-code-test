@@ -88,7 +88,7 @@ function ProjectSection({
       </div>
 
       {/* Project Tasks */}
-      <div className="border-l-2 pl-4 ml-2" style={{ borderColor: areaColor || 'var(--border-primary)' }}>
+      <div className="pl-4 ml-2">
         <TaskQuickAdd
           ref={quickAddRef}
           onAdd={handleQuickAdd}
