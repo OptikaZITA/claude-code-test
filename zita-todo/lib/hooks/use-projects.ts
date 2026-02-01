@@ -97,7 +97,7 @@ export function useProjectTasks(projectId: string, assigneeFilter?: AssigneeFilt
 }
 
 /**
- * Hook for deleting a project
+ * Hook for deleting a project (soft delete)
  */
 export function useDeleteProject() {
   const [loading, setLoading] = useState(false)
@@ -105,14 +105,13 @@ export function useDeleteProject() {
 
   const deleteProject = useCallback(async (
     projectId: string,
-    deleteTasks: boolean = false
   ): Promise<boolean> => {
     setLoading(true)
     setError(null)
 
     try {
       const response = await fetch(
-        `/api/projects/${projectId}?deleteTasks=${deleteTasks}`,
+        `/api/projects/${projectId}`,
         { method: 'DELETE' }
       )
 
@@ -131,4 +130,68 @@ export function useDeleteProject() {
   }, [])
 
   return { deleteProject, loading, error }
+}
+
+/**
+ * Hook for fetching deleted projects (trash)
+ */
+export function useTrashProjects() {
+  const [projects, setProjects] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
+
+  const fetchProjects = useCallback(async () => {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('projects')
+        .select(`
+          id,
+          name,
+          color,
+          deleted_at,
+          area:areas(id, name, color)
+        `)
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false })
+
+      if (error) throw error
+      setProjects(data || [])
+    } catch (err) {
+      console.error('Error fetching trash projects:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase])
+
+  useEffect(() => {
+    fetchProjects()
+  }, [fetchProjects])
+
+  const restoreProject = async (projectId: string) => {
+    // Restore project and its tasks
+    const { error: restoreTasksError } = await supabase
+      .from('tasks')
+      .update({ deleted_at: null })
+      .eq('project_id', projectId)
+      .not('deleted_at', 'is', null)
+
+    if (restoreTasksError) {
+      console.error('Error restoring tasks:', restoreTasksError)
+      throw restoreTasksError
+    }
+
+    const { error } = await supabase
+      .from('projects')
+      .update({ deleted_at: null })
+      .eq('id', projectId)
+
+    if (error) {
+      console.error('Error restoring project:', error)
+      throw error
+    }
+    await fetchProjects()
+  }
+
+  return { projects, loading, refetch: fetchProjects, restoreProject }
 }

@@ -101,24 +101,30 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         })
       }
 
-      // Fetch areas with projects
+      // Fetch areas with projects (excluding soft-deleted projects)
       const { data: areasData } = await supabase
         .from('areas')
         .select(`
           id,
           name,
           color,
-          projects (
+          projects!left (
             id,
             name,
-            color
+            color,
+            deleted_at
           )
         `)
         .is('archived_at', null)
         .order('sort_order')
 
       if (areasData) {
-        setAreas(areasData as Area[])
+        // Filter out soft-deleted projects
+        const filtered = areasData.map((area: any) => ({
+          ...area,
+          projects: (area.projects || []).filter((p: any) => !p.deleted_at)
+        }))
+        setAreas(filtered as Area[])
       }
 
       setLoading(false)
@@ -134,17 +140,22 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         id,
         name,
         color,
-        projects (
+        projects!left (
           id,
           name,
-          color
+          color,
+          deleted_at
         )
       `)
       .is('archived_at', null)
       .order('sort_order')
 
     if (areasData) {
-      setAreas(areasData as Area[])
+      const filtered = areasData.map((area: any) => ({
+        ...area,
+        projects: (area.projects || []).filter((p: any) => !p.deleted_at)
+      }))
+      setAreas(filtered as Area[])
     }
   }
 

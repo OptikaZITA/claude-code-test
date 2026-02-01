@@ -7,9 +7,6 @@ export async function DELETE(
 ) {
   try {
     const { id: projectId } = await params
-    const { searchParams } = new URL(request.url)
-    const deleteTasks = searchParams.get('deleteTasks') === 'true'
-
     const supabase = await createClient()
 
     // Verify user is authenticated
@@ -35,55 +32,28 @@ export async function DELETE(
       )
     }
 
-    if (deleteTasks) {
-      // Delete all tasks in the project
-      const { error: deleteTasksError } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('project_id', projectId)
+    // Soft delete - move project to trash
+    const now = new Date().toISOString()
 
-      if (deleteTasksError) {
-        console.error('Error deleting tasks:', deleteTasksError)
-        return NextResponse.json(
-          { error: 'Chyba pri mazaní úloh' },
-          { status: 500 }
-        )
-      }
-    } else {
-      // Move tasks to area (set project_id to NULL, keep area_id)
-      const { error: updateTasksError } = await supabase
-        .from('tasks')
-        .update({
-          project_id: null,
-          heading_id: null, // Clear heading since it belongs to the project
-          updated_at: new Date().toISOString()
-        })
-        .eq('project_id', projectId)
-
-      if (updateTasksError) {
-        console.error('Error updating tasks:', updateTasksError)
-        return NextResponse.json(
-          { error: 'Chyba pri presúvaní úloh' },
-          { status: 500 }
-        )
-      }
-    }
-
-    // Delete all headings in the project
-    const { error: deleteHeadingsError } = await supabase
-      .from('headings')
-      .delete()
+    // Also soft delete tasks in the project
+    const { error: softDeleteTasksError } = await supabase
+      .from('tasks')
+      .update({ deleted_at: now, updated_at: now })
       .eq('project_id', projectId)
+      .is('deleted_at', null)
 
-    if (deleteHeadingsError) {
-      console.error('Error deleting headings:', deleteHeadingsError)
-      // Continue anyway - headings are not critical
+    if (softDeleteTasksError) {
+      console.error('Error soft deleting tasks:', softDeleteTasksError)
+      return NextResponse.json(
+        { error: 'Chyba pri mazaní úloh' },
+        { status: 500 }
+      )
     }
 
-    // Delete the project
+    // Soft delete the project
     const { error: deleteProjectError } = await supabase
       .from('projects')
-      .delete()
+      .update({ deleted_at: now, updated_at: now })
       .eq('id', projectId)
 
     if (deleteProjectError) {
@@ -96,9 +66,7 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: deleteTasks
-        ? 'Projekt a úlohy boli zmazané'
-        : 'Projekt bol zmazaný, úlohy presunuté do oddelenia'
+      message: 'Projekt bol presunutý do koša'
     })
 
   } catch (error) {

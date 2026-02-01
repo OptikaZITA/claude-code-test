@@ -8,6 +8,7 @@ import { Modal } from '@/components/ui/modal'
 import { Checkbox } from '@/components/ui/checkbox'
 import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { useTrashTasks } from '@/lib/hooks/use-tasks'
+import { useTrashProjects } from '@/lib/hooks/use-projects'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { useAreas } from '@/lib/hooks/use-areas'
@@ -15,6 +16,7 @@ import { useTags } from '@/lib/hooks/use-tags'
 import { useCurrentUser } from '@/lib/hooks/use-user-departments'
 import { useOrganizationUsers } from '@/lib/hooks/use-organization-users'
 import { TaskWithRelations } from '@/types'
+import { FolderOpen } from 'lucide-react'
 import { formatDistanceToNow, parseISO, differenceInDays } from 'date-fns'
 import { sk } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
@@ -24,6 +26,7 @@ export default function TrashPage() {
   // Database-level assignee filter - undefined (default = current user), 'all', 'unassigned', or UUID
   const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>(undefined)
   const { tasks, loading, refetch, restoreTask, emptyTrash } = useTrashTasks(dbAssigneeFilter)
+  const { projects: trashProjects, loading: projectsLoading, refetch: refetchProjects, restoreProject } = useTrashProjects()
   const [confirmEmptyTrash, setConfirmEmptyTrash] = useState(false)
   const { filters, setFilter, clearFilters, clearFilter, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
@@ -47,6 +50,18 @@ export default function TrashPage() {
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
   const [restoringId, setRestoringId] = useState<string | null>(null)
+  const [restoringProjectId, setRestoringProjectId] = useState<string | null>(null)
+
+  const handleRestoreProject = async (projectId: string) => {
+    try {
+      setRestoringProjectId(projectId)
+      await restoreProject(projectId)
+    } catch (error) {
+      console.error('Error restoring project:', error)
+    } finally {
+      setRestoringProjectId(null)
+    }
+  }
 
   const handleRestore = async (taskId: string) => {
     try {
@@ -135,35 +150,35 @@ export default function TrashPage() {
         </div>
 
         {/* Info banner */}
-        {tagFilteredTasks.length > 0 && (
+        {(tagFilteredTasks.length > 0 || trashProjects.length > 0) && (
           <div className="mb-6 flex items-start gap-3 rounded-[var(--radius-md)] bg-warning/10 p-4 border border-warning/20">
             <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
             <div className="text-sm">
               <p className="font-medium text-foreground">
-                {tagFilteredTasks.length} {tagFilteredTasks.length === 1 ? 'položka' : tagFilteredTasks.length < 5 ? 'položky' : 'položiek'} v koši
+                {tagFilteredTasks.length + trashProjects.length} {(tagFilteredTasks.length + trashProjects.length) === 1 ? 'položka' : (tagFilteredTasks.length + trashProjects.length) < 5 ? 'položky' : 'položiek'} v koši
               </p>
               <p className="text-muted-foreground mt-1">
-                Vymazané úlohy môžete obnoviť alebo budú automaticky odstránené po 30 dňoch.
+                Vymazané projekty a úlohy môžete obnoviť alebo budú automaticky odstránené po 30 dňoch.
               </p>
             </div>
           </div>
         )}
 
-        {/* Task list */}
-        {tagFilteredTasks.length === 0 && tasks.length === 0 && dbAssigneeFilter === undefined ? (
+        {/* Empty state */}
+        {tagFilteredTasks.length === 0 && trashProjects.length === 0 && tasks.length === 0 && dbAssigneeFilter === undefined ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Trash2 className="mb-4 h-12 w-12 text-muted-foreground" />
             <p className="mb-2 text-lg font-medium text-foreground">
               Kôš je prázdny
             </p>
             <p className="text-muted-foreground">
-              Vymazané úlohy sa tu objavia
+              Vymazané projekty a úlohy sa tu objavia
             </p>
           </div>
-        ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag || dbAssigneeFilter !== undefined) ? (
+        ) : tagFilteredTasks.length === 0 && trashProjects.length === 0 && (hasActiveFilters || selectedTag || dbAssigneeFilter !== undefined) ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Trash2 className="mb-4 h-12 w-12 text-muted-foreground" />
-            <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
+            <p className="mb-2 text-lg font-medium text-foreground">Žiadne položky nezodpovedajú filtrom</p>
             <button
               onClick={() => { clearFilters(); setSelectedTag(null); setDbAssigneeFilter(undefined); }}
               className="text-primary hover:underline"
@@ -172,16 +187,40 @@ export default function TrashPage() {
             </button>
           </div>
         ) : (
-          <div className="space-y-2">
-            {tagFilteredTasks.map((task) => (
-              <TrashTaskItem
-                key={task.id}
-                task={task}
-                onRestore={() => handleRestore(task.id)}
-                isRestoring={restoringId === task.id}
-                daysRemaining={getDaysUntilPermanentDelete(task.deleted_at!)}
-              />
-            ))}
+          <div className="space-y-4">
+            {/* Deleted projects */}
+            {trashProjects.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground px-1">Projekty</h3>
+                {trashProjects.map((project) => (
+                  <TrashProjectItem
+                    key={project.id}
+                    project={project}
+                    onRestore={() => handleRestoreProject(project.id)}
+                    isRestoring={restoringProjectId === project.id}
+                    daysRemaining={getDaysUntilPermanentDelete(project.deleted_at!)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Deleted tasks */}
+            {tagFilteredTasks.length > 0 && (
+              <div className="space-y-2">
+                {trashProjects.length > 0 && (
+                  <h3 className="text-sm font-medium text-muted-foreground px-1">Úlohy</h3>
+                )}
+                {tagFilteredTasks.map((task) => (
+                  <TrashTaskItem
+                    key={task.id}
+                    task={task}
+                    onRestore={() => handleRestore(task.id)}
+                    isRestoring={restoringId === task.id}
+                    daysRemaining={getDaysUntilPermanentDelete(task.deleted_at!)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -285,6 +324,73 @@ function TrashTaskItem({ task, onRestore, isRestoring, daysRemaining }: TrashTas
       )}
 
       {/* Restore button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onRestore}
+        disabled={isRestoring}
+        className="opacity-0 group-hover:opacity-100 transition-opacity text-primary"
+      >
+        {isRestoring ? (
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        ) : (
+          <>
+            <RotateCcw className="h-4 w-4 mr-1.5" />
+            Obnoviť
+          </>
+        )}
+      </Button>
+    </div>
+  )
+}
+
+interface TrashProjectItemProps {
+  project: { id: string; name: string; color?: string; deleted_at: string; area?: { id: string; name: string; color?: string } }
+  onRestore: () => void
+  isRestoring: boolean
+  daysRemaining: number
+}
+
+function TrashProjectItem({ project, onRestore, isRestoring, daysRemaining }: TrashProjectItemProps) {
+  const deletedTimeAgo = project.deleted_at
+    ? formatDistanceToNow(parseISO(project.deleted_at), { addSuffix: true, locale: sk })
+    : ''
+
+  return (
+    <div className={cn(
+      'group flex items-center gap-3 rounded-[var(--radius-lg)] bg-card p-4',
+      'border border-[var(--border)] hover:border-primary/30',
+      'transition-all duration-200'
+    )}>
+      <div className="flex items-center justify-center h-5 w-5">
+        <FolderOpen className="h-4 w-4 text-muted-foreground" />
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          {project.color && (
+            <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: project.color }} />
+          )}
+          <p className="text-foreground truncate">{project.name}</p>
+        </div>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-xs text-muted-foreground">
+            Vymazané {deletedTimeAgo}
+          </span>
+          {daysRemaining <= 7 && (
+            <span className="text-xs text-error">
+              {daysRemaining === 0 ? 'Bude vymazané dnes' : `Ešte ${daysRemaining} dní`}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {project.area && (
+        <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs bg-muted">
+          {project.area.name}
+        </span>
+      )}
+
       <Button
         variant="ghost"
         size="sm"
