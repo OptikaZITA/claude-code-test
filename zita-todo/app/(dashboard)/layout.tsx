@@ -179,6 +179,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 areas={areas}
                 onLogout={handleLogout}
                 onCreateProject={handleCreateProject}
+                onRefresh={refetchAreas}
               />
             </aside>
 
