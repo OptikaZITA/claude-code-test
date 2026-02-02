@@ -37,6 +37,7 @@ export function ProjectFormModal({
 }: ProjectFormModalProps) {
   const [name, setName] = useState('')
   const [color, setColor] = useState(PRESET_COLORS[0])
+  const [deadline, setDeadline] = useState('')
   const [areaId, setAreaId] = useState(preselectedAreaId || '')
   const [areas, setAreas] = useState<Area[]>([])
   const [loading, setLoading] = useState(false)
@@ -97,12 +98,14 @@ export function ProjectFormModal({
           color,
           area_id: areaId,
           owner_id: user.id,
+          deadline: deadline || null,
         })
 
       if (insertError) throw insertError
 
       setName('')
       setColor(PRESET_COLORS[0])
+      setDeadline('')
       setAreaId(preselectedAreaId || '')
       onSuccess()
       onClose()
@@ -117,6 +120,7 @@ export function ProjectFormModal({
   const handleClose = () => {
     setName('')
     setColor(PRESET_COLORS[0])
+    setDeadline('')
     setAreaId(preselectedAreaId || '')
     setError(null)
     onClose()
@@ -162,6 +166,17 @@ export function ProjectFormModal({
             )}
           </div>
         )}
+
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+            Deadline
+          </label>
+          <Input
+            type="date"
+            value={deadline}
+            onChange={(e) => setDeadline(e.target.value)}
+          />
+        </div>
 
         <div>
           <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">

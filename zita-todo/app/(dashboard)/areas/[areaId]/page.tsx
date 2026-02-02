@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Layers, FolderKanban, Star, FolderPlus, Plus } from 'lucide-react'
+import { Layers, FolderKanban, Star, FolderPlus, Plus, ChevronRight } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { TaskList } from '@/components/tasks/task-list'
@@ -33,6 +33,8 @@ interface ProjectSectionProps {
   project: Project
   tasks: TaskWithRelations[]
   areaColor: string | null
+  isExpanded: boolean
+  onToggle: () => void
   onTaskComplete: (taskId: string, completed: boolean) => void
   onTaskUpdate: (taskId: string, updates: Partial<TaskWithRelations>) => void
   onTaskDelete: (taskId: string) => void
@@ -43,6 +45,8 @@ function ProjectSection({
   project,
   tasks,
   areaColor,
+  isExpanded,
+  onToggle,
   onTaskComplete,
   onTaskUpdate,
   onTaskDelete,
@@ -56,9 +60,21 @@ function ProjectSection({
   }
 
   return (
-    <div className="mb-6">
+    <div className={cn("mb-6", !isExpanded && "mb-1")}>
       {/* Project Header */}
       <div className="flex items-center gap-2 mb-3">
+        <button
+          onClick={onToggle}
+          className="p-0.5 rounded hover:bg-accent transition-colors"
+          title={isExpanded ? 'Zrolovať projekt' : 'Rozbaliť projekt'}
+        >
+          <ChevronRight
+            className={cn(
+              "h-4 w-4 text-[var(--text-secondary)] transition-transform duration-200",
+              isExpanded && "rotate-90"
+            )}
+          />
+        </button>
         <Link
           href={`/projects/${project.id}`}
           className="group flex items-center gap-2 hover:opacity-80 transition-opacity"
@@ -87,25 +103,27 @@ function ProjectSection({
         </button>
       </div>
 
-      {/* Project Tasks */}
-      <div className="pl-4 ml-2">
-        <TaskQuickAdd
-          ref={quickAddRef}
-          onAdd={handleQuickAdd}
-          variant="inline"
-          context={{ defaultProjectId: project.id }}
-        />
-        <TaskList
-          tasks={sortedTasks}
-          onTaskComplete={onTaskComplete}
-          onTaskUpdate={onTaskUpdate}
-          onTaskDelete={onTaskDelete}
-          onQuickAdd={(title) => onQuickAdd(title, project.id)}
-          emptyMessage="Žiadne úlohy v projekte"
-          showQuickAdd={false}
-          showTodayStar={true}
-        />
-      </div>
+      {/* Project Tasks - only when expanded */}
+      {isExpanded && (
+        <div className="pl-4 ml-2">
+          <TaskQuickAdd
+            ref={quickAddRef}
+            onAdd={handleQuickAdd}
+            variant="inline"
+            context={{ defaultProjectId: project.id }}
+          />
+          <TaskList
+            tasks={sortedTasks}
+            onTaskComplete={onTaskComplete}
+            onTaskUpdate={onTaskUpdate}
+            onTaskDelete={onTaskDelete}
+            onQuickAdd={(title) => onQuickAdd(title, project.id)}
+            emptyMessage="Žiadne úlohy v projekte"
+            showQuickAdd={false}
+            showTodayStar={true}
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -137,6 +155,9 @@ export default function AreaDetailPage() {
   const [pendingCompleteTask, setPendingCompleteTask] = useState<TaskWithRelations | null>(null)
   // State for TaskDetail
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
+
+  // State for project expand/collapse
+  const [expandedProjects, setExpandedProjects] = useState<Set<string> | null>(null)
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -178,6 +199,31 @@ export default function AreaDetailPage() {
   const activeProjects = useMemo(() => {
     return projects.filter(p => p.status === 'active')
   }, [projects])
+
+  // Initialize expanded projects: expand only those with tasks
+  const resolvedExpandedProjects = useMemo(() => {
+    if (expandedProjects !== null) return expandedProjects
+    const withTasks = new Set<string>()
+    activeProjects.forEach(p => {
+      if ((projectTasks.get(p.id) || []).length > 0) {
+        withTasks.add(p.id)
+      }
+    })
+    return withTasks
+  }, [expandedProjects, activeProjects, projectTasks])
+
+  const toggleProject = (projectId: string) => {
+    setExpandedProjects(prev => {
+      const current = prev !== null ? prev : resolvedExpandedProjects
+      const next = new Set(current)
+      if (next.has(projectId)) {
+        next.delete(projectId)
+      } else {
+        next.add(projectId)
+      }
+      return next
+    })
+  }
 
   // Filter projects to only show those with tasks matching the tag filter
   const visibleProjects = useMemo(() => {
@@ -499,6 +545,8 @@ export default function AreaDetailPage() {
                 project={project}
                 tasks={projectTaskList}
                 areaColor={area.color}
+                isExpanded={resolvedExpandedProjects.has(project.id)}
+                onToggle={() => toggleProject(project.id)}
                 onTaskComplete={handleTaskComplete}
                 onTaskUpdate={handleTaskUpdate}
                 onTaskDelete={handleTaskDelete}

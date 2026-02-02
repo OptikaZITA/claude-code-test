@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef } from 'react'
 import { useParams } from 'next/navigation'
-import { FolderKanban, Plus } from 'lucide-react'
+import { FolderKanban, Plus, Calendar, AlertTriangle } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { ProjectTaskList } from '@/components/tasks/project-task-list'
@@ -10,7 +10,8 @@ import { TaskQuickAdd, TaskQuickAddData, TaskQuickAddHandle } from '@/components
 import { TaskQuickAddMobile } from '@/components/tasks/task-quick-add-mobile'
 import { KanbanBoard } from '@/components/tasks/kanban-board'
 import { FullCalendarView } from '@/components/calendar/full-calendar-view'
-import { format } from 'date-fns'
+import { format, isPast, formatDistanceToNow, startOfDay } from 'date-fns'
+import { sk } from 'date-fns/locale'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { QuickTimeModal } from '@/components/time-tracking/quick-time-modal'
@@ -19,13 +20,13 @@ import { useAreas } from '@/lib/hooks/use-areas'
 import { useTags } from '@/lib/hooks/use-tags'
 import { useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskHasTime } from '@/lib/hooks/use-task-has-time'
-import { useHeadings } from '@/lib/hooks/use-headings'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useViewPreference } from '@/lib/hooks/use-view-preference'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { useCurrentUser } from '@/lib/hooks/use-user-departments'
 import { useOrganizationUsers } from '@/lib/hooks/use-organization-users'
 import { TaskWithRelations, TaskStatus } from '@/types'
+import { cn } from '@/lib/utils/cn'
 
 export default function ProjectPage() {
   const params = useParams()
@@ -37,7 +38,6 @@ export default function ProjectPage() {
   const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>('all')
   const { project, loading: projectLoading } = useProject(projectId)
   const { tasks, setTasks, loading: tasksLoading, refetch: refetchTasks } = useProjectTasks(projectId, dbAssigneeFilter)
-  const { headings, loading: headingsLoading, createHeading, updateHeading, deleteHeading } = useHeadings(projectId)
   const { createTask, updateTask, completeTask } = useTasks()
   const { viewMode, setViewMode, isLoaded } = useViewPreference('project')
   const { filters, setFilter, clearFilters, clearFilter, hasActiveFilters } = useTaskFilters()
@@ -89,13 +89,12 @@ export default function ProjectPage() {
     }
   }
 
-  // For ProjectTaskList which passes headingId
-  const handleQuickAddWithHeading = async (title: string, headingId?: string) => {
+  // For ProjectTaskList
+  const handleQuickAddSimple = async (title: string) => {
     try {
       await createTask({
         title,
         project_id: projectId,
-        heading_id: headingId || null,
         status: 'backlog',
         when_type: 'anytime',
         is_inbox: false,
@@ -184,19 +183,6 @@ export default function ProjectPage() {
     setPendingCompleteTask(null)
   }
 
-  const handleHeadingCreate = async (title: string) => {
-    await createHeading(title)
-  }
-
-  const handleHeadingUpdate = async (headingId: string, title: string) => {
-    await updateHeading(headingId, { title })
-  }
-
-  const handleHeadingDelete = async (headingId: string) => {
-    await deleteHeading(headingId)
-    refetchTasks() // Refresh tasks since some may have lost their heading
-  }
-
   const handleTaskUpdate = async (updates: Partial<TaskWithRelations>) => {
     if (!selectedTask) return
     try {
@@ -241,7 +227,7 @@ export default function ProjectPage() {
     }
   }
 
-  if (projectLoading || tasksLoading || headingsLoading || !isLoaded) {
+  if (projectLoading || tasksLoading || !isLoaded) {
     return (
       <div className="h-full">
         <Header title="Načítavam..." />
@@ -329,7 +315,47 @@ export default function ProjectPage() {
         <div className="flex-1 overflow-auto p-6">
           {/* Title row with button */}
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-heading font-semibold text-foreground">{project.name}</h2>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <h2 className="text-2xl font-heading font-semibold text-foreground">{project.name}</h2>
+                {tagFilteredTasks.length > 0 && (() => {
+                  const total = tagFilteredTasks.length
+                  const completed = tagFilteredTasks.filter(t => t.status === 'done').length
+                  const percentage = Math.round((completed / total) * 100)
+                  return (
+                    <span className="text-sm font-normal text-[var(--text-secondary)]">
+                      • {completed}/{total} ({percentage}%)
+                    </span>
+                  )
+                })()}
+                <button
+                  onClick={() => inlineFormRef.current?.activate()}
+                  className="p-1 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  title="Pridať úlohu"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+              {project.deadline && (() => {
+                const deadlineDate = startOfDay(new Date(project.deadline + 'T00:00:00'))
+                const isOverdue = isPast(deadlineDate) && tagFilteredTasks.some(t => t.status !== 'done')
+                return (
+                  <span className={cn(
+                    "flex items-center gap-1 text-sm",
+                    isOverdue ? "text-[var(--color-error)]" : "text-[var(--text-secondary)]"
+                  )}>
+                    <Calendar className="h-3.5 w-3.5" />
+                    Deadline: {format(deadlineDate, 'd.M.yyyy')}
+                    {isOverdue && (
+                      <span className="flex items-center gap-1 text-[var(--color-error)]">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        ({formatDistanceToNow(deadlineDate, { addSuffix: true, locale: sk })})
+                      </span>
+                    )}
+                  </span>
+                )
+              })()}
+            </div>
             <Button
               onClick={() => inlineFormRef.current?.activate()}
               className="bg-primary text-white hover:bg-primary/90 hidden lg:flex"
@@ -347,7 +373,7 @@ export default function ProjectPage() {
             context={{ defaultWhenType: 'anytime', defaultProjectId: projectId }}
           />
 
-          {tagFilteredTasks.length === 0 && tasks.length === 0 && headings.length === 0 && dbAssigneeFilter === 'all' ? (
+          {tagFilteredTasks.length === 0 && tasks.length === 0 && dbAssigneeFilter === 'all' ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <FolderKanban className="mb-4 h-12 w-12 text-[var(--text-secondary)]" />
               <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">Projekt je prázdny</p>
@@ -370,13 +396,9 @@ export default function ProjectPage() {
 
           <ProjectTaskList
             tasks={tagFilteredTasks}
-            headings={headings}
             onTaskClick={setSelectedTask}
             onTaskComplete={handleTaskComplete}
-            onQuickAdd={handleQuickAddWithHeading}
-            onHeadingCreate={handleHeadingCreate}
-            onHeadingUpdate={handleHeadingUpdate}
-            onHeadingDelete={handleHeadingDelete}
+            onQuickAdd={handleQuickAddSimple}
             emptyMessage=""
             showTodayStar={true}
           />

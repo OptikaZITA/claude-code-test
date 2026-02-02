@@ -1,20 +1,17 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { TaskWithRelations, Heading } from '@/types'
+import { ChevronRight } from 'lucide-react'
+import { TaskWithRelations } from '@/types'
 import { TaskItem } from './task-item'
 import { TaskQuickAdd, TaskQuickAddData } from './task-quick-add'
-import { HeadingItem, HeadingForm } from '@/components/headings'
+import { cn } from '@/lib/utils/cn'
 
 interface ProjectTaskListProps {
   tasks: TaskWithRelations[]
-  headings: Heading[]
   onTaskClick: (task: TaskWithRelations) => void
   onTaskComplete: (taskId: string, completed: boolean) => void
-  onQuickAdd: (title: string, headingId?: string) => void
-  onHeadingCreate: (title: string) => Promise<void>
-  onHeadingUpdate: (headingId: string, title: string) => Promise<void>
-  onHeadingDelete: (headingId: string) => Promise<void>
+  onQuickAdd: (title: string) => void
   emptyMessage?: string
   /** Zobrazit hviezdicku pre tasky v "Dnes" */
   showTodayStar?: boolean
@@ -22,68 +19,29 @@ interface ProjectTaskListProps {
 
 export function ProjectTaskList({
   tasks,
-  headings,
   onTaskClick,
   onTaskComplete,
   onQuickAdd,
-  onHeadingCreate,
-  onHeadingUpdate,
-  onHeadingDelete,
   emptyMessage = 'Žiadne úlohy',
   showTodayStar = false,
 }: ProjectTaskListProps) {
-  const [expandedHeadings, setExpandedHeadings] = useState<Set<string>>(
-    new Set(headings.map((h) => h.id))
-  )
-  const [addingTaskToHeading, setAddingTaskToHeading] = useState<string | null>(null)
+  const [showCompleted, setShowCompleted] = useState(false)
 
-  // Group tasks by heading
-  const { tasksWithoutHeading, tasksByHeading } = useMemo(() => {
-    const withoutHeading: TaskWithRelations[] = []
-    const byHeading: Map<string, TaskWithRelations[]> = new Map()
+  // Split into active and completed tasks
+  const activeTasks = useMemo(() => tasks.filter(t => t.status !== 'done'), [tasks])
+  const completedTasks = useMemo(() => tasks.filter(t => t.status === 'done'), [tasks])
 
-    // Initialize all headings with empty arrays
-    headings.forEach((h) => byHeading.set(h.id, []))
-
-    tasks.forEach((task) => {
-      if (task.heading_id && byHeading.has(task.heading_id)) {
-        byHeading.get(task.heading_id)!.push(task)
-      } else {
-        withoutHeading.push(task)
-      }
-    })
-
-    return { tasksWithoutHeading: withoutHeading, tasksByHeading: byHeading }
-  }, [tasks, headings])
-
-  const toggleHeading = (headingId: string) => {
-    setExpandedHeadings((prev) => {
-      const next = new Set(prev)
-      if (next.has(headingId)) {
-        next.delete(headingId)
-      } else {
-        next.add(headingId)
-      }
-      return next
-    })
-  }
-
-  const handleQuickAddToHeading = (taskData: TaskQuickAddData, headingId: string) => {
-    onQuickAdd(taskData.title, headingId)
-    setAddingTaskToHeading(null)
-  }
-
-  const isEmpty = tasks.length === 0 && headings.length === 0
+  const isEmpty = tasks.length === 0
 
   return (
     <div className="space-y-4">
-      {/* Quick add for tasks without heading */}
+      {/* Quick add */}
       <TaskQuickAdd onAdd={(taskData: TaskQuickAddData) => onQuickAdd(taskData.title)} />
 
-      {/* Tasks without heading */}
-      {tasksWithoutHeading.length > 0 && (
+      {/* Active tasks */}
+      {activeTasks.length > 0 && (
         <div className="space-y-1">
-          {tasksWithoutHeading.map((task) => (
+          {activeTasks.map((task) => (
             <TaskItem
               key={task.id}
               task={task}
@@ -95,61 +53,35 @@ export function ProjectTaskList({
         </div>
       )}
 
-      {/* Headings with their tasks */}
-      {headings.map((heading) => {
-        const headingTasks = tasksByHeading.get(heading.id) || []
-        const isExpanded = expandedHeadings.has(heading.id)
-
-        return (
-          <HeadingItem
-            key={heading.id}
-            heading={heading}
-            isExpanded={isExpanded}
-            onToggle={() => toggleHeading(heading.id)}
-            onUpdate={(title) => onHeadingUpdate(heading.id, title)}
-            onDelete={() => onHeadingDelete(heading.id)}
+      {/* Completed tasks - collapsible section */}
+      {completedTasks.length > 0 && (
+        <div className="mt-4 border-t border-[var(--border-primary)] pt-4">
+          <button
+            onClick={() => setShowCompleted(!showCompleted)}
+            className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
           >
-            {/* Tasks in this heading */}
-            {headingTasks.length > 0 ? (
-              <div className="space-y-1">
-                {headingTasks.map((task) => (
-                  <TaskItem
-                    key={task.id}
-                    task={task}
-                    onClick={() => onTaskClick(task)}
-                    onComplete={(completed) => onTaskComplete(task.id, completed)}
-                    showTodayStar={showTodayStar}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="py-2 text-sm text-[var(--text-secondary)]">
-                Žiadne úlohy v tejto sekcii
-              </p>
-            )}
+            <ChevronRight className={cn(
+              "h-4 w-4 transition-transform duration-200",
+              showCompleted && "rotate-90"
+            )} />
+            <span className="text-sm font-medium">Dokončené ({completedTasks.length})</span>
+          </button>
 
-            {/* Quick add within heading */}
-            {addingTaskToHeading === heading.id ? (
-              <div className="mt-2">
-                <TaskQuickAdd
-                  onAdd={(taskData: TaskQuickAddData) => handleQuickAddToHeading(taskData, heading.id)}
-                  placeholder="Pridať úlohu do sekcie..."
+          {showCompleted && (
+            <div className="mt-2 ml-6 space-y-1">
+              {completedTasks.map((task) => (
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  onClick={() => onTaskClick(task)}
+                  onComplete={(completed) => onTaskComplete(task.id, completed)}
+                  showTodayStar={showTodayStar}
                 />
-              </div>
-            ) : (
-              <button
-                onClick={() => setAddingTaskToHeading(heading.id)}
-                className="mt-2 text-sm text-[var(--color-primary)] hover:underline"
-              >
-                + Pridať úlohu
-              </button>
-            )}
-          </HeadingItem>
-        )
-      })}
-
-      {/* Add new heading */}
-      <HeadingForm onSubmit={onHeadingCreate} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Empty state */}
       {isEmpty && (

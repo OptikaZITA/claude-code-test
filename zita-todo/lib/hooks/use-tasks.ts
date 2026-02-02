@@ -256,7 +256,7 @@ export function useTasks() {
             description: currentTask.description,
             area_id: currentTask.area_id,
             project_id: currentTask.project_id,
-            heading_id: currentTask.heading_id,
+
             priority: currentTask.priority,
             assignee_id: currentTask.assignee_id,
             when_type: 'scheduled',
