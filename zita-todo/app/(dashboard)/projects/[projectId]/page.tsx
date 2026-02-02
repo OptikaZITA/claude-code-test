@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { FolderKanban, Plus, Calendar, AlertTriangle, Trash2 } from 'lucide-react'
+import { FolderKanban, Plus, Calendar, AlertTriangle, Trash2, X } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { ProjectTaskList } from '@/components/tasks/project-task-list'
@@ -26,6 +26,7 @@ import { useViewPreference } from '@/lib/hooks/use-view-preference'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { useCurrentUser } from '@/lib/hooks/use-user-departments'
 import { useOrganizationUsers } from '@/lib/hooks/use-organization-users'
+import { createClient } from '@/lib/supabase/client'
 import { TaskWithRelations, TaskStatus } from '@/types'
 import { cn } from '@/lib/utils/cn'
 
@@ -38,7 +39,10 @@ export default function ProjectPage() {
   // Database-level assignee filter - 'all' (default for projects), 'unassigned', or UUID
   // Projects default to 'all' to show Slack-created tasks and team tasks
   const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>('all')
-  const { project, loading: projectLoading } = useProject(projectId)
+  const { project, setProject, loading: projectLoading } = useProject(projectId)
+  const supabase = createClient()
+  const [editingDeadline, setEditingDeadline] = useState(false)
+  const deadlineInputRef = useRef<HTMLInputElement>(null)
   const { tasks, setTasks, loading: tasksLoading, refetch: refetchTasks } = useProjectTasks(projectId, dbAssigneeFilter)
   const { createTask, updateTask, completeTask } = useTasks()
   const { viewMode, setViewMode, isLoaded } = useViewPreference('project')
@@ -214,6 +218,21 @@ export default function ProjectPage() {
     }
   }
 
+  const handleDeadlineChange = useCallback(async (newDeadline: string | null) => {
+    if (!project) return
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ deadline: newDeadline, updated_at: new Date().toISOString() })
+        .eq('id', project.id)
+      if (error) throw error
+      setProject(prev => prev ? { ...prev, deadline: newDeadline } : prev)
+    } catch (error) {
+      console.error('Error updating project deadline:', error)
+    }
+    setEditingDeadline(false)
+  }, [project, supabase, setProject])
+
   if (projectLoading || tasksLoading || !isLoaded) {
     return (
       <div className="h-full">
@@ -323,14 +342,41 @@ export default function ProjectPage() {
                   <Plus className="h-4 w-4" />
                 </button>
               </div>
-              {project.deadline && (() => {
+              {editingDeadline ? (
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
+                  <input
+                    ref={deadlineInputRef}
+                    type="date"
+                    defaultValue={project.deadline || ''}
+                    autoFocus
+                    onChange={(e) => handleDeadlineChange(e.target.value || null)}
+                    onBlur={() => setEditingDeadline(false)}
+                    onKeyDown={(e) => { if (e.key === 'Escape') setEditingDeadline(false) }}
+                    className="text-sm border border-border rounded px-2 py-0.5 bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                  />
+                  {project.deadline && (
+                    <button
+                      onMouseDown={(e) => { e.preventDefault(); handleDeadlineChange(null) }}
+                      className="p-0.5 rounded hover:bg-[var(--color-error)]/10 text-[var(--text-secondary)] hover:text-[var(--color-error)] transition-colors"
+                      title="Odstrániť deadline"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              ) : project.deadline ? (() => {
                 const deadlineDate = startOfDay(new Date(project.deadline + 'T00:00:00'))
                 const isOverdue = isPast(deadlineDate) && tagFilteredTasks.some(t => t.status !== 'done')
                 return (
-                  <span className={cn(
-                    "flex items-center gap-1 text-sm",
-                    isOverdue ? "text-[var(--color-error)]" : "text-[var(--text-secondary)]"
-                  )}>
+                  <button
+                    onClick={() => setEditingDeadline(true)}
+                    className={cn(
+                      "flex items-center gap-1 text-sm hover:underline cursor-pointer",
+                      isOverdue ? "text-[var(--color-error)]" : "text-[var(--text-secondary)]"
+                    )}
+                    title="Klikni pre zmenu deadline"
+                  >
                     <Calendar className="h-3.5 w-3.5" />
                     Deadline: {format(deadlineDate, 'd.M.yyyy')}
                     {isOverdue && (
@@ -339,9 +385,17 @@ export default function ProjectPage() {
                         ({formatDistanceToNow(deadlineDate, { addSuffix: true, locale: sk })})
                       </span>
                     )}
-                  </span>
+                  </button>
                 )
-              })()}
+              })() : (
+                <button
+                  onClick={() => setEditingDeadline(true)}
+                  className="flex items-center gap-1 text-sm text-[var(--text-secondary)] hover:text-[var(--color-primary)] hover:underline cursor-pointer"
+                >
+                  <Calendar className="h-3.5 w-3.5" />
+                  Pridať deadline
+                </button>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <button

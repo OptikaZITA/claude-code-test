@@ -12,31 +12,31 @@ export function useProject(projectId: string) {
   const [error, setError] = useState<Error | null>(null)
   const supabase = createClient()
 
-  useEffect(() => {
-    const fetchProject = async () => {
-      try {
-        setLoading(true)
-        const { data, error } = await supabase
-          .from('projects')
-          .select('*')
-          .eq('id', projectId)
-          .single()
+  const fetchProject = useCallback(async () => {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
+        .single()
 
-        if (error) throw error
-        setProject(data)
-      } catch (err) {
-        setError(err as Error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (projectId) {
-      fetchProject()
+      if (error) throw error
+      setProject(data)
+    } catch (err) {
+      setError(err as Error)
+    } finally {
+      setLoading(false)
     }
   }, [supabase, projectId])
 
-  return { project, loading, error }
+  useEffect(() => {
+    if (projectId) {
+      fetchProject()
+    }
+  }, [projectId, fetchProject])
+
+  return { project, setProject, loading, error, refetch: fetchProject }
 }
 
 // assigneeFilter: user.id (default), 'all', 'unassigned', alebo konkrétny UUID
