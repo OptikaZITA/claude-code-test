@@ -34,6 +34,7 @@ export function SidebarDropItem({
   const {
     isDragging,
     draggedTask,
+    draggedProject,
     dropTarget: currentDropTarget,
     setDropTarget,
     handleDrop,
@@ -90,11 +91,11 @@ export function SidebarDropItem({
     (e: React.DragEvent) => {
       e.preventDefault()
       e.stopPropagation()
-      if (draggedTask) {
+      if (draggedTask || draggedProject) {
         handleDrop(dropTarget)
       }
     },
-    [draggedTask, handleDrop, dropTarget]
+    [draggedTask, draggedProject, handleDrop, dropTarget]
   )
 
   return (
@@ -326,6 +327,8 @@ export function SidebarDropProject({
   const {
     isDragging,
     draggedTask,
+    draggedProject,
+    setDraggedProject,
     dropTarget: currentDropTarget,
     setDropTarget,
     handleDrop,
@@ -337,6 +340,22 @@ export function SidebarDropProject({
     currentDropTarget &&
     currentDropTarget.type === 'project' &&
     currentDropTarget.projectId === projectId
+
+  const isDraggingThis = draggedProject?.id === projectId
+
+  const handleDragStart = useCallback(
+    (e: React.DragEvent) => {
+      e.dataTransfer.effectAllowed = 'move'
+      e.dataTransfer.setData('text/plain', projectId)
+      setDraggedProject({ id: projectId, name: label })
+    },
+    [projectId, label, setDraggedProject]
+  )
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedProject(null)
+    setDropTarget(null)
+  }, [setDraggedProject, setDropTarget])
 
   // Use pointer events for @dnd-kit compatibility
   const handlePointerEnter = useCallback(() => {
@@ -384,15 +403,18 @@ export function SidebarDropProject({
     (e: React.DragEvent) => {
       e.preventDefault()
       e.stopPropagation()
-      if (draggedTask) {
+      if (draggedTask && !draggedProject) {
         handleDrop(dropTarget)
       }
     },
-    [draggedTask, handleDrop, dropTarget]
+    [draggedTask, draggedProject, handleDrop, dropTarget]
   )
 
   return (
     <div
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
       onDragOver={handleDragOver}
@@ -403,7 +425,8 @@ export function SidebarDropProject({
         isActive
           ? 'bg-accent text-foreground font-medium'
           : 'text-foreground hover:bg-accent/50',
-        isDragging && 'cursor-copy',
+        isDragging && !isDraggingThis && 'cursor-copy',
+        isDraggingThis && 'opacity-50',
         isDropTarget && 'ring-2 ring-primary bg-primary/10 scale-105'
       )}
     >

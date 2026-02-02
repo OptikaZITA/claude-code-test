@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Layers, FolderKanban, Star, FolderPlus, Plus, ChevronRight } from 'lucide-react'
+import { Layers, FolderKanban, Star, FolderPlus, Plus, ChevronRight, Trash2 } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { TaskList } from '@/components/tasks/task-list'
@@ -15,6 +15,7 @@ import { format } from 'date-fns'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { ProjectFormModal } from '@/components/projects/project-form-modal'
+import { DeleteProjectModal } from '@/components/projects/delete-project-modal'
 import { QuickTimeModal } from '@/components/time-tracking/quick-time-modal'
 import { useArea, useAreaProjects, useAllAreaTasks, useAreas } from '@/lib/hooks/use-areas'
 import { useTasks } from '@/lib/hooks/use-tasks'
@@ -39,6 +40,7 @@ interface ProjectSectionProps {
   onTaskUpdate: (taskId: string, updates: Partial<TaskWithRelations>) => void
   onTaskDelete: (taskId: string) => void
   onQuickAdd: (title: string, projectId: string) => void
+  onProjectDelete: (project: Project) => void
 }
 
 function ProjectSection({
@@ -51,6 +53,7 @@ function ProjectSection({
   onTaskUpdate,
   onTaskDelete,
   onQuickAdd,
+  onProjectDelete,
 }: ProjectSectionProps) {
   const sortedTasks = sortTasksTodayFirst(tasks)
   const quickAddRef = useRef<TaskQuickAddHandle>(null)
@@ -62,7 +65,7 @@ function ProjectSection({
   return (
     <div className={cn("mb-6", !isExpanded && "mb-1")}>
       {/* Project Header */}
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-3 group/project">
         <button
           onClick={onToggle}
           className="p-0.5 rounded hover:bg-accent transition-colors"
@@ -100,6 +103,14 @@ function ProjectSection({
           title="Pridať úlohu"
         >
           <Plus className="h-4 w-4" />
+        </button>
+        {/* Delete project button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onProjectDelete(project) }}
+          className="p-1 rounded text-[var(--text-secondary)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors opacity-0 group-hover/project:opacity-100"
+          title="Zmazať projekt"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
 
@@ -144,6 +155,7 @@ export default function AreaDetailPage() {
   const { filters, setFilter, clearFilters, clearFilter, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
   const [showProjectModal, setShowProjectModal] = useState(false)
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null)
   const inlineFormRef = useRef<TaskQuickAddHandle>(null)
   const looseTasksQuickAddRef = useRef<TaskQuickAddHandle>(null)
   const { areas } = useAreas()
@@ -551,6 +563,7 @@ export default function AreaDetailPage() {
                 onTaskUpdate={handleTaskUpdate}
                 onTaskDelete={handleTaskDelete}
                 onQuickAdd={handleSimpleQuickAdd}
+                onProjectDelete={setProjectToDelete}
               />
             )
           })}
@@ -658,6 +671,19 @@ export default function AreaDetailPage() {
         }}
         preselectedAreaId={areaId}
       />
+
+      {/* Delete Project Modal */}
+      {projectToDelete && (
+        <DeleteProjectModal
+          isOpen={!!projectToDelete}
+          onClose={() => setProjectToDelete(null)}
+          onSuccess={() => {
+            refetchProjects()
+            refetchTasks()
+          }}
+          project={{ id: projectToDelete.id, name: projectToDelete.name }}
+        />
+      )}
 
       {/* Task Detail Modal */}
       {selectedTask && (

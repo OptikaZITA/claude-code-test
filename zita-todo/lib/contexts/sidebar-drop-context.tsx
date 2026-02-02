@@ -9,6 +9,10 @@ interface SidebarDropContextValue {
   draggedTask: TaskWithRelations | null
   setDraggedTask: (task: TaskWithRelations | null) => void
 
+  // Dragged project
+  draggedProject: { id: string; name: string } | null
+  setDraggedProject: (project: { id: string; name: string } | null) => void
+
   // Drop target
   dropTarget: DropTarget | null
   setDropTarget: (target: DropTarget | null) => void
@@ -40,6 +44,7 @@ const SidebarDropContext = createContext<SidebarDropContextValue | null>(null)
 
 export function SidebarDropProvider({ children }: { children: ReactNode }) {
   const [draggedTask, setDraggedTask] = useState<TaskWithRelations | null>(null)
+  const [draggedProject, setDraggedProject] = useState<{ id: string; name: string } | null>(null)
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null)
   const [showCalendarPicker, setShowCalendarPicker] = useState(false)
   const [pendingCalendarTask, setPendingCalendarTask] = useState<TaskWithRelations | null>(null)
@@ -98,6 +103,26 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const handleDrop = useCallback(async (target: DropTarget) => {
+    // Handle project drop on trash
+    if (draggedProject && target.type === 'trash') {
+      try {
+        const response = await fetch(`/api/projects/${draggedProject.id}`, { method: 'DELETE' })
+        if (!response.ok) {
+          console.error('Error deleting project')
+          return
+        }
+        window.dispatchEvent(new CustomEvent('task:moved', {
+          detail: { target: { type: 'trash' } }
+        }))
+      } catch (error) {
+        console.error('Error deleting project:', error)
+      } finally {
+        setDraggedProject(null)
+        setDropTarget(null)
+      }
+      return
+    }
+
     if (!draggedTask) return
 
     try {
@@ -206,17 +231,19 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
       setDraggedTask(null)
       setDropTarget(null)
     }
-  }, [draggedTask, supabase])
+  }, [draggedTask, draggedProject, supabase])
 
   return (
     <SidebarDropContext.Provider
       value={{
         draggedTask,
         setDraggedTask,
+        draggedProject,
+        setDraggedProject,
         dropTarget,
         setDropTarget,
         handleDrop,
-        isDragging: !!draggedTask,
+        isDragging: !!draggedTask || !!draggedProject,
         showCalendarPicker,
         setShowCalendarPicker,
         pendingCalendarTask,

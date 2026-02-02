@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useMemo, useRef } from 'react'
-import { useParams } from 'next/navigation'
-import { FolderKanban, Plus, Calendar, AlertTriangle } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
+import { FolderKanban, Plus, Calendar, AlertTriangle, Trash2 } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { ProjectTaskList } from '@/components/tasks/project-task-list'
@@ -15,6 +15,7 @@ import { sk } from 'date-fns/locale'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { QuickTimeModal } from '@/components/time-tracking/quick-time-modal'
+import { DeleteProjectModal } from '@/components/projects/delete-project-modal'
 import { useProject, useProjectTasks } from '@/lib/hooks/use-projects'
 import { useAreas } from '@/lib/hooks/use-areas'
 import { useTags } from '@/lib/hooks/use-tags'
@@ -30,6 +31,7 @@ import { cn } from '@/lib/utils/cn'
 
 export default function ProjectPage() {
   const params = useParams()
+  const router = useRouter()
   const projectId = params.projectId as string
 
   const { user } = useCurrentUser()
@@ -48,7 +50,8 @@ export default function ProjectPage() {
   const { users: organizationUsers } = useOrganizationUsers()
   const { checkTaskHasTime } = useTaskHasTime()
 
-  // State for QuickTimeModal
+  // State for modals
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [pendingCompleteTask, setPendingCompleteTask] = useState<TaskWithRelations | null>(null)
 
   // Apply filters to tasks
@@ -81,22 +84,6 @@ export default function ProjectPage() {
         when_type: taskData.when_type || 'anytime',
         when_date: taskData.when_date,
         status: 'backlog', // Nové úlohy v projekte začínajú v Backlog
-        is_inbox: false,
-      })
-      refetchTasks()
-    } catch (error) {
-      console.error('Error creating task:', error)
-    }
-  }
-
-  // For ProjectTaskList
-  const handleQuickAddSimple = async (title: string) => {
-    try {
-      await createTask({
-        title,
-        project_id: projectId,
-        status: 'backlog',
-        when_type: 'anytime',
         is_inbox: false,
       })
       refetchTasks()
@@ -356,13 +343,22 @@ export default function ProjectPage() {
                 )
               })()}
             </div>
-            <Button
-              onClick={() => inlineFormRef.current?.activate()}
-              className="bg-primary text-white hover:bg-primary/90 hidden lg:flex"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Pridať úlohu
-            </Button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors"
+                title="Zmazať projekt"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+              <Button
+                onClick={() => inlineFormRef.current?.activate()}
+                className="bg-primary text-white hover:bg-primary/90 hidden lg:flex"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Pridať úlohu
+              </Button>
+            </div>
           </div>
 
           {/* Inline Task Quick Add Form */}
@@ -398,7 +394,6 @@ export default function ProjectPage() {
             tasks={tagFilteredTasks}
             onTaskClick={setSelectedTask}
             onTaskComplete={handleTaskComplete}
-            onQuickAdd={handleQuickAddSimple}
             emptyMessage=""
             showTodayStar={true}
           />
@@ -429,6 +424,19 @@ export default function ProjectPage() {
           taskId={pendingCompleteTask.id}
           taskTitle={pendingCompleteTask.title}
           onComplete={handleQuickTimeComplete}
+        />
+      )}
+
+      {/* Delete Project Modal */}
+      {project && (
+        <DeleteProjectModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onSuccess={() => {
+            const areaId = project.area_id
+            router.push(areaId ? `/areas/${areaId}` : '/today')
+          }}
+          project={{ id: project.id, name: project.name }}
         />
       )}
     </div>

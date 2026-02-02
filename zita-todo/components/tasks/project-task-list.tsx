@@ -4,14 +4,12 @@ import { useState, useMemo } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { TaskWithRelations } from '@/types'
 import { TaskItem } from './task-item'
-import { TaskQuickAdd, TaskQuickAddData } from './task-quick-add'
 import { cn } from '@/lib/utils/cn'
 
 interface ProjectTaskListProps {
   tasks: TaskWithRelations[]
   onTaskClick: (task: TaskWithRelations) => void
   onTaskComplete: (taskId: string, completed: boolean) => void
-  onQuickAdd: (title: string) => void
   emptyMessage?: string
   /** Zobrazit hviezdicku pre tasky v "Dnes" */
   showTodayStar?: boolean
@@ -21,7 +19,6 @@ export function ProjectTaskList({
   tasks,
   onTaskClick,
   onTaskComplete,
-  onQuickAdd,
   emptyMessage = 'Žiadne úlohy',
   showTodayStar = false,
 }: ProjectTaskListProps) {
@@ -35,9 +32,6 @@ export function ProjectTaskList({
 
   return (
     <div className="space-y-4">
-      {/* Quick add */}
-      <TaskQuickAdd onAdd={(taskData: TaskQuickAddData) => onQuickAdd(taskData.title)} />
-
       {/* Active tasks */}
       {activeTasks.length > 0 && (
         <div className="space-y-1">
