@@ -1,9 +1,25 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Layers, FolderKanban, Star, FolderPlus, Plus, ChevronRight, Trash2 } from 'lucide-react'
+import { Layers, FolderKanban, Star, FolderPlus, Plus, ChevronRight, Trash2, GripVertical } from 'lucide-react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { TaskList } from '@/components/tasks/task-list'
@@ -17,6 +33,8 @@ import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { ProjectFormModal } from '@/components/projects/project-form-modal'
 import { DeleteProjectModal } from '@/components/projects/delete-project-modal'
 import { QuickTimeModal } from '@/components/time-tracking/quick-time-modal'
+import { arrayMove } from '@dnd-kit/sortable'
+import { createClient } from '@/lib/supabase/client'
 import { useArea, useAreaProjects, useAllAreaTasks, useAreas } from '@/lib/hooks/use-areas'
 import { useTasks } from '@/lib/hooks/use-tasks'
 import { useTaskHasTime } from '@/lib/hooks/use-task-has-time'
@@ -41,6 +59,8 @@ interface ProjectSectionProps {
   onTaskDelete: (taskId: string) => void
   onQuickAdd: (title: string, projectId: string) => void
   onProjectDelete: (project: Project) => void
+  onExpand: () => void
+  dragHandleProps?: Record<string, any>
 }
 
 function ProjectSection({
@@ -54,9 +74,34 @@ function ProjectSection({
   onTaskDelete,
   onQuickAdd,
   onProjectDelete,
+  onExpand,
+  dragHandleProps,
 }: ProjectSectionProps) {
   const sortedTasks = sortTasksTodayFirst(tasks)
   const quickAddRef = useRef<TaskQuickAddHandle>(null)
+  const [pendingActivate, setPendingActivate] = useState(false)
+
+  // Activate quick add after expanding (ref becomes available after render)
+  useEffect(() => {
+    if (pendingActivate && isExpanded) {
+      // Small delay to let the ref mount
+      const timer = setTimeout(() => {
+        quickAddRef.current?.activate()
+        setPendingActivate(false)
+      }, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [pendingActivate, isExpanded])
+
+  const handleAddClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!isExpanded) {
+      onExpand()
+      setPendingActivate(true)
+    } else {
+      quickAddRef.current?.activate()
+    }
+  }
 
   const handleQuickAdd = (taskData: TaskQuickAddData) => {
     onQuickAdd(taskData.title, project.id)
@@ -66,6 +111,12 @@ function ProjectSection({
     <div className={cn("mb-6", !isExpanded && "mb-1")}>
       {/* Project Header */}
       <div className="flex items-center gap-2 mb-3 group/project">
+        <span
+          {...dragHandleProps}
+          className="cursor-grab active:cursor-grabbing p-0.5 opacity-0 group-hover/project:opacity-100 transition-opacity text-[var(--text-secondary)]"
+        >
+          <GripVertical className="h-4 w-4" />
+        </span>
         <button
           onClick={onToggle}
           className="p-0.5 rounded hover:bg-accent transition-colors"
@@ -98,7 +149,7 @@ function ProjectSection({
         </Link>
         {/* Small add task button */}
         <button
-          onClick={() => quickAddRef.current?.activate()}
+          onClick={handleAddClick}
           className="p-1 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           title="Pridať úlohu"
         >
@@ -139,6 +190,33 @@ function ProjectSection({
   )
 }
 
+function SortableProjectSection(props: ProjectSectionProps & { id: string }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: props.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className={cn(isDragging && 'opacity-50 z-50')}
+    >
+      <ProjectSection {...props} dragHandleProps={listeners} />
+    </div>
+  )
+}
+
 export default function AreaDetailPage() {
   const params = useParams()
   const areaId = params.areaId as string
@@ -167,6 +245,13 @@ export default function AreaDetailPage() {
   const [pendingCompleteTask, setPendingCompleteTask] = useState<TaskWithRelations | null>(null)
   // State for TaskDetail
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
+
+  // Drag & drop for project reordering
+  const supabase = createClient()
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  )
 
   // State for project expand/collapse
   const [expandedProjects, setExpandedProjects] = useState<Set<string> | null>(null)
@@ -249,6 +334,39 @@ export default function AreaDetailPage() {
       return projectTaskList.length > 0
     })
   }, [activeProjects, selectedTag, projectTasks])
+
+  const handleProjectDragStart = useCallback((event: DragStartEvent) => {
+    setActiveProjectId(event.active.id as string)
+  }, [])
+
+  const handleProjectDragEnd = useCallback(async (event: DragEndEvent) => {
+    setActiveProjectId(null)
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = visibleProjects.findIndex(p => p.id === active.id)
+    const newIndex = visibleProjects.findIndex(p => p.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reordered = arrayMove(visibleProjects, oldIndex, newIndex)
+
+    // Update sort_order in DB for all reordered projects
+    try {
+      await Promise.all(
+        reordered.map((project, index) =>
+          supabase
+            .from('projects')
+            .update({ sort_order: index, updated_at: new Date().toISOString() })
+            .eq('id', project.id)
+        )
+      )
+      refetchProjects()
+    } catch (error) {
+      console.error('Error reordering projects:', error)
+    }
+  }, [visibleProjects, supabase, refetchProjects])
+
+  const activeProject = activeProjectId ? visibleProjects.find(p => p.id === activeProjectId) : null
 
   // Get selected tag name for empty state message
   const selectedTagName = useMemo(() => {
@@ -548,25 +666,59 @@ export default function AreaDetailPage() {
             context={{ defaultWhenType: 'anytime', defaultAreaId: areaId }}
           />
 
-          {/* Projects with their tasks */}
-          {visibleProjects.map(project => {
-            const projectTaskList = projectTasks.get(project.id) || []
-            return (
-              <ProjectSection
-                key={project.id}
-                project={project}
-                tasks={projectTaskList}
-                areaColor={area.color}
-                isExpanded={resolvedExpandedProjects.has(project.id)}
-                onToggle={() => toggleProject(project.id)}
-                onTaskComplete={handleTaskComplete}
-                onTaskUpdate={handleTaskUpdate}
-                onTaskDelete={handleTaskDelete}
-                onQuickAdd={handleSimpleQuickAdd}
-                onProjectDelete={setProjectToDelete}
-              />
-            )
-          })}
+          {/* Projects with their tasks - drag & drop reordering */}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleProjectDragStart}
+            onDragEnd={handleProjectDragEnd}
+          >
+            <SortableContext
+              items={visibleProjects.map(p => p.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {visibleProjects.map(project => {
+                const projectTaskList = projectTasks.get(project.id) || []
+                return (
+                  <SortableProjectSection
+                    key={project.id}
+                    id={project.id}
+                    project={project}
+                    tasks={projectTaskList}
+                    areaColor={area.color}
+                    isExpanded={resolvedExpandedProjects.has(project.id)}
+                    onToggle={() => toggleProject(project.id)}
+                    onTaskComplete={handleTaskComplete}
+                    onTaskUpdate={handleTaskUpdate}
+                    onTaskDelete={handleTaskDelete}
+                    onQuickAdd={handleSimpleQuickAdd}
+                    onProjectDelete={setProjectToDelete}
+                    onExpand={() => {
+                      setExpandedProjects(prev => {
+                        const current = prev !== null ? prev : resolvedExpandedProjects
+                        const next = new Set(current)
+                        next.add(project.id)
+                        return next
+                      })
+                    }}
+                  />
+                )
+              })}
+            </SortableContext>
+            <DragOverlay>
+              {activeProject && (
+                <div className="opacity-80 bg-[var(--bg-primary)] rounded-lg shadow-lg p-2">
+                  <div className="flex items-center gap-2">
+                    <FolderKanban
+                      className="h-4 w-4"
+                      style={{ color: area.color || 'var(--color-primary)' }}
+                    />
+                    <span className="font-bold text-sm">{activeProject.name}</span>
+                  </div>
+                </div>
+              )}
+            </DragOverlay>
+          </DndContext>
 
           {/* Loose tasks (directly in area, no project) */}
           {looseTasks.length > 0 && (

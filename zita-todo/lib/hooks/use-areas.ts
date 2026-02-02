@@ -57,7 +57,7 @@ export function useAreaProjects(areaId: string) {
         .from('projects')
         .select('*')
         .eq('area_id', areaId)
-        .is('archived_at', null)
+        .is('deleted_at', null)
         .order('sort_order', { ascending: true })
 
       if (error) throw error
