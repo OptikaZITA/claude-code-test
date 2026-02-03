@@ -4,6 +4,63 @@ História všetkých zmien v projekte.
 
 ---
 
+### v2.44 (3. februára 2026)
+**Area & Project Detail Improvements:**
+
+Vylepšenia zobrazenia oddelení a projektov s inline editáciou a drag & drop.
+
+**1. Collapsible projekty v Area detail:**
+- ✅ Prázdne projekty (0 úloh) sa automaticky zrolujú
+- ✅ Projekty s úlohami sú rozbalené
+- ✅ Kliknutím na šípku sa projekt rozbalí/zroluje
+
+**2. Drag & drop reordering projektov:**
+- ✅ Projekty v Area detail sa dajú preusporiadať drag & drop
+- ✅ Grip handle (⋮⋮) sa zobrazí pri hoveri
+- ✅ Nové poradie sa uloží do DB (sort_order)
+
+**3. Inline editácia v Project detail:**
+- ✅ Klik na názov projektu → editovací mód (input field)
+- ✅ Klik na deadline → date picker pre zmenu
+- ✅ "Pridať deadline" link ak projekt nemá deadline
+- ✅ X button na odstránenie deadlinu
+
+**4. Project detail vylepšenia:**
+- ✅ Progress counter: "4/7 (57%)" za názvom projektu
+- ✅ Malý ⊕ button za názvom pre rýchle pridanie úlohy
+- ✅ Deadline zobrazenie s overdue varovaním
+- ✅ Trash button v hlavičke
+
+**5. Odstránenie Headings vrstvy:**
+- ✅ Hierarchia zjednodušená na Area → Project → Task
+- ✅ Odstránené komponenty: heading-item, heading-form, use-headings
+- ✅ DB tabuľky zachované pre spätnú kompatibilitu
+
+**6. Mazanie projektov:**
+- ✅ Drag & drop projekt do Koša v sidebar
+- ✅ Delete button v Project detail aj Area detail
+- ✅ Soft delete (deleted_at) pre projekty aj ich úlohy
+
+**7. Bulk action toolbar:**
+- ✅ Skrytý na desktope (lg:hidden), zobrazený na mobile/tablet
+- ✅ Klávesové skratky fungujú na desktope aj bez toolbaru
+
+**Bug fixes:**
+- ✅ Opravené filtrovanie vymazaných projektov (deleted_at namiesto archived_at)
+- ✅ ⊕ button funguje aj keď je projekt zrolovaný (pendingActivate pattern)
+
+**Upravené súbory:**
+- `app/(dashboard)/areas/[areaId]/page.tsx` - Collapsible projekty, drag & drop reordering
+- `app/(dashboard)/projects/[projectId]/page.tsx` - Inline title/deadline edit, progress counter
+- `lib/hooks/use-projects.ts` - useProject vracia setProject a refetch
+- `lib/hooks/use-areas.ts` - Filter deleted_at pre projekty
+- `lib/contexts/sidebar-drop-context.tsx` - Podpora drag projektu do koša
+- `components/layout/sidebar-drop-item.tsx` - Draggable projekty
+- `components/tasks/bulk-action-toolbar.tsx` - lg:hidden
+- Odstránené: `components/headings/`, `lib/hooks/use-headings.ts`, `app/api/headings/`
+
+---
+
 ### v2.43 (22. januára 2026)
 **Time Dashboard - Tag Grouping & Fixes:**
 

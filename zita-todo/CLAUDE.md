@@ -5,8 +5,8 @@
 ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zobrazením, sledovaním času a Toggl-style time trackingom. Určená pre ~20 členný tím s podporou osobnej aj tímovej produktivity.
 
 **Dátum vytvorenia**: 2. januára 2026
-**Posledná aktualizácia**: 22. januára 2026
-**Verzia špecifikácie**: 2.43 (Time Dashboard - Tag Grouping & Fixes)
+**Posledná aktualizácia**: 3. februára 2026
+**Verzia špecifikácie**: 2.44 (Area & Project Detail Improvements)
 
 ---
 
@@ -1310,6 +1310,19 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
   - [x] Záznamy bez tagov zobrazené ako "Bez tagu"
 - [x] **Oprava tag filtrovania** - Filter tagov v Časovači teraz funguje správne
 - [x] **Vylepšenia pie chart** - Interaktívny toggle, fixná veľkosť, opravené centrovanie
+
+### Funkcie v2.44 - VŠETKY DOKONČENÉ ✅
+- [x] **Collapsible projekty v Area detail** - Prázdne projekty sa automaticky zrolujú
+- [x] **Drag & drop reordering projektov** - Preusporiadanie projektov v oddelení
+- [x] **Inline editácia názvu projektu** - Klik na názov → editovací mód
+- [x] **Inline editácia deadline projektu** - Klik na deadline → date picker
+- [x] **Progress counter v Project detail** - Zobrazenie "completed/total (percentage%)"
+- [x] **Malý ⊕ button** - Rýchle pridanie úlohy za názvom projektu
+- [x] **Odstránenie Headings vrstvy** - Zjednodušená hierarchia Area → Project → Task
+- [x] **Drag projekt do Koša** - Drag & drop projektu do Koša v sidebar
+- [x] **Bulk action toolbar** - Skrytý na desktope (lg:hidden)
+- [x] **Bug fix: deleted_at filter** - Opravené filtrovanie vymazaných projektov
+- [x] **Bug fix: ⊕ button** - Funguje aj keď je projekt zrolovaný
 
 ---
 
