@@ -79,6 +79,15 @@ export default function LoginPage() {
           />
         </div>
 
+        <div className="text-right">
+          <Link
+            href="/forgot-password"
+            className="text-sm text-[var(--color-primary)] hover:underline"
+          >
+            Zabudnuté heslo?
+          </Link>
+        </div>
+
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? 'Prihlasujem...' : 'Prihlásiť sa'}
         </Button>
