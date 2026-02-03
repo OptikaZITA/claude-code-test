@@ -43,6 +43,9 @@ export default function ProjectPage() {
   const supabase = createClient()
   const [editingDeadline, setEditingDeadline] = useState(false)
   const deadlineInputRef = useRef<HTMLInputElement>(null)
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [editTitleValue, setEditTitleValue] = useState('')
+  const titleInputRef = useRef<HTMLInputElement>(null)
   const { tasks, setTasks, loading: tasksLoading, refetch: refetchTasks } = useProjectTasks(projectId, dbAssigneeFilter)
   const { createTask, updateTask, completeTask } = useTasks()
   const { viewMode, setViewMode, isLoaded } = useViewPreference('project')
@@ -233,6 +236,31 @@ export default function ProjectPage() {
     setEditingDeadline(false)
   }, [project, supabase, setProject])
 
+  const startEditingTitle = useCallback(() => {
+    if (!project) return
+    setEditTitleValue(project.name)
+    setEditingTitle(true)
+    setTimeout(() => titleInputRef.current?.select(), 0)
+  }, [project])
+
+  const saveTitleChange = useCallback(async () => {
+    if (!project) return
+    const trimmedTitle = editTitleValue.trim()
+    if (trimmedTitle && trimmedTitle !== project.name) {
+      try {
+        const { error } = await supabase
+          .from('projects')
+          .update({ name: trimmedTitle, updated_at: new Date().toISOString() })
+          .eq('id', project.id)
+        if (error) throw error
+        setProject(prev => prev ? { ...prev, name: trimmedTitle } : prev)
+      } catch (error) {
+        console.error('Error updating project name:', error)
+      }
+    }
+    setEditingTitle(false)
+  }, [project, editTitleValue, supabase, setProject])
+
   if (projectLoading || tasksLoading || !isLoaded) {
     return (
       <div className="h-full">
@@ -323,7 +351,29 @@ export default function ProjectPage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-heading font-semibold text-foreground">{project.name}</h2>
+                {editingTitle ? (
+                  <input
+                    ref={titleInputRef}
+                    type="text"
+                    value={editTitleValue}
+                    onChange={(e) => setEditTitleValue(e.target.value)}
+                    onBlur={saveTitleChange}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveTitleChange()
+                      if (e.key === 'Escape') setEditingTitle(false)
+                    }}
+                    className="text-2xl font-heading font-semibold text-foreground bg-transparent border-b-2 border-primary outline-none"
+                    autoFocus
+                  />
+                ) : (
+                  <h2
+                    onClick={startEditingTitle}
+                    className="text-2xl font-heading font-semibold text-foreground cursor-pointer hover:text-primary transition-colors"
+                    title="Klikni pre úpravu názvu"
+                  >
+                    {project.name}
+                  </h2>
+                )}
                 {tagFilteredTasks.length > 0 && (() => {
                   const total = tagFilteredTasks.length
                   const completed = tagFilteredTasks.filter(t => t.status === 'done').length
