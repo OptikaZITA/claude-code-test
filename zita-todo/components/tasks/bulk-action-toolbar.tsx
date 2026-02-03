@@ -271,7 +271,7 @@ export function BulkActionToolbar({ onComplete }: BulkActionToolbarProps) {
   if (!hasSelection) return null
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200 lg:hidden">
       <div className="flex items-center gap-2 px-4 py-3 bg-card border border-border rounded-xl shadow-xl">
         {/* Selection count */}
         <div className="flex items-center gap-2 pr-3 border-r border-border">
