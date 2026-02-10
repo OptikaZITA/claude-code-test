@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "import:trello-naty": "npx tsx scripts/import-trello-naty.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

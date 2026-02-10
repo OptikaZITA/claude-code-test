@@ -102,6 +102,20 @@ export function TagSelector({
     }
   }
 
+  // Quick create with default gray color (Enter key shortcut)
+  const handleQuickCreate = async () => {
+    if (!search.trim()) return
+
+    try {
+      const newTag = await createTag(search.trim(), '#6B7280') // Default gray
+      await addTag(newTag.id)
+      onTagsChange?.([...selectedTags, newTag])
+      setSearch('')
+    } catch (error) {
+      console.error('Error creating tag:', error)
+    }
+  }
+
   const handleRemoveTag = async (tag: Tag) => {
     try {
       await removeTag(tag.id)
@@ -145,13 +159,20 @@ export function TagSelector({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Hľadať alebo vytvoriť..."
+              placeholder="Hľadať alebo vytvoriť tag..."
               className={cn(
                 'w-full px-3 py-2 text-sm rounded-lg',
                 'bg-[var(--bg-secondary)] text-[var(--text-primary)]',
                 'placeholder:text-[var(--text-secondary)]',
                 'outline-none focus:ring-2 focus:ring-[var(--color-primary)]'
               )}
+              onKeyDown={(e) => {
+                // Enter key creates tag directly with default color
+                if (e.key === 'Enter' && search.trim() && !filteredTags.some((t) => t.name.toLowerCase() === search.toLowerCase())) {
+                  e.preventDefault()
+                  handleQuickCreate()
+                }
+              }}
             />
           </div>
 
@@ -167,6 +188,11 @@ export function TagSelector({
               </div>
             ) : (
               <>
+                {filteredTags.length === 0 && search && (
+                  <div className="py-3 text-center text-sm text-[var(--text-secondary)]">
+                    Žiadne výsledky
+                  </div>
+                )}
                 {filteredTags.map((tag) => (
                   <button
                     key={tag.id}
@@ -191,7 +217,7 @@ export function TagSelector({
                   </button>
                 ))}
 
-                {/* Create new tag option */}
+                {/* Create new tag option - shows when search text doesn't exactly match any tag */}
                 {search && !filteredTags.some((t) => t.name.toLowerCase() === search.toLowerCase()) && (
                   <button
                     onClick={() => {
