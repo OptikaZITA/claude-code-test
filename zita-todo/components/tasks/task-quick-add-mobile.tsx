@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Star, Tag as TagIcon, FolderOpen, User as UserIcon, Flag, X, Calendar } from 'lucide-react'
+import { Star, Tag as TagIcon, FolderOpen, User as UserIcon, Flag, X, Calendar, Plus } from 'lucide-react'
 import { WhenType, Area, Project, User, Tag } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/cn'
@@ -60,6 +60,8 @@ export function TaskQuickAddMobile({
   const [projectId, setProjectId] = useState<string | null>(context?.defaultProjectId || null)
   const [assigneeId, setAssigneeId] = useState<string | null>(context?.defaultAssigneeId || null)
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
+  const [tagSearch, setTagSearch] = useState('')
+  const [isCreatingTag, setIsCreatingTag] = useState(false)
 
   // Modal states (mobile uses full-screen modals)
   const [showWhenModal, setShowWhenModal] = useState(false)
@@ -156,6 +158,7 @@ export function TaskQuickAddMobile({
     setProjectId(context?.defaultProjectId || null)
     setAssigneeId(context?.defaultAssigneeId || null)
     setSelectedTagIds([])
+    setTagSearch('')
   }
 
   const handleClose = () => {
@@ -175,6 +178,50 @@ export function TaskQuickAddMobile({
   const selectedProject = areas.flatMap(a => a.projects).find(p => p.id === projectId)
   const selectedAssignee = users.find(u => u.id === assigneeId)
   const selectedTags = tags.filter(t => selectedTagIds.includes(t.id))
+
+  // Filtered tags for search
+  const filteredTags = tags.filter(t =>
+    t.name.toLowerCase().includes(tagSearch.toLowerCase())
+  )
+
+  // Check if exact match exists
+  const tagExactMatchExists = tags.some(
+    t => t.name.toLowerCase() === tagSearch.trim().toLowerCase()
+  )
+
+  // Create new tag
+  const handleCreateTag = async () => {
+    if (!tagSearch.trim() || isCreatingTag) return
+
+    setIsCreatingTag(true)
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('organization_id')
+        .single()
+
+      const { data: newTag, error } = await supabase
+        .from('tags')
+        .insert({
+          name: tagSearch.trim(),
+          color: '#6B7280', // Default gray
+          organization_id: userData?.organization_id ?? null,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Add to local tags list and select it
+      setTags(prev => [...prev, newTag])
+      setSelectedTagIds(prev => [...prev, newTag.id])
+      setTagSearch('')
+    } catch (error) {
+      console.error('Error creating tag:', error)
+    } finally {
+      setIsCreatingTag(false)
+    }
+  }
 
   // Calendar helpers
   const monthStart = startOfMonth(currentMonth)
@@ -440,19 +487,40 @@ export function TaskQuickAddMobile({
         <div className="fixed inset-0 z-[60] bg-background">
           <div className="flex flex-col h-full">
             <div className="flex items-center justify-between p-4 border-b border-border">
-              <button onClick={() => setShowTagModal(false)} className="text-muted-foreground">
+              <button onClick={() => { setShowTagModal(false); setTagSearch('') }} className="text-muted-foreground">
                 Zrušiť
               </button>
               <h2 className="text-lg font-semibold">Tagy</h2>
-              <button onClick={() => setShowTagModal(false)} className="text-primary font-medium">
+              <button onClick={() => { setShowTagModal(false); setTagSearch('') }} className="text-primary font-medium">
                 Hotovo
               </button>
             </div>
+
+            {/* Search input */}
+            <div className="p-4 border-b border-border">
+              <input
+                type="text"
+                value={tagSearch}
+                onChange={(e) => setTagSearch(e.target.value)}
+                placeholder="Hľadať alebo vytvoriť tag..."
+                className="w-full px-4 py-3 text-base rounded-xl bg-accent/50 text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && tagSearch.trim() && !tagExactMatchExists) {
+                    e.preventDefault()
+                    handleCreateTag()
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {tags.length === 0 ? (
+              {filteredTags.length === 0 && !tagSearch ? (
                 <p className="text-center text-muted-foreground py-8">Žiadne tagy</p>
+              ) : filteredTags.length === 0 && tagSearch ? (
+                <p className="text-center text-muted-foreground py-4">Žiadne výsledky</p>
               ) : (
-                tags.map(tag => (
+                filteredTags.map(tag => (
                   <button
                     key={tag.id}
                     onClick={() => {
@@ -472,6 +540,18 @@ export function TaskQuickAddMobile({
                     {selectedTagIds.includes(tag.id) && <span className="text-primary">✓</span>}
                   </button>
                 ))
+              )}
+
+              {/* Create new tag option */}
+              {tagSearch.trim() && !tagExactMatchExists && (
+                <button
+                  onClick={handleCreateTag}
+                  disabled={isCreatingTag}
+                  className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left text-primary bg-primary/10 transition-colors disabled:opacity-50"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{isCreatingTag ? 'Vytváram...' : `Vytvoriť "${tagSearch.trim()}"`}</span>
+                </button>
               )}
             </div>
           </div>

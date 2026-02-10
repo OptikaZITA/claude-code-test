@@ -75,6 +75,8 @@ export const TaskQuickAdd = forwardRef<TaskQuickAddHandle, TaskQuickAddProps>(fu
   const [assigneeId, setAssigneeId] = useState<string | null>(context?.defaultAssigneeId || null)
   const [deadline, setDeadline] = useState<string | null>(null)
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
+  const [tagSearch, setTagSearch] = useState('')
+  const [isCreatingTag, setIsCreatingTag] = useState(false)
 
   // Dropdown states
   const [showWhenPicker, setShowWhenPicker] = useState(false)
@@ -222,6 +224,7 @@ export const TaskQuickAdd = forwardRef<TaskQuickAddHandle, TaskQuickAddProps>(fu
     setAssigneeId(context?.defaultAssigneeId || null)
     setDeadline(null)
     setSelectedTagIds([])
+    setTagSearch('')
     setIsActive(false)
     closeAllPickers()
   }
@@ -232,6 +235,7 @@ export const TaskQuickAdd = forwardRef<TaskQuickAddHandle, TaskQuickAddProps>(fu
     setShowAssigneePicker(false)
     setShowDeadlinePicker(false)
     setShowTagPicker(false)
+    setTagSearch('')
   }
 
   // Helper to get selected area/project names
@@ -239,6 +243,50 @@ export const TaskQuickAdd = forwardRef<TaskQuickAddHandle, TaskQuickAddProps>(fu
   const selectedProject = areas.flatMap(a => a.projects).find(p => p.id === projectId)
   const selectedAssignee = users.find(u => u.id === assigneeId)
   const selectedTags = tags.filter(t => selectedTagIds.includes(t.id))
+
+  // Filtered tags for search
+  const filteredTags = tags.filter(t =>
+    t.name.toLowerCase().includes(tagSearch.toLowerCase())
+  )
+
+  // Check if exact match exists
+  const tagExactMatchExists = tags.some(
+    t => t.name.toLowerCase() === tagSearch.trim().toLowerCase()
+  )
+
+  // Create new tag
+  const handleCreateTag = async () => {
+    if (!tagSearch.trim() || isCreatingTag) return
+
+    setIsCreatingTag(true)
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('organization_id')
+        .single()
+
+      const { data: newTag, error } = await supabase
+        .from('tags')
+        .insert({
+          name: tagSearch.trim(),
+          color: '#6B7280', // Default gray
+          organization_id: userData?.organization_id ?? null,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Add to local tags list and select it
+      setTags(prev => [...prev, newTag])
+      setSelectedTagIds(prev => [...prev, newTag.id])
+      setTagSearch('')
+    } catch (error) {
+      console.error('Error creating tag:', error)
+    } finally {
+      setIsCreatingTag(false)
+    }
+  }
 
   // Calendar helpers
   const monthStart = startOfMonth(currentMonth)
@@ -424,12 +472,33 @@ export const TaskQuickAdd = forwardRef<TaskQuickAddHandle, TaskQuickAddProps>(fu
           </button>
 
           {showTagPicker && (
-            <div className="absolute top-full left-0 mt-2 w-56 rounded-xl border border-border bg-card shadow-xl z-50 max-h-64 overflow-y-auto">
-              <div className="p-2 space-y-1">
-                {tags.length === 0 ? (
-                  <p className="px-3 py-2 text-sm text-muted-foreground">Žiadne tagy</p>
+            <div className="absolute top-full left-0 mt-2 w-64 rounded-xl border border-border bg-card shadow-xl z-50">
+              {/* Search input */}
+              <div className="p-2 border-b border-border">
+                <input
+                  type="text"
+                  value={tagSearch}
+                  onChange={(e) => setTagSearch(e.target.value)}
+                  placeholder="Hľadať alebo vytvoriť tag..."
+                  className="w-full px-3 py-2 text-sm rounded-lg bg-accent/50 text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && tagSearch.trim() && !tagExactMatchExists) {
+                      e.preventDefault()
+                      handleCreateTag()
+                    }
+                  }}
+                  autoFocus
+                />
+              </div>
+
+              {/* Tags list */}
+              <div className="max-h-48 overflow-y-auto p-2 space-y-1">
+                {filteredTags.length === 0 && !tagSearch ? (
+                  <p className="px-3 py-2 text-sm text-muted-foreground text-center">Žiadne tagy</p>
+                ) : filteredTags.length === 0 && tagSearch ? (
+                  <p className="px-3 py-2 text-sm text-muted-foreground text-center">Žiadne výsledky</p>
                 ) : (
-                  tags.map(tag => (
+                  filteredTags.map(tag => (
                     <button
                       key={tag.id}
                       onClick={() => {
@@ -446,6 +515,18 @@ export const TaskQuickAdd = forwardRef<TaskQuickAddHandle, TaskQuickAddProps>(fu
                       {selectedTagIds.includes(tag.id) && <span className="text-primary">✓</span>}
                     </button>
                   ))
+                )}
+
+                {/* Create new tag option */}
+                {tagSearch.trim() && !tagExactMatchExists && (
+                  <button
+                    onClick={handleCreateTag}
+                    disabled={isCreatingTag}
+                    className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-left text-sm text-primary hover:bg-accent/50 transition-colors disabled:opacity-50"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>{isCreatingTag ? 'Vytváram...' : `Vytvoriť "${tagSearch.trim()}"`}</span>
+                  </button>
                 )}
               </div>
             </div>
