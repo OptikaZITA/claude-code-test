@@ -179,14 +179,23 @@ export default function InboxPage() {
   }
 
   const handleReorder = async (taskId: string, newIndex: number, currentTasks: TaskWithRelations[]) => {
-    // OPTIMISTIC UPDATE: Okamžite aktualizuj UI
+    // currentTasks môže byť filtrovaný subset, potrebujeme pracovať s plným zoznamom
     const oldIndex = currentTasks.findIndex(t => t.id === taskId)
     if (oldIndex === -1 || oldIndex === newIndex) return
 
-    const reordered = [...currentTasks]
-    const [moved] = reordered.splice(oldIndex, 1)
-    reordered.splice(newIndex, 0, moved)
-    setTasks(reordered)
+    // Vytvor nové poradie pre filtrované úlohy
+    const reorderedFiltered = [...currentTasks]
+    const [moved] = reorderedFiltered.splice(oldIndex, 1)
+    reorderedFiltered.splice(newIndex, 0, moved)
+
+    // OPTIMISTIC UPDATE: Aktualizuj sort_order v plnom zozname úloh
+    const newSortOrders = new Map(reorderedFiltered.map((t, i) => [t.id, i]))
+    const updatedTasks = tasks.map(t => ({
+      ...t,
+      sort_order: newSortOrders.has(t.id) ? newSortOrders.get(t.id)! : t.sort_order
+    })).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+
+    setTasks(updatedTasks)
 
     try {
       await reorderTasks(taskId, newIndex, currentTasks)
@@ -194,7 +203,7 @@ export default function InboxPage() {
     } catch (error) {
       console.error('Error reordering tasks:', error)
       // ROLLBACK: Vráť pôvodné poradie pri chybe
-      setTasks(currentTasks)
+      refetch()
     }
   }
 

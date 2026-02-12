@@ -223,19 +223,23 @@ export default function ProjectPage() {
 
   // Reorder handler for drag & drop
   const handleReorder = async (taskId: string, newIndex: number, currentTasks: TaskWithRelations[]) => {
-    // OPTIMISTIC UPDATE: Okamžite aktualizuj UI
+    // currentTasks obsahuje len aktívne úlohy (z project-task-list)
     const oldIndex = currentTasks.findIndex(t => t.id === taskId)
     if (oldIndex === -1 || oldIndex === newIndex) return
 
-    // currentTasks obsahuje len aktívne úlohy (z project-task-list)
-    // Musíme zachovať dokončené úlohy pri aktualizácii
-    const completedTasks = tasks.filter(t => t.status === 'done')
+    // Vytvor nové poradie pre aktívne úlohy
     const reorderedActive = [...currentTasks]
     const [moved] = reorderedActive.splice(oldIndex, 1)
     reorderedActive.splice(newIndex, 0, moved)
 
-    // Spojíme aktívne úlohy s dokončenými
-    setTasks([...reorderedActive, ...completedTasks])
+    // OPTIMISTIC UPDATE: Aktualizuj sort_order v plnom zozname úloh
+    const newSortOrders = new Map(reorderedActive.map((t, i) => [t.id, i]))
+    const updatedTasks = tasks.map(t => ({
+      ...t,
+      sort_order: newSortOrders.has(t.id) ? newSortOrders.get(t.id)! : t.sort_order
+    })).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+
+    setTasks(updatedTasks)
 
     try {
       await reorderTasks(taskId, newIndex, currentTasks)
@@ -243,7 +247,7 @@ export default function ProjectPage() {
     } catch (error) {
       console.error('Error reordering tasks:', error)
       // ROLLBACK: Vráť pôvodné poradie pri chybe
-      setTasks(tasks)
+      refetchTasks()
     }
   }
 

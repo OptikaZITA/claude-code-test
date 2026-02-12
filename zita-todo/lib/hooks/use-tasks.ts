@@ -305,16 +305,17 @@ export function useTasks() {
     }))
 
     // Batch update all affected tasks
-    try {
-      for (const update of updates) {
-        await supabase
-          .from('tasks')
-          .update({ sort_order: update.sort_order })
-          .eq('id', update.id)
+    // UI is already updated via optimistic update in the page component
+    for (const update of updates) {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ sort_order: update.sort_order })
+        .eq('id', update.id)
+
+      if (error) {
+        console.error('Error updating sort_order:', error)
+        throw error
       }
-      await fetchTasks()
-    } catch (err) {
-      console.error('Error reordering tasks:', err)
     }
   }
 
