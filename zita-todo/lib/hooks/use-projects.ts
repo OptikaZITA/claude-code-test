@@ -2,9 +2,19 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Project, TaskWithRelations } from '@/types'
+import { Project, TaskWithRelations, Tag } from '@/types'
 import { sortTasksTodayFirst } from '@/lib/utils/task-sorting'
 import { AssigneeFilter } from './use-tasks'
+
+// Helper to transform Supabase nested tags structure to flat Tag[]
+// Supabase returns: tags: [{ tag: { id, name, color } }, ...]
+// We need: tags: [{ id, name, color }, ...]
+function transformTasks(tasks: any[]): TaskWithRelations[] {
+  return tasks.map(task => ({
+    ...task,
+    tags: task.tags?.map((t: { tag: Tag }) => t.tag).filter(Boolean) || [],
+  }))
+}
 
 export function useProject(projectId: string) {
   const [project, setProject] = useState<Project | null>(null)
@@ -59,7 +69,10 @@ export function useProjectTasks(projectId: string, assigneeFilter?: AssigneeFilt
         .from('tasks')
         .select(`
           *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status)
+          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
+          project:projects(id, name, color),
+          area:areas(id, name, color),
+          tags:task_tags(tag:tags(id, name, color))
         `)
         .eq('project_id', projectId)
         .is('archived_at', null)
@@ -78,8 +91,8 @@ export function useProjectTasks(projectId: string, assigneeFilter?: AssigneeFilt
       const { data, error } = await query.order('sort_order', { ascending: true })
 
       if (error) throw error
-      // Apply today-first sorting
-      setTasks(sortTasksTodayFirst(data || []))
+      // Transform tags and apply today-first sorting
+      setTasks(sortTasksTodayFirst(transformTasks(data || [])))
     } catch (err) {
       setError(err as Error)
     } finally {

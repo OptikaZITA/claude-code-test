@@ -220,11 +220,29 @@ export function filterTasks(tasks: TaskWithRelations[], filters: TaskFilters): T
   return filtered
 }
 
-// Sort tasks by deadline
+// Sort tasks by deadline or created_at
 export function sortTasks(tasks: TaskWithRelations[], sortBy: SortOption): TaskWithRelations[] {
   if (sortBy === 'default') return tasks
 
   return [...tasks].sort((a, b) => {
+    // Handle created_at sorting
+    if (sortBy === 'created_asc' || sortBy === 'created_desc') {
+      const dateA = a.created_at
+      const dateB = b.created_at
+
+      if (!dateA && !dateB) return 0
+      if (!dateA) return 1
+      if (!dateB) return -1
+
+      const parsedA = parseISO(dateA)
+      const parsedB = parseISO(dateB)
+
+      return sortBy === 'created_asc'
+        ? compareAsc(parsedA, parsedB)
+        : compareDesc(parsedA, parsedB)
+    }
+
+    // Handle deadline sorting
     const dateA = a.deadline || a.due_date
     const dateB = b.deadline || b.due_date
 

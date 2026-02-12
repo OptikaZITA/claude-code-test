@@ -365,6 +365,8 @@ export function useCascadingFilters(
       { value: 'default', label: 'Predvolené', count: tasks.length },
       { value: 'deadline_asc', label: 'Deadline ↑', count: tasks.length },
       { value: 'deadline_desc', label: 'Deadline ↓', count: tasks.length },
+      { value: 'created_asc', label: 'Vytvorené ↑', count: tasks.length },
+      { value: 'created_desc', label: 'Vytvorené ↓', count: tasks.length },
     ]
 
     return {

@@ -298,7 +298,7 @@ export const DEFAULT_KANBAN_COLUMNS: KanbanColumnConfig[] = [
 
 // Filter types
 export type DueDateFilter = 'today' | 'this_week' | 'this_month' | 'overdue' | 'no_date'
-export type SortOption = 'default' | 'deadline_asc' | 'deadline_desc'
+export type SortOption = 'default' | 'deadline_asc' | 'deadline_desc' | 'created_asc' | 'created_desc'
 
 export interface TaskFilters {
   status: TaskStatus | null

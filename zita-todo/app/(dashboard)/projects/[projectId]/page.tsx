@@ -47,7 +47,7 @@ export default function ProjectPage() {
   const [editTitleValue, setEditTitleValue] = useState('')
   const titleInputRef = useRef<HTMLInputElement>(null)
   const { tasks, setTasks, loading: tasksLoading, refetch: refetchTasks } = useProjectTasks(projectId, dbAssigneeFilter)
-  const { createTask, updateTask, completeTask } = useTasks()
+  const { createTask, updateTask, completeTask, reorderTasks } = useTasks()
   const { viewMode, setViewMode, isLoaded } = useViewPreference('project')
   const { filters, setFilter, clearFilters, clearFilter, hasActiveFilters } = useTaskFilters()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
@@ -218,6 +218,36 @@ export default function ProjectPage() {
       refetchTasks()
     } catch (error) {
       console.error('Error moving task:', error)
+    }
+  }
+
+  // Reorder handler for drag & drop
+  const handleReorder = async (taskId: string, newIndex: number, currentTasks: TaskWithRelations[]) => {
+    try {
+      await reorderTasks(taskId, newIndex, currentTasks)
+      refetchTasks()
+    } catch (error) {
+      console.error('Error reordering tasks:', error)
+    }
+  }
+
+  // Inline task update handler
+  const handleInlineTaskUpdate = async (taskId: string, updates: Partial<TaskWithRelations>) => {
+    try {
+      await updateTask(taskId, updates)
+      refetchTasks()
+    } catch (error) {
+      console.error('Error updating task:', error)
+    }
+  }
+
+  // Task delete handler
+  const handleTaskDelete = async (taskId: string) => {
+    try {
+      await updateTask(taskId, { deleted_at: new Date().toISOString() })
+      refetchTasks()
+    } catch (error) {
+      console.error('Error deleting task:', error)
     }
   }
 
@@ -498,6 +528,9 @@ export default function ProjectPage() {
             tasks={tagFilteredTasks}
             onTaskClick={setSelectedTask}
             onTaskComplete={handleTaskComplete}
+            onTaskUpdate={handleInlineTaskUpdate}
+            onTaskDelete={handleTaskDelete}
+            onReorder={handleReorder}
             emptyMessage=""
             showTodayStar={true}
           />
