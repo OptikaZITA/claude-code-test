@@ -204,17 +204,30 @@ export function TaskList({
     const { active, over } = event
     setActiveTask(null)
 
+    console.log('[TaskList] Drag ended:', { activeId: active.id, overId: over?.id })
+
     // Check if there's a sidebar drop target (trash, when, project, area)
     if (dropTarget) {
+      console.log('[TaskList] Dropping to sidebar:', dropTarget)
       handleSidebarDrop(dropTarget)
       setDropTarget(null)
       return
     }
 
-    if (!over || active.id === over.id) return
+    if (!over) {
+      console.log('[TaskList] No drop target')
+      return
+    }
+
+    if (active.id === over.id) {
+      console.log('[TaskList] Same position - no reorder')
+      return
+    }
 
     const oldIndex = tasks.findIndex((t) => t.id === active.id)
     const newIndex = tasks.findIndex((t) => t.id === over.id)
+
+    console.log('[TaskList] Reorder:', { oldIndex, newIndex, hasOnReorder: !!onReorder })
 
     if (oldIndex !== -1 && newIndex !== -1 && onReorder) {
       onReorder(active.id as string, newIndex, tasks)

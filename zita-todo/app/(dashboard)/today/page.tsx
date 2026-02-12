@@ -221,11 +221,22 @@ export default function TodayPage() {
   }
 
   const handleReorder = async (taskId: string, newIndex: number, currentTasks: TaskWithRelations[]) => {
+    // OPTIMISTIC UPDATE: Okamžite aktualizuj UI
+    const oldIndex = currentTasks.findIndex(t => t.id === taskId)
+    if (oldIndex === -1 || oldIndex === newIndex) return
+
+    const reordered = [...currentTasks]
+    const [moved] = reordered.splice(oldIndex, 1)
+    reordered.splice(newIndex, 0, moved)
+    setTasks(reordered)
+
     try {
       await reorderTasks(taskId, newIndex, currentTasks)
-      refetch()
+      // Nie je potrebný refetch - optimistic update je už urobený
     } catch (error) {
       console.error('Error reordering tasks:', error)
+      // ROLLBACK: Vráť pôvodné poradie pri chybe
+      setTasks(currentTasks)
     }
   }
 

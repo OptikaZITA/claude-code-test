@@ -223,11 +223,27 @@ export default function ProjectPage() {
 
   // Reorder handler for drag & drop
   const handleReorder = async (taskId: string, newIndex: number, currentTasks: TaskWithRelations[]) => {
+    // OPTIMISTIC UPDATE: Okamžite aktualizuj UI
+    const oldIndex = currentTasks.findIndex(t => t.id === taskId)
+    if (oldIndex === -1 || oldIndex === newIndex) return
+
+    // currentTasks obsahuje len aktívne úlohy (z project-task-list)
+    // Musíme zachovať dokončené úlohy pri aktualizácii
+    const completedTasks = tasks.filter(t => t.status === 'done')
+    const reorderedActive = [...currentTasks]
+    const [moved] = reorderedActive.splice(oldIndex, 1)
+    reorderedActive.splice(newIndex, 0, moved)
+
+    // Spojíme aktívne úlohy s dokončenými
+    setTasks([...reorderedActive, ...completedTasks])
+
     try {
       await reorderTasks(taskId, newIndex, currentTasks)
-      refetchTasks()
+      // Nie je potrebný refetch - optimistic update je už urobený
     } catch (error) {
       console.error('Error reordering tasks:', error)
+      // ROLLBACK: Vráť pôvodné poradie pri chybe
+      setTasks(tasks)
     }
   }
 

@@ -43,8 +43,10 @@ const PRIORITY_LABELS: Record<TaskPriority, string> = {
 
 const SORT_LABELS: Record<SortOption, string> = {
   default: '',
-  deadline_asc: 'Deadline \u2191',
-  deadline_desc: 'Deadline \u2193',
+  deadline_asc: 'Deadline ↑',
+  deadline_desc: 'Deadline ↓',
+  created_asc: 'Vytvorené ↑',
+  created_desc: 'Vytvorené ↓',
 }
 
 export function ActiveFiltersChips({
