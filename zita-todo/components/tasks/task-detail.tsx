@@ -227,12 +227,12 @@ export function TaskDetail({
               <h2
                 onClick={() => setIsEditingTitle(true)}
                 className={cn(
-                  'text-lg font-semibold cursor-text hover:bg-muted rounded px-1 -mx-1',
-                  'text-foreground',
+                  'text-xl font-bold cursor-text hover:bg-muted rounded px-1 -mx-1',
+                  'text-foreground break-words',
                   isCompleted && 'line-through text-muted-foreground'
                 )}
               >
-                {title}
+                {title || 'Bez názvu'}
               </h2>
             )}
           </div>
@@ -371,15 +371,15 @@ export function TaskDetail({
           {/* Notes Section */}
           <div className="pt-2">
             <label className="mb-2 block text-sm font-medium text-foreground">
-              Poznamky
+              Poznámky
             </label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               onBlur={handleNotesBlur}
               placeholder="Pridať poznámky..."
-              rows={3}
-              className="resize-none"
+              rows={6}
+              className="min-h-32 resize-y"
             />
           </div>
 
