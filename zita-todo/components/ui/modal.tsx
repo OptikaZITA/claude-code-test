@@ -41,7 +41,7 @@ export function Modal({ isOpen, onClose, title, children, className, size = 'md'
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 dark:bg-black/70 animate-fade-in"
@@ -51,23 +51,26 @@ export function Modal({ isOpen, onClose, title, children, className, size = 'md'
       {/* Modal content */}
       <div
         className={cn(
-          'relative z-50 w-full p-6',
+          'relative z-50 w-full',
           'rounded-[var(--radius-lg)] border border-[var(--border)]',
           'bg-card text-foreground',
           'shadow-lg animate-scale-in',
+          'max-h-[90vh] overflow-hidden flex flex-col',
           sizeClasses[size],
           className
         )}
       >
         {title && (
-          <div className="mb-4 flex items-center justify-between">
+          <div className="flex-shrink-0 p-4 border-b border-[var(--border)] flex items-center justify-between">
             <h2 className="font-heading text-lg font-semibold text-foreground">{title}</h2>
             <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0 hover:bg-accent/50">
               <X className="h-4 w-4" />
             </Button>
           </div>
         )}
-        {children}
+        <div className="flex-1 overflow-y-auto">
+          {children}
+        </div>
       </div>
     </div>
   )
