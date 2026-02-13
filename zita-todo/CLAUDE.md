@@ -5,8 +5,8 @@
 ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zobrazením, sledovaním času a Toggl-style time trackingom. Určená pre ~20 členný tím s podporou osobnej aj tímovej produktivity.
 
 **Dátum vytvorenia**: 2. januára 2026
-**Posledná aktualizácia**: 3. februára 2026
-**Verzia špecifikácie**: 2.44 (Area & Project Detail Improvements)
+**Posledná aktualizácia**: 13. februára 2026
+**Verzia špecifikácie**: 2.45 (Drag & Drop Fixes + Area Tasks Query)
 
 ---
 
@@ -1323,6 +1323,16 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 - [x] **Bulk action toolbar** - Skrytý na desktope (lg:hidden)
 - [x] **Bug fix: deleted_at filter** - Opravené filtrovanie vymazaných projektov
 - [x] **Bug fix: ⊕ button** - Funguje aj keď je projekt zrolovaný
+
+### Funkcie v2.45 - VŠETKY DOKONČENÉ ✅
+- [x] **Oprava drag & drop v Area list view** - Vyriešený konflikt HTML5 drag vs @dnd-kit
+  - [x] TaskList používa @dnd-kit s `onReorder` prop a `enableDrag={false}`
+  - [x] Implementovaný `handleTaskReorder` handler pre perzistenciu
+- [x] **Oprava chýbajúcich úloh v Area view** - Tasky bez area_id sa teraz zobrazujú
+  - [x] `useAllAreaTasks` query úlohy aj cez `project.area_id`
+  - [x] `createTask` auto-nastavuje `area_id` z projektu
+  - [x] DB migrácia: opravené všetky existujúce tasky s `area_id = NULL`
+- [x] **Odstránenie debug logov** - Vyčistené console.log z produkčného kódu
 
 ---
 

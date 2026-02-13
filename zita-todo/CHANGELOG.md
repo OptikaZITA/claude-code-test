@@ -4,6 +4,45 @@ História všetkých zmien v projekte.
 
 ---
 
+### v2.45 (13. februára 2026)
+**Drag & Drop Fixes + Area Tasks Query Fix:**
+
+Kritické opravy drag & drop funkcionality a zobrazenia úloh v Area view.
+
+**1. Oprava drag & drop konfliktov v Area list view:**
+- ✅ Opravený konflikt medzi HTML5 drag a @dnd-kit
+- ✅ TaskList v ProjectSection teraz používa @dnd-kit namiesto HTML5 drag
+- ✅ Pridaný `onReorder` prop a `enableDrag={false}` pre správne fungovanie
+- ✅ Implementovaný `handleTaskReorder` handler pre perzistenciu poradia
+
+**2. Oprava chýbajúcich úloh v Area view:**
+- ✅ Root cause: Tasky vytvorené v projekte nemali nastavené `area_id`
+- ✅ `useAllAreaTasks` hook teraz query úlohy aj cez `project.area_id`
+- ✅ `createTask` automaticky nastavuje `area_id` z projektu
+- ✅ DB migrácia: Všetky existujúce tasky s `area_id = NULL` opravené
+
+**3. Odstránenie debug logov:**
+- ✅ Odstránené všetky console.log s emoji (🟢🟡🔴⚫🎯⚠️) z produkčného kódu
+- ✅ Vyčistené: sidebar-drop-item.tsx, draggable-task.tsx, task-list.tsx
+- ✅ Vyčistené: kanban-board.tsx, project-task-list.tsx
+
+**Bug fixes:**
+- ✅ Tasky sa teraz správne zobrazujú aj keď nemajú priame `area_id`
+- ✅ Drag & drop reordering funguje v Area list view
+- ✅ Sidebar drop targets fungujú správne
+
+**Upravené súbory:**
+- `app/(dashboard)/areas/[areaId]/page.tsx` - Opravený drag & drop
+- `lib/hooks/use-areas.ts` - Query úlohy aj cez project.area_id
+- `lib/hooks/use-tasks.ts` - Auto-set area_id pri vytváraní tasku
+- `components/layout/sidebar-drop-item.tsx` - Odstránené debug logy
+- `components/tasks/draggable-task.tsx` - Odstránené debug logy
+- `components/tasks/task-list.tsx` - Odstránené debug logy
+- `components/tasks/kanban-board.tsx` - Odstránené debug logy
+- `components/tasks/project-task-list.tsx` - Odstránené debug logy
+
+---
+
 ### v2.44 (3. februára 2026)
 **Area & Project Detail Improvements:**
 
