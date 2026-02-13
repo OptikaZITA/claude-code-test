@@ -147,6 +147,8 @@ export function useTasks() {
   }
 
   const updateTask = async (taskId: string, updates: Partial<Task>) => {
+    console.log('[useTasks.updateTask] START:', { taskId, updates })
+
     // Auto-set added_to_today_at when task moves to 'today'
     const finalUpdates = { ...updates }
     if (updates.when_type === 'today' && !updates.added_to_today_at) {
@@ -157,6 +159,8 @@ export function useTasks() {
       finalUpdates.added_to_today_at = null
     }
 
+    console.log('[useTasks.updateTask] Calling Supabase with:', finalUpdates)
+
     const { data, error } = await supabase
       .from('tasks')
       .update(finalUpdates)
@@ -164,7 +168,12 @@ export function useTasks() {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('[useTasks.updateTask] Supabase ERROR:', error)
+      throw error
+    }
+
+    console.log('[useTasks.updateTask] Supabase SUCCESS:', data)
     await fetchTasks()
     return data
   }

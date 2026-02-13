@@ -4,12 +4,13 @@ import { useState, useCallback, useEffect } from 'react'
 import {
   DndContext,
   DragEndEvent,
+  DragOverEvent,
   DragOverlay,
   DragStartEvent,
   PointerSensor,
   useSensor,
   useSensors,
-  closestCorners,
+  pointerWithin,
 } from '@dnd-kit/core'
 import { TaskWithRelations, TaskStatus, DEFAULT_KANBAN_COLUMNS } from '@/types'
 import { KanbanColumn as KanbanColumnComponent } from './kanban-column'
@@ -74,15 +75,20 @@ export function KanbanBoard({
     const { active, over } = event
     setActiveTask(null)
 
+    // Always clear dropTarget at the end of drag
+    const currentDropTarget = dropTarget
+    setDropTarget(null)
+
     // Check if there's a sidebar drop target (trash, when, project, area)
     // This has priority over Kanban column drops
-    if (dropTarget) {
-      handleSidebarDrop(dropTarget)
-      setDropTarget(null)
+    if (currentDropTarget) {
+      handleSidebarDrop(currentDropTarget)
       return
     }
 
-    if (!over) return
+    if (!over) {
+      return
+    }
 
     const taskId = active.id as string
     const overId = over.id as string
@@ -95,7 +101,11 @@ export function KanbanBoard({
       const task = tasks.find((t) => t.id === taskId)
 
       if (task && task.status !== newStatus) {
-        onTaskMove(taskId, newStatus)
+        try {
+          onTaskMove(taskId, newStatus)
+        } catch (err) {
+          console.error('[KanbanBoard] onTaskMove threw error:', err)
+        }
       }
     } else {
       // Dropped on another task - find its status
@@ -111,6 +121,10 @@ export function KanbanBoard({
     }
   }, [tasks, onTaskMove, dropTarget, handleSidebarDrop, setDropTarget])
 
+  const handleDragOver = useCallback((_event: DragOverEvent) => {
+    // Kept for potential future use
+  }, [])
+
   const handleDragCancel = useCallback(() => {
     setActiveTask(null)
     setDropTarget(null)
@@ -119,8 +133,9 @@ export function KanbanBoard({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={pointerWithin}
       onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >

@@ -28,6 +28,7 @@ export function DraggableTask({ task, children, className }: DraggableTaskProps)
       // Set data transfer
       e.dataTransfer.effectAllowed = 'move'
       e.dataTransfer.setData('text/plain', task.id)
+      e.dataTransfer.setData('application/x-task', JSON.stringify({ id: task.id, title: task.title }))
 
       // Set dragged task in context
       setDraggedTask(task)

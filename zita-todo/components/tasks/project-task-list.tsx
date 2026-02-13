@@ -106,18 +106,24 @@ export function ProjectTaskList({
     const { active, over } = event
     setActiveTask(null)
 
-    console.log('[ProjectTaskList] Drag ended:', { activeId: active.id, overId: over?.id })
+    console.log('=== [ProjectTaskList] DRAG END ===')
+    console.log('[ProjectTaskList] active:', active)
+    console.log('[ProjectTaskList] over:', over)
+    console.log('[ProjectTaskList] dropTarget:', dropTarget)
+
+    // Always clear dropTarget at the end of drag
+    const currentDropTarget = dropTarget
+    setDropTarget(null)
 
     // Check if there's a sidebar drop target (trash, when, project, area)
-    if (dropTarget) {
-      console.log('[ProjectTaskList] Dropping to sidebar:', dropTarget)
-      handleSidebarDrop(dropTarget)
-      setDropTarget(null)
+    if (currentDropTarget) {
+      console.log('[ProjectTaskList] Dropping to sidebar:', currentDropTarget)
+      handleSidebarDrop(currentDropTarget)
       return
     }
 
     if (!over) {
-      console.log('[ProjectTaskList] No drop target')
+      console.log('[ProjectTaskList] No drop target (over is null)')
       return
     }
 

@@ -60,6 +60,7 @@ interface ProjectSectionProps {
   onQuickAdd: (title: string, projectId: string) => void
   onProjectDelete: (project: Project) => void
   onExpand: () => void
+  onTaskReorder?: (taskId: string, newIndex: number, tasks: TaskWithRelations[]) => void
   dragHandleProps?: Record<string, any>
 }
 
@@ -75,6 +76,7 @@ function ProjectSection({
   onQuickAdd,
   onProjectDelete,
   onExpand,
+  onTaskReorder,
   dragHandleProps,
 }: ProjectSectionProps) {
   const sortedTasks = sortTasksTodayFirst(tasks)
@@ -180,9 +182,11 @@ function ProjectSection({
             onTaskUpdate={onTaskUpdate}
             onTaskDelete={onTaskDelete}
             onQuickAdd={(title) => onQuickAdd(title, project.id)}
+            onReorder={onTaskReorder}
             emptyMessage="Žiadne úlohy v projekte"
             showQuickAdd={false}
             showTodayStar={true}
+            enableDrag={false}
           />
         </div>
       )}
@@ -249,6 +253,7 @@ export default function AreaDetailPage() {
   // Drag & drop for project reordering
   const supabase = createClient()
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   )
@@ -505,20 +510,65 @@ export default function AreaDetailPage() {
     }
   }
 
-  // Kanban handlers
-  const handleKanbanTaskMove = async (taskId: string, newStatus: TaskStatus) => {
+  // Task reorder handler for drag & drop within projects
+  const handleTaskReorder = useCallback(async (taskId: string, newIndex: number, currentTasks: TaskWithRelations[]) => {
+    const oldIndex = currentTasks.findIndex(t => t.id === taskId)
+    if (oldIndex === -1 || oldIndex === newIndex) return
+
+    const reordered = arrayMove(currentTasks, oldIndex, newIndex)
+
+    // Update sort_order in database
     try {
-      const updates: Partial<TaskWithRelations> = { status: newStatus }
-      if (newStatus === 'done') {
-        updates.completed_at = new Date().toISOString()
-        updates.when_type = null
-      } else {
-        updates.completed_at = null
-      }
-      await updateTask(taskId, updates)
+      await Promise.all(
+        reordered.map((task, index) =>
+          supabase
+            .from('tasks')
+            .update({ sort_order: index })
+            .eq('id', task.id)
+        )
+      )
       refetchTasks()
     } catch (error) {
-      console.error('Error moving task:', error)
+      console.error('Error reordering tasks:', error)
+      refetchTasks() // Refresh to get correct order
+    }
+  }, [supabase, refetchTasks])
+
+  // Kanban handlers
+  const handleKanbanTaskMove = async (taskId: string, newStatus: TaskStatus) => {
+    console.log('[handleKanbanTaskMove] START:', { taskId, newStatus })
+
+    // Find the task for optimistic update
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) {
+      console.error('[handleKanbanTaskMove] Task not found:', taskId)
+      return
+    }
+
+    // Prepare updates
+    const updates: Partial<TaskWithRelations> = { status: newStatus }
+    if (newStatus === 'done') {
+      updates.completed_at = new Date().toISOString()
+      updates.when_type = null
+    } else {
+      updates.completed_at = null
+    }
+
+    // OPTIMISTIC UPDATE: Update local state immediately
+    console.log('[handleKanbanTaskMove] Applying optimistic update:', updates)
+    setTasks(prev => prev.map(t =>
+      t.id === taskId ? { ...t, ...updates } : t
+    ))
+
+    try {
+      console.log('[handleKanbanTaskMove] Calling updateTask...')
+      await updateTask(taskId, updates)
+      console.log('[handleKanbanTaskMove] updateTask SUCCESS')
+      // No refetchTasks() needed - optimistic update is already done
+    } catch (error) {
+      console.error('[handleKanbanTaskMove] ERROR:', error)
+      // ROLLBACK: Revert to original state on error
+      setTasks(prev => prev.map(t => t.id === taskId ? task : t))
     }
   }
 
@@ -666,59 +716,34 @@ export default function AreaDetailPage() {
             context={{ defaultWhenType: 'anytime', defaultAreaId: areaId }}
           />
 
-          {/* Projects with their tasks - drag & drop reordering */}
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleProjectDragStart}
-            onDragEnd={handleProjectDragEnd}
-          >
-            <SortableContext
-              items={visibleProjects.map(p => p.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              {visibleProjects.map(project => {
-                const projectTaskList = projectTasks.get(project.id) || []
-                return (
-                  <SortableProjectSection
-                    key={project.id}
-                    id={project.id}
-                    project={project}
-                    tasks={projectTaskList}
-                    areaColor={area.color}
-                    isExpanded={resolvedExpandedProjects.has(project.id)}
-                    onToggle={() => toggleProject(project.id)}
-                    onTaskComplete={handleTaskComplete}
-                    onTaskUpdate={handleTaskUpdate}
-                    onTaskDelete={handleTaskDelete}
-                    onQuickAdd={handleSimpleQuickAdd}
-                    onProjectDelete={setProjectToDelete}
-                    onExpand={() => {
-                      setExpandedProjects(prev => {
-                        const current = prev !== null ? prev : resolvedExpandedProjects
-                        const next = new Set(current)
-                        next.add(project.id)
-                        return next
-                      })
-                    }}
-                  />
-                )
-              })}
-            </SortableContext>
-            <DragOverlay>
-              {activeProject && (
-                <div className="opacity-80 bg-[var(--bg-primary)] rounded-lg shadow-lg p-2">
-                  <div className="flex items-center gap-2">
-                    <FolderKanban
-                      className="h-4 w-4"
-                      style={{ color: area.color || 'var(--color-primary)' }}
-                    />
-                    <span className="font-bold text-sm">{activeProject.name}</span>
-                  </div>
-                </div>
-              )}
-            </DragOverlay>
-          </DndContext>
+          {/* Projects with their tasks - temporarily without @dnd-kit to test HTML5 drag */}
+          {visibleProjects.map(project => {
+            const projectTaskList = projectTasks.get(project.id) || []
+            return (
+              <ProjectSection
+                key={project.id}
+                project={project}
+                tasks={projectTaskList}
+                areaColor={area.color}
+                isExpanded={resolvedExpandedProjects.has(project.id)}
+                onToggle={() => toggleProject(project.id)}
+                onTaskComplete={handleTaskComplete}
+                onTaskUpdate={handleTaskUpdate}
+                onTaskDelete={handleTaskDelete}
+                onQuickAdd={handleSimpleQuickAdd}
+                onProjectDelete={setProjectToDelete}
+                onTaskReorder={handleTaskReorder}
+                onExpand={() => {
+                  setExpandedProjects(prev => {
+                    const current = prev !== null ? prev : resolvedExpandedProjects
+                    const next = new Set(current)
+                    next.add(project.id)
+                    return next
+                  })
+                }}
+              />
+            )
+          })}
 
           {/* Loose tasks (directly in area, no project) */}
           {looseTasks.length > 0 && (

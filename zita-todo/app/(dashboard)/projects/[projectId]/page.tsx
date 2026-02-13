@@ -190,18 +190,41 @@ export default function ProjectPage() {
 
   // Kanban handlers
   const handleKanbanTaskMove = async (taskId: string, newStatus: TaskStatus) => {
+    console.log('[handleKanbanTaskMove] START:', { taskId, newStatus })
+
+    // Find the task for optimistic update
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) {
+      console.error('[handleKanbanTaskMove] Task not found:', taskId)
+      return
+    }
+
+    // Prepare updates
+    const updates: Partial<TaskWithRelations> = { status: newStatus }
+    if (newStatus === 'done') {
+      updates.completed_at = new Date().toISOString()
+      updates.when_type = null
+    } else {
+      updates.completed_at = null
+    }
+
+    // OPTIMISTIC UPDATE: Update local state immediately
+    console.log('[handleKanbanTaskMove] Applying optimistic update:', updates)
+    setTasks(prev => prev.map(t =>
+      t.id === taskId ? { ...t, ...updates } : t
+    ))
+
     try {
-      const updates: Partial<TaskWithRelations> = { status: newStatus }
-      if (newStatus === 'done') {
-        updates.completed_at = new Date().toISOString()
-        updates.when_type = null
-      } else {
-        updates.completed_at = null
-      }
+      console.log('[handleKanbanTaskMove] Calling updateTask...')
       await updateTask(taskId, updates)
-      refetchTasks()
+      console.log('[handleKanbanTaskMove] updateTask SUCCESS')
+      // No refetchTasks() needed - optimistic update is already done
+      // updateTask already calls fetchTasks internally, which would override our optimistic update
+      // But since we updated locally first, the UI stays responsive
     } catch (error) {
-      console.error('Error moving task:', error)
+      console.error('[handleKanbanTaskMove] ERROR:', error)
+      // ROLLBACK: Revert to original state on error
+      setTasks(prev => prev.map(t => t.id === taskId ? task : t))
     }
   }
 
