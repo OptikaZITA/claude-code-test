@@ -116,6 +116,17 @@ export function useTasks() {
     const minSortOrder = minOrderData?.sort_order ?? 0
     const newSortOrder = minSortOrder - 1
 
+    // Auto-set area_id from project if project_id is provided but area_id is not
+    let areaId = task.area_id
+    if (task.project_id && !areaId) {
+      const { data: projectData } = await supabase
+        .from('projects')
+        .select('area_id')
+        .eq('id', task.project_id)
+        .single()
+      areaId = projectData?.area_id ?? null
+    }
+
     // Auto-assign: Tímový Inbox → null, ostatné → current user (ak nie je špecifikované)
     const autoAssigneeId = task.assignee_id !== undefined
       ? task.assignee_id
@@ -132,7 +143,9 @@ export function useTasks() {
         assignee_id: autoAssigneeId,
         inbox_user_id: task.inbox_type === 'personal' ? user.id : null,
         when_type: whenType,
-        is_inbox: task.is_inbox !== undefined ? task.is_inbox : (!task.project_id && !task.area_id),
+        is_inbox: task.is_inbox !== undefined ? task.is_inbox : (!task.project_id && !areaId),
+        // Auto-set area_id from project if not provided
+        area_id: areaId,
         // Auto-set added_to_today_at when creating task in 'today'
         added_to_today_at: whenType === 'today' ? new Date().toISOString() : null,
         // Place new task FIRST in the list

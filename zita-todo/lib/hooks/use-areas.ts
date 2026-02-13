@@ -155,20 +155,37 @@ export function useAllAreaTasks(areaId: string, assigneeFilter?: AssigneeFilter)
       // Default = prihlásený používateľ
       const effectiveFilter = assigneeFilter || user.id
 
-      // Fetch all tasks in the area (with or without project)
+      // First, get all project IDs that belong to this area
+      const { data: areaProjects } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('area_id', areaId)
+        .is('deleted_at', null)
+
+      const projectIds = (areaProjects || []).map(p => p.id)
+
+      // Fetch all tasks in the area:
+      // - Tasks with area_id = areaId (direct assignment)
+      // - Tasks with project_id in one of the area's projects (even if area_id is null)
       let query = supabase
         .from('tasks')
         .select(`
           *,
           assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
-          project:projects(id, name, color),
+          project:projects!left(id, name, color, area_id),
           area:areas(id, name, color),
           tags:task_tags(tag:tags(*))
         `)
-        .eq('area_id', areaId)
         .is('deleted_at', null)
         .is('archived_at', null)
         .neq('status', 'done')
+
+      // Build OR filter: area_id matches OR project_id is in area's projects
+      if (projectIds.length > 0) {
+        query = query.or(`area_id.eq.${areaId},project_id.in.(${projectIds.join(',')})`)
+      } else {
+        query = query.eq('area_id', areaId)
+      }
 
       // Aplikuj filter podľa assignee_id
       if (effectiveFilter === 'all') {
