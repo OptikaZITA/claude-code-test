@@ -93,6 +93,17 @@ export function useTasks() {
 
     const whenType = task.when_type || 'inbox'
 
+    // Get user's organization_id if not provided
+    let organizationId = task.organization_id
+    if (!organizationId) {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single()
+      organizationId = userData?.organization_id ?? null
+    }
+
     // Get the minimum sort_order to place new task FIRST in the list
     const { data: minOrderData } = await supabase
       .from('tasks')
@@ -117,6 +128,7 @@ export function useTasks() {
       .insert({
         ...task,
         created_by: user.id,
+        organization_id: organizationId,
         assignee_id: autoAssigneeId,
         inbox_user_id: task.inbox_type === 'personal' ? user.id : null,
         when_type: whenType,
