@@ -21,6 +21,7 @@ import { useMultiSelectContext } from '@/lib/contexts/multi-select-context'
 interface KanbanBoardProps {
   tasks: TaskWithRelations[]
   onTaskMove: (taskId: string, newStatus: TaskStatus) => void
+  onTaskReorder?: (taskId: string, newIndex: number, tasksInColumn: TaskWithRelations[]) => void
   onTaskClick: (task: TaskWithRelations) => void
   onQuickAdd: (title: string, status: TaskStatus) => void
   /** Hide "Dnes" badge (use on Today page where it's redundant) */
@@ -30,6 +31,7 @@ interface KanbanBoardProps {
 export function KanbanBoard({
   tasks,
   onTaskMove,
+  onTaskReorder,
   onTaskClick,
   onQuickAdd,
   hideToday,
@@ -93,6 +95,9 @@ export function KanbanBoard({
     const taskId = active.id as string
     const overId = over.id as string
 
+    // Skip if same position
+    if (taskId === overId) return
+
     // Check if dropped on a column (status)
     const isColumn = DEFAULT_KANBAN_COLUMNS.some((col) => col.id === overId)
 
@@ -108,18 +113,25 @@ export function KanbanBoard({
         }
       }
     } else {
-      // Dropped on another task - find its status
-      const targetTask = tasks.find((t) => t.id === overId)
-      if (targetTask) {
-        const newStatus = targetTask.status as TaskStatus
-        const task = tasks.find((t) => t.id === taskId)
+      // Dropped on another task
+      const activeTask = tasks.find((t) => t.id === taskId)
+      const overTask = tasks.find((t) => t.id === overId)
 
-        if (task && task.status !== newStatus) {
-          onTaskMove(taskId, newStatus)
+      if (activeTask && overTask) {
+        if (activeTask.status === overTask.status) {
+          // SAME COLUMN → REORDER
+          const columnTasks = tasks.filter(t => t.status === activeTask.status)
+          const newIndex = columnTasks.findIndex(t => t.id === overId)
+          if (newIndex !== -1 && onTaskReorder) {
+            onTaskReorder(taskId, newIndex, columnTasks)
+          }
+        } else {
+          // DIFFERENT COLUMN → change status
+          onTaskMove(taskId, overTask.status as TaskStatus)
         }
       }
     }
-  }, [tasks, onTaskMove, dropTarget, handleSidebarDrop, setDropTarget])
+  }, [tasks, onTaskMove, onTaskReorder, dropTarget, handleSidebarDrop, setDropTarget])
 
   const handleDragOver = useCallback((_event: DragOverEvent) => {
     // Kept for potential future use

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useCallback } from 'react'
 import { Plus, Inbox } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
@@ -24,10 +24,13 @@ import { useAreas } from '@/lib/hooks/use-areas'
 import { useTags } from '@/lib/hooks/use-tags'
 import { useCurrentUser } from '@/lib/hooks/use-user-departments'
 import { useOrganizationUsers } from '@/lib/hooks/use-organization-users'
+import { createClient } from '@/lib/supabase/client'
+import { arrayMove } from '@dnd-kit/sortable'
 import { TaskWithRelations, TaskStatus } from '@/types'
 
 export default function InboxPage() {
   const { user } = useCurrentUser()
+  const supabase = createClient()
   // Database-level assignee filter - undefined (default = current user), 'all', 'unassigned', or UUID
   const [dbAssigneeFilter, setDbAssigneeFilter] = useState<string | undefined>(undefined)
   const { tasks, setTasks, loading, error, refetch } = useInboxTasks(dbAssigneeFilter)
@@ -260,6 +263,45 @@ export default function InboxPage() {
     await handleQuickAdd({ title })
   }
 
+  // Task reorder handler for Kanban drag & drop within same column
+  const handleTaskReorder = useCallback(async (taskId: string, newIndex: number, currentTasks: TaskWithRelations[]) => {
+    const oldIndex = currentTasks.findIndex(t => t.id === taskId)
+    if (oldIndex === -1 || oldIndex === newIndex) return
+
+    const reordered = arrayMove(currentTasks, oldIndex, newIndex)
+
+    // Create a map of taskId -> new sort_order
+    const sortOrderMap = new Map<string, number>()
+    reordered.forEach((task, index) => {
+      sortOrderMap.set(task.id, index)
+    })
+
+    // OPTIMISTIC UPDATE: Update local state immediately
+    setTasks(prev => prev.map(task => {
+      const newSortOrder = sortOrderMap.get(task.id)
+      if (newSortOrder !== undefined) {
+        return { ...task, sort_order: newSortOrder }
+      }
+      return task
+    }))
+
+    // Save to DB in background
+    try {
+      await Promise.all(
+        reordered.map((task, index) =>
+          supabase
+            .from('tasks')
+            .update({ sort_order: index })
+            .eq('id', task.id)
+        )
+      )
+      // No refetch() - optimistic update is already done
+    } catch (error) {
+      console.error('Error reordering tasks:', error)
+      refetch() // Rollback: refresh to get correct order on error
+    }
+  }, [supabase, setTasks, refetch])
+
   // Calendar handlers
   const handleCalendarDateChange = async (taskId: string, newDate: Date) => {
     try {
@@ -353,6 +395,7 @@ export default function InboxPage() {
           <KanbanBoard
             tasks={tagFilteredTasks}
             onTaskMove={handleKanbanTaskMove}
+            onTaskReorder={handleTaskReorder}
             onTaskClick={setSelectedTask}
             onQuickAdd={handleKanbanQuickAdd}
           />

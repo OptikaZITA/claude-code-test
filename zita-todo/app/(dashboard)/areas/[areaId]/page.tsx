@@ -510,14 +510,29 @@ export default function AreaDetailPage() {
     }
   }
 
-  // Task reorder handler for drag & drop within projects
+  // Task reorder handler for drag & drop within projects/kanban columns
   const handleTaskReorder = useCallback(async (taskId: string, newIndex: number, currentTasks: TaskWithRelations[]) => {
     const oldIndex = currentTasks.findIndex(t => t.id === taskId)
     if (oldIndex === -1 || oldIndex === newIndex) return
 
     const reordered = arrayMove(currentTasks, oldIndex, newIndex)
 
-    // Update sort_order in database
+    // Create a map of taskId -> new sort_order
+    const sortOrderMap = new Map<string, number>()
+    reordered.forEach((task, index) => {
+      sortOrderMap.set(task.id, index)
+    })
+
+    // OPTIMISTIC UPDATE: Update local state immediately
+    setTasks(prev => prev.map(task => {
+      const newSortOrder = sortOrderMap.get(task.id)
+      if (newSortOrder !== undefined) {
+        return { ...task, sort_order: newSortOrder }
+      }
+      return task
+    }))
+
+    // Save to DB in background
     try {
       await Promise.all(
         reordered.map((task, index) =>
@@ -527,12 +542,12 @@ export default function AreaDetailPage() {
             .eq('id', task.id)
         )
       )
-      refetchTasks()
+      // No refetchTasks() - optimistic update is already done
     } catch (error) {
       console.error('Error reordering tasks:', error)
-      refetchTasks() // Refresh to get correct order
+      refetchTasks() // Rollback: refresh to get correct order on error
     }
-  }, [supabase, refetchTasks])
+  }, [supabase, setTasks, refetchTasks])
 
   // Kanban handlers
   const handleKanbanTaskMove = async (taskId: string, newStatus: TaskStatus) => {
@@ -681,6 +696,7 @@ export default function AreaDetailPage() {
           <KanbanBoard
             tasks={tagFilteredTasks}
             onTaskMove={handleKanbanTaskMove}
+            onTaskReorder={handleTaskReorder}
             onTaskClick={setSelectedTask}
             onQuickAdd={handleKanbanQuickAdd}
           />

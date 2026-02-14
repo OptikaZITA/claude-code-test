@@ -27,6 +27,7 @@ import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
 import { useCurrentUser } from '@/lib/hooks/use-user-departments'
 import { useOrganizationUsers } from '@/lib/hooks/use-organization-users'
 import { createClient } from '@/lib/supabase/client'
+import { arrayMove } from '@dnd-kit/sortable'
 import { TaskWithRelations, TaskStatus } from '@/types'
 import { cn } from '@/lib/utils/cn'
 
@@ -232,6 +233,45 @@ export default function ProjectPage() {
     await handleQuickAdd({ title })
   }
 
+  // Task reorder handler for Kanban drag & drop within same column
+  const handleTaskReorder = useCallback(async (taskId: string, newIndex: number, currentTasks: TaskWithRelations[]) => {
+    const oldIndex = currentTasks.findIndex(t => t.id === taskId)
+    if (oldIndex === -1 || oldIndex === newIndex) return
+
+    const reordered = arrayMove(currentTasks, oldIndex, newIndex)
+
+    // Create a map of taskId -> new sort_order
+    const sortOrderMap = new Map<string, number>()
+    reordered.forEach((task, index) => {
+      sortOrderMap.set(task.id, index)
+    })
+
+    // OPTIMISTIC UPDATE: Update local state immediately
+    setTasks(prev => prev.map(task => {
+      const newSortOrder = sortOrderMap.get(task.id)
+      if (newSortOrder !== undefined) {
+        return { ...task, sort_order: newSortOrder }
+      }
+      return task
+    }))
+
+    // Save to DB in background
+    try {
+      await Promise.all(
+        reordered.map((task, index) =>
+          supabase
+            .from('tasks')
+            .update({ sort_order: index })
+            .eq('id', task.id)
+        )
+      )
+      // No refetchTasks() - optimistic update is already done
+    } catch (error) {
+      console.error('Error reordering tasks:', error)
+      refetchTasks() // Rollback: refresh to get correct order on error
+    }
+  }, [supabase, setTasks, refetchTasks])
+
   // Calendar handlers
   const handleCalendarDateChange = async (taskId: string, newDate: Date) => {
     try {
@@ -414,6 +454,7 @@ export default function ProjectPage() {
           <KanbanBoard
             tasks={tagFilteredTasks}
             onTaskMove={handleKanbanTaskMove}
+            onTaskReorder={handleTaskReorder}
             onTaskClick={setSelectedTask}
             onQuickAdd={handleKanbanQuickAdd}
           />

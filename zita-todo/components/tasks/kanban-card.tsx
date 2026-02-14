@@ -3,15 +3,17 @@
 import { useEffect } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Clock, Flag } from 'lucide-react'
+import { Flag } from 'lucide-react'
 import { TaskWithRelations, TaskPriority } from '@/types'
 import { Avatar } from '@/components/ui/avatar'
 import { TagChipList } from '@/components/tags'
 import { WhenBadge } from '@/components/tasks/when-picker'
 import { DeadlineBadge } from '@/components/tasks/deadline-picker'
+import { TimerPlayButton, TimerTimeDisplay } from '@/components/tasks/inline-time-tracker'
 import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
+import { useGlobalTimerContext } from '@/lib/contexts/global-timer-context'
+import { useTaskTimeTotal } from '@/lib/hooks/use-task-time-total'
 import { cn } from '@/lib/utils/cn'
-import { formatDurationShort } from '@/lib/utils/date'
 
 interface KanbanCardProps {
   task: TaskWithRelations
@@ -33,6 +35,12 @@ const priorityFlagColors: Record<TaskPriority, string> = {
 
 export function KanbanCard({ task, onClick, isDragging, hideToday, isSelected = false, onModifierClick }: KanbanCardProps) {
   const { setDraggedTask } = useSidebarDrop()
+  const { isRunning, currentTaskId } = useGlobalTimerContext()
+  const { totalSeconds } = useTaskTimeTotal(task.id)
+
+  // Check if timer is running for this task or if task has recorded time
+  const isThisTaskRunning = isRunning && currentTaskId === task.id
+  const hasTimeData = totalSeconds > 0 || isThisTaskRunning
 
   const {
     attributes,
@@ -123,12 +131,14 @@ export function KanbanCard({ task, onClick, isDragging, hideToday, isSelected = 
           {/* Deadline badge */}
           <DeadlineBadge value={task.deadline} size="xs" />
 
-          {task.total_time_seconds && task.total_time_seconds > 0 && (
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              {formatDurationShort(task.total_time_seconds)}
-            </span>
-          )}
+          {/* Time tracker - play/pause button always visible, time display only when has time */}
+          <div
+            className="flex items-center gap-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <TimerPlayButton taskId={task.id} className="p-1" />
+            {hasTimeData && <TimerTimeDisplay taskId={task.id} />}
+          </div>
         </div>
 
         {task.assignee && (
