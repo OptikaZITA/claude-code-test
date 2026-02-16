@@ -12,6 +12,7 @@ import { GlobalTimerProvider } from '@/lib/contexts/global-timer-context'
 import { SidebarProvider } from '@/lib/contexts/sidebar-context'
 import { MultiSelectProvider } from '@/lib/contexts/multi-select-context'
 import { ProjectFormModal } from '@/components/projects/project-form-modal'
+import { AreaForm } from '@/components/areas/area-form'
 import { CalendarDropPicker } from '@/components/layout/calendar-drop-picker'
 import { BulkActionToolbar } from '@/components/tasks/bulk-action-toolbar'
 
@@ -55,6 +56,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   const [loading, setLoading] = useState(true)
   const [showProjectForm, setShowProjectForm] = useState(false)
+  const [showAreaForm, setShowAreaForm] = useState(false)
   const [selectedAreaIdForProject, setSelectedAreaIdForProject] = useState<string | undefined>()
 
   const { shortcuts, showHelp, setShowHelp } = useKeyboardShortcuts({
@@ -170,6 +172,28 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     setShowProjectForm(true)
   }
 
+  const handleCreateArea = async (data: { name: string; color: string }) => {
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (!authUser) throw new Error('Not authenticated')
+
+    const { data: userData } = await supabase
+      .from('users')
+      .select('organization_id')
+      .eq('id', authUser.id)
+      .single()
+
+    const { error } = await supabase.from('areas').insert({
+      title: data.name,
+      color: data.color,
+      user_id: authUser.id,
+      organization_id: userData?.organization_id || null,
+      is_global: true,
+    })
+
+    if (error) throw error
+    refetchAreas()
+  }
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[var(--bg-secondary)]">
@@ -190,6 +214,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 areas={areas}
                 onLogout={handleLogout}
                 onCreateProject={handleCreateProject}
+                onCreateArea={() => setShowAreaForm(true)}
                 onRefresh={refetchAreas}
               />
             </aside>
@@ -221,6 +246,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               }}
               onSuccess={refetchAreas}
               preselectedAreaId={selectedAreaIdForProject}
+            />
+
+            {/* Area Form Modal */}
+            <AreaForm
+              isOpen={showAreaForm}
+              onClose={() => setShowAreaForm(false)}
+              onSubmit={handleCreateArea}
             />
 
             {/* Calendar Drop Picker Modal */}

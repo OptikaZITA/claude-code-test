@@ -54,6 +54,7 @@ interface SidebarProps {
   areas: Area[]
   onLogout: () => void
   onCreateProject: (areaId?: string) => void
+  onCreateArea?: () => void
   onNavigate?: () => void
   onRefresh?: () => void
 }
@@ -63,6 +64,7 @@ export function Sidebar({
   areas,
   onLogout,
   onCreateProject,
+  onCreateArea,
   onNavigate,
   onRefresh,
 }: SidebarProps) {
@@ -213,10 +215,19 @@ export function Sidebar({
         <div className="my-3 h-px bg-[var(--border)]" />
 
         {/* My Departments Section */}
-        <div className="mb-2 px-3 py-1">
+        <div className="mb-2 px-3 py-1 flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {canSeeAll ? 'Oddelenia' : 'Moje oddelenia'}
           </span>
+          {onCreateArea && user?.role === 'admin' && (
+            <button
+              onClick={onCreateArea}
+              className="p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+              title="Pridať oddelenie"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
         {/* Show all areas if canSeeAll, otherwise show only myAreas */}
