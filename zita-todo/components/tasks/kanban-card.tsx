@@ -1,15 +1,17 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Flag, Trash2 } from 'lucide-react'
-import { TaskWithRelations, TaskPriority } from '@/types'
+import { Flag, Trash2, Repeat } from 'lucide-react'
+import { TaskWithRelations, TaskPriority, RecurrenceRule } from '@/types'
 import { Avatar } from '@/components/ui/avatar'
 import { TagChipList } from '@/components/tags'
 import { WhenBadge } from '@/components/tasks/when-picker'
 import { DeadlineBadge } from '@/components/tasks/deadline-picker'
 import { TimerPlayButton, TimerTimeDisplay } from '@/components/tasks/inline-time-tracker'
+import { RecurrenceBadge } from '@/components/tasks/recurrence-badge'
+import { RecurrenceConfigModal } from '@/components/tasks/recurrence-config-modal'
 import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
 import { useGlobalTimerContext } from '@/lib/contexts/global-timer-context'
 import { useTaskTimeTotal } from '@/lib/hooks/use-task-time-total'
@@ -19,6 +21,7 @@ interface KanbanCardProps {
   task: TaskWithRelations
   onClick: () => void
   onDelete?: () => void
+  onUpdate?: (updates: Partial<TaskWithRelations>) => void
   isDragging?: boolean
   /** Hide "Dnes" badge (use on Today page where it's redundant) */
   hideToday?: boolean
@@ -34,10 +37,13 @@ const priorityFlagColors: Record<TaskPriority, string> = {
   low: 'text-yellow-500',   // #EAB308 - Žltá
 }
 
-export function KanbanCard({ task, onClick, onDelete, isDragging, hideToday, isSelected = false, onModifierClick }: KanbanCardProps) {
+export function KanbanCard({ task, onClick, onDelete, onUpdate, isDragging, hideToday, isSelected = false, onModifierClick }: KanbanCardProps) {
+  const [showRecurrenceModal, setShowRecurrenceModal] = useState(false)
   const { setDraggedTask } = useSidebarDrop()
   const { isRunning, currentTaskId } = useGlobalTimerContext()
   const { totalSeconds } = useTaskTimeTotal(task.id)
+
+  const hasRecurrence = !!task.recurrence_rule
 
   // Check if timer is running for this task or if task has recorded time
   const isThisTaskRunning = isRunning && currentTaskId === task.id
@@ -95,19 +101,39 @@ export function KanbanCard({ task, onClick, onDelete, isDragging, hideToday, isS
         isSelected && 'ring-2 ring-primary bg-primary/5'
       )}
     >
-      {/* Delete button - shows on hover */}
-      {onDelete && (
+      {/* Action buttons - top right */}
+      <div className="absolute top-2 right-2 flex items-center gap-0.5 z-10">
+        {/* Recurrence button - shows on hover, or always if task has recurrence */}
         <button
           onClick={(e) => {
             e.stopPropagation()
-            onDelete()
+            setShowRecurrenceModal(true)
           }}
-          className="absolute top-2 right-2 p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all z-10"
-          title="Vymazať"
+          className={cn(
+            'p-1 rounded transition-all',
+            hasRecurrence
+              ? 'text-primary hover:bg-primary/10'
+              : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground hover:bg-accent'
+          )}
+          title={hasRecurrence ? 'Upraviť opakovanie' : 'Nastaviť opakovanie'}
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <Repeat className="h-3.5 w-3.5" />
         </button>
-      )}
+
+        {/* Delete button - shows on hover */}
+        {onDelete && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete()
+            }}
+            className="p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all"
+            title="Vymazať"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
 
       {/* Priority flag + tags - zobrazuje sa LEN pre definované priority */}
       <div className="mb-2 flex items-center gap-2">
@@ -146,6 +172,11 @@ export function KanbanCard({ task, onClick, onDelete, isDragging, hideToday, isS
           {/* Deadline badge */}
           <DeadlineBadge value={task.deadline} size="xs" />
 
+          {/* Recurrence badge - always visible when task has recurrence */}
+          {hasRecurrence && task.recurrence_rule && (
+            <RecurrenceBadge rule={task.recurrence_rule} className="text-xs" />
+          )}
+
           {/* Time tracker - play/pause button always visible, time display only when has time */}
           <div
             className="flex items-center gap-1"
@@ -174,6 +205,16 @@ export function KanbanCard({ task, onClick, onDelete, isDragging, hideToday, isS
           </div>
         )}
       </div>
+
+      {/* Recurrence Config Modal */}
+      <RecurrenceConfigModal
+        isOpen={showRecurrenceModal}
+        onClose={() => setShowRecurrenceModal(false)}
+        task={task}
+        onSave={(rule) => {
+          onUpdate?.({ recurrence_rule: rule })
+        }}
+      />
     </div>
   )
 }

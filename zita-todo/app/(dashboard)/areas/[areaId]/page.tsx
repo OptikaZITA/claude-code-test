@@ -698,6 +698,7 @@ export default function AreaDetailPage() {
             onTaskMove={handleKanbanTaskMove}
             onTaskReorder={handleTaskReorder}
             onTaskDelete={handleTaskDelete}
+            onTaskUpdate={(taskId, updates) => updateTask(taskId, updates)}
             onTaskClick={setSelectedTask}
             onQuickAdd={handleKanbanQuickAdd}
           />

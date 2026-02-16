@@ -456,6 +456,7 @@ export default function ProjectPage() {
             onTaskMove={handleKanbanTaskMove}
             onTaskReorder={handleTaskReorder}
             onTaskDelete={handleTaskDelete}
+            onTaskUpdate={(taskId, updates) => updateTask(taskId, updates)}
             onTaskClick={setSelectedTask}
             onQuickAdd={handleKanbanQuickAdd}
           />

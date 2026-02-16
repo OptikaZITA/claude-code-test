@@ -12,6 +12,7 @@ interface KanbanColumnProps {
   tasks: TaskWithRelations[]
   onTaskClick: (task: TaskWithRelations) => void
   onTaskDelete?: (taskId: string) => void
+  onTaskUpdate?: (taskId: string, updates: Partial<TaskWithRelations>) => void
   onQuickAdd: (title: string) => void
   /** Hide "Dnes" badge (use on Today page where it's redundant) */
   hideToday?: boolean
@@ -26,6 +27,7 @@ export function KanbanColumn({
   tasks,
   onTaskClick,
   onTaskDelete,
+  onTaskUpdate,
   onQuickAdd,
   hideToday,
   isTaskSelected,
@@ -70,6 +72,7 @@ export function KanbanColumn({
                 task={task}
                 onClick={() => onTaskClick(task)}
                 onDelete={onTaskDelete ? () => onTaskDelete(task.id) : undefined}
+                onUpdate={onTaskUpdate ? (updates) => onTaskUpdate(task.id, updates) : undefined}
                 hideToday={hideToday}
                 isSelected={isTaskSelected?.(task.id) ?? false}
                 onModifierClick={(e) => onModifierClick?.(task.id, e)}

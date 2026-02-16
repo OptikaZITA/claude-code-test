@@ -23,6 +23,7 @@ interface KanbanBoardProps {
   onTaskMove: (taskId: string, newStatus: TaskStatus) => void
   onTaskReorder?: (taskId: string, newIndex: number, tasksInColumn: TaskWithRelations[]) => void
   onTaskDelete?: (taskId: string) => void
+  onTaskUpdate?: (taskId: string, updates: Partial<TaskWithRelations>) => void
   onTaskClick: (task: TaskWithRelations) => void
   onQuickAdd: (title: string, status: TaskStatus) => void
   /** Hide "Dnes" badge (use on Today page where it's redundant) */
@@ -34,6 +35,7 @@ export function KanbanBoard({
   onTaskMove,
   onTaskReorder,
   onTaskDelete,
+  onTaskUpdate,
   onTaskClick,
   onQuickAdd,
   hideToday,
@@ -161,6 +163,7 @@ export function KanbanBoard({
             tasks={getTasksByStatus(column.id)}
             onTaskClick={onTaskClick}
             onTaskDelete={onTaskDelete}
+            onTaskUpdate={onTaskUpdate}
             onQuickAdd={(title) => onQuickAdd(title, column.id)}
             hideToday={hideToday}
             isTaskSelected={isSelected}
