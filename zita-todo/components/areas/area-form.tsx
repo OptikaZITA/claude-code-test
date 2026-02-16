@@ -14,6 +14,10 @@ const PRESET_COLORS = [
   '#5856D6', // Indigo
   '#FF2D55', // Pink
   '#00C7BE', // Teal
+  '#059669', // Tmavozelená
+  '#92400E', // Hnedá
+  '#6B7280', // Sivá
+  '#4F46E5', // Indigo (dark)
 ]
 
 interface AreaFormProps {
@@ -69,7 +73,7 @@ export function AreaForm({
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={title} size="sm">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="p-6 space-y-6">
         <div>
           <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
             Názov
@@ -92,7 +96,7 @@ export function AreaForm({
                 key={presetColor}
                 type="button"
                 onClick={() => setColor(presetColor)}
-                className={`h-8 w-8 rounded-full transition-transform ${
+                className={`h-6 w-6 rounded-full transition-transform ${
                   color === presetColor
                     ? 'ring-2 ring-offset-2 ring-[var(--color-primary)] scale-110'
                     : 'hover:scale-105'
@@ -107,7 +111,7 @@ export function AreaForm({
           <p className="text-sm text-[var(--color-error)]">{error}</p>
         )}
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="ghost" onClick={handleClose}>
             Zrušiť
           </Button>
