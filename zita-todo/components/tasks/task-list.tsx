@@ -137,22 +137,20 @@ export function TaskList({
       }
 
       if (containerRef.current && !containerRef.current.contains(target)) {
-        // Delay collapse to allow blur events to fire first
-        // This ensures notes/title are saved before component unmounts
-        setTimeout(() => {
-          setExpandedTaskId(null)
-        }, 100)
+        // Use click event (not mousedown) so blur fires first and saves data
+        setExpandedTaskId(null)
       }
     }
 
     // Use setTimeout to avoid immediate collapse on the same click
+    // Use 'click' instead of 'mousedown' - click fires AFTER blur
     const timeoutId = setTimeout(() => {
-      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('click', handleClickOutside)
     }, 0)
 
     return () => {
       clearTimeout(timeoutId)
-      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('click', handleClickOutside)
     }
   }, [expandedTaskId])
 
