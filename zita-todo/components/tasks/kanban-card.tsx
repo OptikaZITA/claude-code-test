@@ -102,7 +102,7 @@ export function KanbanCard({ task, onClick, onDelete, onUpdate, isDragging, hide
       )}
     >
       {/* Action buttons - top right */}
-      <div className="absolute top-2 right-2 flex items-center gap-0.5 z-10">
+      <div className="absolute top-2 right-2 flex items-center gap-0.5 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-md px-0.5">
         {/* Recurrence button - shows on hover, or always if task has recurrence */}
         <button
           onClick={(e) => {

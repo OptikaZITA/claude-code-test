@@ -125,6 +125,15 @@ export default function LogbookPage() {
     }
   }
 
+  const handleInlineTaskUpdate = async (taskId: string, updates: Partial<TaskWithRelations>) => {
+    try {
+      await updateTask(taskId, updates)
+      refetch()
+    } catch (error) {
+      console.error('Error updating task:', error)
+    }
+  }
+
   if (loading) {
     return (
       <div className="h-full">
@@ -151,6 +160,7 @@ export default function LogbookPage() {
               task={task}
               onClick={() => setSelectedTask(task)}
               onComplete={(completed) => handleTaskComplete(task.id, completed)}
+              onUpdate={(updates) => handleInlineTaskUpdate(task.id, updates)}
             />
           ))}
         </div>
