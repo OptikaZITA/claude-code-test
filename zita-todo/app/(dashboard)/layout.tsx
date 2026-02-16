@@ -185,9 +185,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.from('areas').insert({
       name: data.name,
       color: data.color,
-      user_id: authUser.id,
-      organization_id: userData?.organization_id || null,
-      is_global: true,
+      owner_id: authUser.id,
+      organization_id: userData?.organization_id ?? null,
     })
 
     if (error) throw error
