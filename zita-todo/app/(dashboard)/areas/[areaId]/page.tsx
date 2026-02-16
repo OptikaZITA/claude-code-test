@@ -278,14 +278,24 @@ export default function AreaDetailPage() {
   useTaskMoved(refetchTasks)
 
   // Group tasks by project
-  const { projectTasks, looseTasks } = useMemo(() => {
+  const { projectTasks, looseTasks, orphanTasks } = useMemo(() => {
     const projectTasksMap = new Map<string, TaskWithRelations[]>()
     const loose: TaskWithRelations[] = []
+    const orphan: TaskWithRelations[] = []
+
+    // Get set of active project IDs for quick lookup
+    const activeProjectIds = new Set(projects.filter(p => p.status === 'active').map(p => p.id))
 
     tagFilteredTasks.forEach(task => {
       if (task.project_id) {
-        const existing = projectTasksMap.get(task.project_id) || []
-        projectTasksMap.set(task.project_id, [...existing, task])
+        // Check if project is in our active projects
+        if (activeProjectIds.has(task.project_id)) {
+          const existing = projectTasksMap.get(task.project_id) || []
+          projectTasksMap.set(task.project_id, [...existing, task])
+        } else {
+          // Task has project_id but project is not in active projects (deleted, different area, etc.)
+          orphan.push(task)
+        }
       } else {
         loose.push(task)
       }
@@ -293,9 +303,10 @@ export default function AreaDetailPage() {
 
     return {
       projectTasks: projectTasksMap,
-      looseTasks: sortTasksTodayFirst(loose)
+      looseTasks: sortTasksTodayFirst(loose),
+      orphanTasks: sortTasksTodayFirst(orphan)
     }
-  }, [tagFilteredTasks])
+  }, [tagFilteredTasks, projects])
 
   // Active projects (must be before early returns)
   const activeProjects = useMemo(() => {
@@ -763,8 +774,8 @@ export default function AreaDetailPage() {
             )
           })}
 
-          {/* Loose tasks (directly in area, no project) */}
-          {looseTasks.length > 0 && (
+          {/* Loose tasks (directly in area, no project) + orphan tasks (project not in this area) */}
+          {(looseTasks.length > 0 || orphanTasks.length > 0) && (
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-3">
                 <Star className="h-4 w-4 text-[var(--text-secondary)]" />
@@ -772,7 +783,7 @@ export default function AreaDetailPage() {
                   Voľné úlohy
                 </h3>
                 <span className="text-xs text-[var(--text-secondary)]">
-                  ({looseTasks.length})
+                  ({looseTasks.length + orphanTasks.length})
                 </span>
                 {/* Small add task button - same as projects */}
                 <button
@@ -790,7 +801,7 @@ export default function AreaDetailPage() {
                 context={{ defaultWhenType: 'anytime', defaultAreaId: areaId }}
               />
               <TaskList
-                tasks={looseTasks}
+                tasks={[...looseTasks, ...orphanTasks]}
                 onTaskComplete={handleTaskComplete}
                 onTaskUpdate={handleTaskUpdate}
                 onTaskDelete={handleTaskDelete}
@@ -833,8 +844,8 @@ export default function AreaDetailPage() {
             </div>
           )}
 
-          {/* Quick add for area when no loose tasks */}
-          {looseTasks.length === 0 && (projects.length > 0 || tasks.length > 0) && !hasActiveFilters && !selectedTag && (
+          {/* Quick add for area when no loose/orphan tasks */}
+          {looseTasks.length === 0 && orphanTasks.length === 0 && (projects.length > 0 || tasks.length > 0) && !hasActiveFilters && !selectedTag && (
             <div className="mt-6 pt-4 border-t border-[var(--border-primary)]">
               <TaskList
                 tasks={[]}
