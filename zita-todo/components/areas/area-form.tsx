@@ -73,7 +73,7 @@ export function AreaForm({
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={title} size="sm">
-      <form onSubmit={handleSubmit} className="p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
             Názov

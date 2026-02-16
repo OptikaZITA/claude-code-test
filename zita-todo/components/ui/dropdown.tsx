@@ -30,7 +30,7 @@ export function Dropdown({ trigger, children, align = 'left' }: DropdownProps) {
       {isOpen && (
         <div
           className={cn(
-            'absolute z-50 mt-2 min-w-[160px] rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)] py-1 shadow-lg',
+            'absolute z-[9999] mt-2 min-w-[160px] rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)] py-1 shadow-lg',
             align === 'right' ? 'right-0' : 'left-0'
           )}
         >

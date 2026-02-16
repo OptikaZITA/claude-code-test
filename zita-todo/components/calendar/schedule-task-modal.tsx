@@ -133,7 +133,7 @@ export function ScheduleTaskModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Naplánovať čas na úlohu">
-      <div className="p-4 space-y-6">
+      <div className="space-y-6">
         {/* Task info */}
         <div className="p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-primary)]">
           <div className="font-medium text-[var(--text-primary)]">{task.title}</div>

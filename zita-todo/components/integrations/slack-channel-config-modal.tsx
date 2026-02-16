@@ -125,9 +125,9 @@ export function SlackChannelConfigModal({
 
   const modalContent = (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
-      <div className="relative z-[9999] w-full max-w-md rounded-lg bg-[var(--bg-primary)] p-6 shadow-lg">
+      <div className="relative z-[9999] w-full max-w-md rounded-lg bg-[var(--bg-primary)] shadow-lg mx-4 max-h-[85vh] flex flex-col">
         {/* Header */}
-        <div className="mb-4 flex items-center justify-between">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-[var(--border-primary)] shrink-0">
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">
             {config ? 'Upraviť kanál' : 'Pridať kanál'}
           </h2>
@@ -139,15 +139,17 @@ export function SlackChannelConfigModal({
           </button>
         </div>
 
-        {/* Error */}
-        {error && (
-          <div className="mb-4 rounded-lg bg-[var(--color-error)]/10 p-3 text-sm text-[var(--color-error)]">
-            {error}
-          </div>
-        )}
+        {/* Content - scrollable */}
+        <div className="px-6 py-5 flex-1 overflow-y-auto">
+          {/* Error */}
+          {error && (
+            <div className="mb-4 rounded-lg bg-[var(--color-error)]/10 p-3 text-sm text-[var(--color-error)]">
+              {error}
+            </div>
+          )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
           {/* Channel ID */}
           <div>
             <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">
@@ -277,7 +279,8 @@ export function SlackChannelConfigModal({
               )}
             </Button>
           </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   )

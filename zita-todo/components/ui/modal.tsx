@@ -76,7 +76,7 @@ export function Modal({ isOpen, onClose, title, children, className, size = 'md'
             </Button>
           </div>
         )}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto px-6 py-5">
           {children}
         </div>
       </div>

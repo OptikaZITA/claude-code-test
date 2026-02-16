@@ -132,9 +132,9 @@ export function AvatarUploadModal({
       />
 
       {/* Modal */}
-      <div className="relative z-[9999] bg-card rounded-lg shadow-xl w-full max-w-md mx-4 animate-scale-in">
+      <div className="relative z-[9999] bg-card rounded-lg shadow-xl w-full max-w-md mx-4 animate-scale-in max-h-[85vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <h2 className="text-lg font-heading font-semibold">Profilová fotka</h2>
           <button
             onClick={handleClose}
@@ -145,7 +145,7 @@ export function AvatarUploadModal({
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-6 flex-1 overflow-y-auto">
           {/* Current avatar preview */}
           <div className="flex justify-center mb-6">
             {selectedImage ? null : (
@@ -235,7 +235,7 @@ export function AvatarUploadModal({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-border shrink-0">
           <button
             type="button"
             onClick={handleClose}

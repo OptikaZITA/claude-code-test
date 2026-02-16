@@ -102,9 +102,9 @@ export function InviteUserModal({
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative z-[9999] w-full max-w-lg bg-[var(--bg-primary)] rounded-xl shadow-xl mx-4">
+      <div className="relative z-[9999] w-full max-w-lg bg-[var(--bg-primary)] rounded-xl shadow-xl mx-4 max-h-[85vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[var(--border-primary)]">
+        <div className="flex items-center justify-between p-4 border-b border-[var(--border-primary)] shrink-0">
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">
             Pozvať používateľa
           </h2>
@@ -114,7 +114,7 @@ export function InviteUserModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 flex-1 overflow-y-auto">
           {error && (
             <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm">
               {error}
