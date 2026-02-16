@@ -101,19 +101,22 @@ export function KanbanCard({ task, onClick, onDelete, onUpdate, isDragging, hide
         isSelected && 'ring-2 ring-primary bg-primary/5'
       )}
     >
-      {/* Action buttons - top right */}
-      <div className="absolute top-2 right-2 flex items-center gap-0.5 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-md px-0.5">
-        {/* Recurrence button - shows on hover, or always if task has recurrence */}
+      {/* Action buttons - top right - hidden by default, show on hover */}
+      <div className={cn(
+        "absolute top-2 right-2 flex items-center gap-1 z-10 transition-opacity",
+        !hasRecurrence && "opacity-0 group-hover:opacity-100"
+      )}>
+        {/* Recurrence button - always visible if has recurrence, otherwise show on hover */}
         <button
           onClick={(e) => {
             e.stopPropagation()
             setShowRecurrenceModal(true)
           }}
           className={cn(
-            'p-1 rounded transition-all',
+            'p-1 rounded transition-all bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm',
             hasRecurrence
               ? 'text-primary hover:bg-primary/10'
-              : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground hover:bg-accent'
+              : 'text-muted-foreground hover:text-foreground hover:bg-accent'
           )}
           title={hasRecurrence ? 'Upraviť opakovanie' : 'Nastaviť opakovanie'}
         >
@@ -127,7 +130,7 @@ export function KanbanCard({ task, onClick, onDelete, onUpdate, isDragging, hide
               e.stopPropagation()
               onDelete()
             }}
-            className="p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all"
+            className="p-1 rounded bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all"
             title="Vymazať"
           >
             <Trash2 className="h-3.5 w-3.5" />
