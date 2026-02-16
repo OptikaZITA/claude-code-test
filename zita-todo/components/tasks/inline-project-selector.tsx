@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { FolderOpen, Check, X } from 'lucide-react'
 import { Project } from '@/types'
 import { createClient } from '@/lib/supabase/client'
@@ -19,7 +20,9 @@ export function InlineProjectSelector({
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
 
@@ -50,18 +53,54 @@ export function InlineProjectSelector({
     }
   }, [isOpen, supabase])
 
+  // Update dropdown position when opened
+  useEffect(() => {
+    if (!isOpen || !triggerRef.current) return
+
+    const updatePosition = () => {
+      const rect = triggerRef.current!.getBoundingClientRect()
+      const dropdownWidth = 256 // w-64 = 16rem = 256px
+
+      // Position below the trigger, aligned to the right
+      let left = rect.right - dropdownWidth
+      const top = rect.bottom + 8
+
+      // Ensure dropdown doesn't go off-screen left
+      if (left < 8) left = 8
+
+      setDropdownPosition({ top, left })
+    }
+
+    updatePosition()
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [isOpen])
+
   // Close on click outside
   useEffect(() => {
     if (!isOpen) return
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
+      const target = e.target as Node
+      if (triggerRef.current?.contains(target)) return
+      if (dropdownRef.current?.contains(target)) return
+      setIsOpen(false)
+      setDropdownPosition(null)
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside)
+    }, 0)
+
+    return () => {
+      clearTimeout(timeoutId)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
   }, [isOpen])
 
   // Focus input when opening
@@ -79,13 +118,22 @@ export function InlineProjectSelector({
     onChange(project?.id || null)
     setIsOpen(false)
     setSearch('')
+    setDropdownPosition(null)
   }
 
   return (
-    <div ref={containerRef} className="relative">
+    <>
       {/* Icon trigger */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={triggerRef}
+        onClick={() => {
+          if (isOpen) {
+            setIsOpen(false)
+            setDropdownPosition(null)
+          } else {
+            setIsOpen(true)
+          }
+        }}
         className={cn(
           'p-2 rounded-lg transition-colors',
           hasValue
@@ -97,9 +145,16 @@ export function InlineProjectSelector({
         <FolderOpen className="w-4 h-4" />
       </button>
 
-      {/* Dropdown */}
-      {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-64 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-xl z-50">
+      {/* Dropdown via Portal */}
+      {isOpen && dropdownPosition && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={dropdownRef}
+          className="fixed w-64 rounded-xl border border-[var(--border)] bg-card shadow-xl z-[9999]"
+          style={{
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+          }}
+        >
           {/* Search input */}
           <div className="p-2 border-b border-[var(--border-primary)]">
             <input
@@ -169,8 +224,9 @@ export function InlineProjectSelector({
               ))
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   )
 }

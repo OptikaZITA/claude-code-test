@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Inbox,
   Star,
@@ -47,42 +48,86 @@ export function InlineWhenPicker({
 }: InlineWhenPickerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(whenDate ? new Date(whenDate) : new Date())
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null)
+  const triggerRef = useRef<HTMLButtonElement | HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // null = Logbook, treat as no specific when_type
   const currentOption = value ? whenOptions.find(opt => opt.value === value) : undefined
   const hasValue = value !== null && value !== 'inbox'
+
+  // Update dropdown position when opened
+  useEffect(() => {
+    if (!isOpen || !triggerRef.current) return
+
+    const updatePosition = () => {
+      const rect = triggerRef.current!.getBoundingClientRect()
+      const dropdownWidth = 288 // w-72 = 18rem = 288px
+
+      let left = rect.left
+      const top = rect.bottom + 8
+
+      // Ensure dropdown doesn't go off-screen right
+      if (left + dropdownWidth > window.innerWidth - 8) {
+        left = window.innerWidth - dropdownWidth - 8
+      }
+      // Ensure dropdown doesn't go off-screen left
+      if (left < 8) left = 8
+
+      setDropdownPosition({ top, left })
+    }
+
+    updatePosition()
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [isOpen])
 
   // Close on click outside
   useEffect(() => {
     if (!isOpen) return
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
+      const target = e.target as Node
+      if (triggerRef.current?.contains(target)) return
+      if (dropdownRef.current?.contains(target)) return
+      setIsOpen(false)
+      setDropdownPosition(null)
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside)
+    }, 0)
+
+    return () => {
+      clearTimeout(timeoutId)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
   }, [isOpen])
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation()
     onChange('inbox', null)
     setIsOpen(false)
+    setDropdownPosition(null)
   }
 
   const handleOptionClick = (optionValue: WhenType) => {
     if (optionValue !== 'scheduled') {
       onChange(optionValue, null)
       setIsOpen(false)
+      setDropdownPosition(null)
     }
   }
 
   const handleDateSelect = (date: Date) => {
     onChange('scheduled', format(date, 'yyyy-MM-dd'))
     setIsOpen(false)
+    setDropdownPosition(null)
   }
 
   const formatWhenDate = (date: string) => {
@@ -102,12 +147,22 @@ export function InlineWhenPicker({
 
   const weekDays = ['Po', 'Ut', 'St', 'St', 'Pi', 'So', 'Ne']
 
+  const handleToggle = () => {
+    if (isOpen) {
+      setIsOpen(false)
+      setDropdownPosition(null)
+    } else {
+      setIsOpen(true)
+    }
+  }
+
   return (
-    <div ref={containerRef} className="relative">
+    <>
       {/* Badge trigger */}
       {hasValue ? (
         <div
-          onClick={() => setIsOpen(!isOpen)}
+          ref={triggerRef as React.RefObject<HTMLDivElement>}
+          onClick={handleToggle}
           className={cn(
             'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border transition-colors cursor-pointer',
             currentOption?.color
@@ -129,7 +184,8 @@ export function InlineWhenPicker({
         </div>
       ) : (
         <button
-          onClick={() => setIsOpen(!isOpen)}
+          ref={triggerRef as React.RefObject<HTMLButtonElement>}
+          onClick={handleToggle}
           className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-[var(--text-secondary)] border border-dashed border-[var(--border-primary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors"
         >
           <Calendar className="w-3.5 h-3.5" />
@@ -137,9 +193,16 @@ export function InlineWhenPicker({
         </button>
       )}
 
-      {/* Dropdown */}
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-72 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-xl z-50">
+      {/* Dropdown via Portal */}
+      {isOpen && dropdownPosition && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={dropdownRef}
+          className="fixed w-72 rounded-xl border border-[var(--border)] bg-card shadow-xl z-[9999]"
+          style={{
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+          }}
+        >
           <div className="p-2 border-b border-[var(--border-primary)]">
             <p className="text-xs font-medium text-[var(--text-secondary)] px-2 mb-2">When</p>
 
@@ -225,17 +288,18 @@ export function InlineWhenPicker({
 
           {/* Clear button */}
           {hasValue && (
-            <div className="p-2 border-t border-[var(--border-primary)]">
+            <div className="p-2 border-t border-[var(--border)]">
               <button
                 onClick={handleClear}
-                className="w-full py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Clear
               </button>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   )
 }

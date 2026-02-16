@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { User as UserIcon, ChevronDown, Check, X } from 'lucide-react'
 import { User } from '@/types'
 import { Avatar } from '@/components/ui/avatar'
@@ -23,6 +24,8 @@ export function AssigneeSelector({
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
@@ -50,17 +53,58 @@ export function AssigneeSelector({
     fetchUsers()
   }, [supabase])
 
-  // Close dropdown when clicking outside
+  // Update dropdown position when opened
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
+    if (!isOpen || !triggerRef.current) return
+
+    const updatePosition = () => {
+      const rect = triggerRef.current!.getBoundingClientRect()
+      const dropdownWidth = 256 // w-64 = 16rem = 256px
+
+      let left = rect.left
+      const top = rect.bottom + 8
+
+      // Ensure dropdown doesn't go off-screen right
+      if (left + dropdownWidth > window.innerWidth - 8) {
+        left = window.innerWidth - dropdownWidth - 8
       }
+      // Ensure dropdown doesn't go off-screen left
+      if (left < 8) left = 8
+
+      setDropdownPosition({ top, left })
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+    updatePosition()
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [isOpen])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node
+      if (triggerRef.current?.contains(target)) return
+      if (dropdownRef.current?.contains(target)) return
+      setIsOpen(false)
+      setDropdownPosition(null)
+    }
+
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside)
+    }, 0)
+
+    return () => {
+      clearTimeout(timeoutId)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen])
 
   // Focus input when opening
   useEffect(() => {
@@ -78,12 +122,21 @@ export function AssigneeSelector({
     onChange(user)
     setIsOpen(false)
     setSearch('')
+    setDropdownPosition(null)
   }
 
   return (
-    <div className={cn('relative', className)} ref={dropdownRef}>
+    <div className={cn('relative', className)}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={triggerRef}
+        onClick={() => {
+          if (isOpen) {
+            setIsOpen(false)
+            setDropdownPosition(null)
+          } else {
+            setIsOpen(true)
+          }
+        }}
         className={cn(
           'flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors',
           'border border-[var(--border-primary)] bg-[var(--bg-primary)]',
@@ -106,8 +159,15 @@ export function AssigneeSelector({
         <ChevronDown className="h-4 w-4 text-[var(--text-secondary)]" />
       </button>
 
-      {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-64 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-lg">
+      {isOpen && dropdownPosition && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={dropdownRef}
+          className="fixed w-64 rounded-xl border border-[var(--border)] bg-card shadow-xl z-[9999]"
+          style={{
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+          }}
+        >
           {/* Search input */}
           <div className="p-2 border-b border-[var(--border-primary)]">
             <input
@@ -183,7 +243,8 @@ export function AssigneeSelector({
               ))
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
