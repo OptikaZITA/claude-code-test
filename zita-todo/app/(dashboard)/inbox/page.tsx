@@ -396,6 +396,7 @@ export default function InboxPage() {
             tasks={tagFilteredTasks}
             onTaskMove={handleKanbanTaskMove}
             onTaskReorder={handleTaskReorder}
+            onTaskDelete={handleTaskDelete}
             onTaskClick={setSelectedTask}
             onQuickAdd={handleKanbanQuickAdd}
           />

@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Flag } from 'lucide-react'
+import { Flag, Trash2 } from 'lucide-react'
 import { TaskWithRelations, TaskPriority } from '@/types'
 import { Avatar } from '@/components/ui/avatar'
 import { TagChipList } from '@/components/tags'
@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils/cn'
 interface KanbanCardProps {
   task: TaskWithRelations
   onClick: () => void
+  onDelete?: () => void
   isDragging?: boolean
   /** Hide "Dnes" badge (use on Today page where it's redundant) */
   hideToday?: boolean
@@ -33,7 +34,7 @@ const priorityFlagColors: Record<TaskPriority, string> = {
   low: 'text-yellow-500',   // #EAB308 - Žltá
 }
 
-export function KanbanCard({ task, onClick, isDragging, hideToday, isSelected = false, onModifierClick }: KanbanCardProps) {
+export function KanbanCard({ task, onClick, onDelete, isDragging, hideToday, isSelected = false, onModifierClick }: KanbanCardProps) {
   const { setDraggedTask } = useSidebarDrop()
   const { isRunning, currentTaskId } = useGlobalTimerContext()
   const { totalSeconds } = useTaskTimeTotal(task.id)
@@ -88,12 +89,26 @@ export function KanbanCard({ task, onClick, isDragging, hideToday, isSelected = 
       {...listeners}
       onClick={handleClick}
       className={cn(
-        'cursor-pointer rounded-[var(--radius-md)] bg-card p-3 shadow-sm transition-all hover:shadow-md border border-[var(--border)]',
+        'group relative cursor-pointer rounded-[var(--radius-md)] bg-card p-3 shadow-sm transition-all hover:shadow-md border border-[var(--border)]',
         (isDragging || isSortableDragging) && 'opacity-50 shadow-lg rotate-2 scale-105',
         isCompleted && 'opacity-60',
         isSelected && 'ring-2 ring-primary bg-primary/5'
       )}
     >
+      {/* Delete button - shows on hover */}
+      {onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onDelete()
+          }}
+          className="absolute top-2 right-2 p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all z-10"
+          title="Vymazať"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
+
       {/* Priority flag + tags - zobrazuje sa LEN pre definované priority */}
       <div className="mb-2 flex items-center gap-2">
         {task.priority && ['high', 'low'].includes(task.priority) && (
