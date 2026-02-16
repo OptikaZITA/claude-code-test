@@ -76,8 +76,11 @@ export function TaskItemExpanded({
 
   // Auto-save notes on blur
   const handleNotesBlur = useCallback(() => {
-    if (notes !== (task.notes || '')) {
-      onUpdate({ notes: notes || null })
+    const currentNotes = notes.trim()
+    const originalNotes = (task.notes || '').trim()
+
+    if (currentNotes !== originalNotes) {
+      onUpdate({ notes: currentNotes || null })
     }
   }, [notes, task.notes, onUpdate])
 
@@ -94,11 +97,21 @@ export function TaskItemExpanded({
     }
   }
 
-  // Handle Escape on notes
+  // Handle keyboard on notes: Cmd/Ctrl+Enter to save, Escape to cancel
   const handleNotesKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
-      handleNotesBlur()
+      setNotes(task.notes || '') // Reset to original
       onCollapse()
+    }
+    // Cmd/Ctrl + Enter or Cmd/Ctrl + S to save
+    if ((e.key === 'Enter' || e.key === 's') && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault()
+      const currentNotes = notes.trim()
+      const originalNotes = (task.notes || '').trim()
+      if (currentNotes !== originalNotes) {
+        onUpdate({ notes: currentNotes || null })
+      }
+      notesRef.current?.blur()
     }
   }
 
