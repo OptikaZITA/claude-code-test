@@ -41,6 +41,12 @@ export function TaskItemExpanded({
   const isCompleted = task.status === 'done'
   const hasRecurrence = !!task.recurrence_rule
 
+  // Sync local state with task prop when task changes
+  useEffect(() => {
+    setTitle(task.title)
+    setNotes(task.notes || '')
+  }, [task.id, task.title, task.notes])
+
   // Focus title on mount
   useEffect(() => {
     titleInputRef.current?.focus()
@@ -73,16 +79,6 @@ export function TaskItemExpanded({
       onUpdate({ title: title.trim() })
     }
   }, [title, task.title, onUpdate])
-
-  // Auto-save notes on blur
-  const handleNotesBlur = useCallback(() => {
-    const currentNotes = notes.trim()
-    const originalNotes = (task.notes || '').trim()
-
-    if (currentNotes !== originalNotes) {
-      onUpdate({ notes: currentNotes || null })
-    }
-  }, [notes, task.notes, onUpdate])
 
   // Handle Enter key on title
   const handleTitleKeyDown = (e: React.KeyboardEvent) => {
@@ -182,7 +178,13 @@ export function TaskItemExpanded({
           ref={notesRef}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          onBlur={handleNotesBlur}
+          onBlur={(e) => {
+            const currentNotes = e.target.value.trim()
+            const originalNotes = (task.notes || '').trim()
+            if (currentNotes !== originalNotes) {
+              onUpdate({ notes: currentNotes || null })
+            }
+          }}
           onKeyDown={handleNotesKeyDown}
           placeholder="Poznámky..."
           rows={1}
