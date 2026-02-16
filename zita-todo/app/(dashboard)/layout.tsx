@@ -183,7 +183,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       .single()
 
     const { error } = await supabase.from('areas').insert({
-      title: data.name,
+      name: data.name,
       color: data.color,
       user_id: authUser.id,
       organization_id: userData?.organization_id || null,
