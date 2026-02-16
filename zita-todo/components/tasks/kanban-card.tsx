@@ -103,34 +103,34 @@ export function KanbanCard({ task, onClick, onDelete, onUpdate, isDragging, hide
     >
       {/* Action buttons - top right - hidden by default, show on hover */}
       <div className={cn(
-        "absolute top-2 right-2 flex items-center gap-1 z-10 transition-opacity",
+        "absolute top-1.5 right-1.5 flex gap-0.5 z-10 transition-opacity",
         !hasRecurrence && "opacity-0 group-hover:opacity-100"
       )}>
-        {/* Recurrence button - always visible if has recurrence, otherwise show on hover */}
+        {/* Recurrence button */}
         <button
           onClick={(e) => {
             e.stopPropagation()
             setShowRecurrenceModal(true)
           }}
           className={cn(
-            'p-1 rounded transition-all bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm',
+            'p-1 rounded transition-colors',
             hasRecurrence
-              ? 'text-primary hover:bg-primary/10'
-              : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+              ? 'text-primary hover:text-primary/80'
+              : 'text-muted-foreground hover:text-foreground'
           )}
           title={hasRecurrence ? 'Upraviť opakovanie' : 'Nastaviť opakovanie'}
         >
           <Repeat className="h-3.5 w-3.5" />
         </button>
 
-        {/* Delete button - shows on hover */}
+        {/* Delete button */}
         {onDelete && (
           <button
             onClick={(e) => {
               e.stopPropagation()
               onDelete()
             }}
-            className="p-1 rounded bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all"
+            className="p-1 rounded text-muted-foreground hover:text-red-500 transition-colors"
             title="Vymazať"
           >
             <Trash2 className="h-3.5 w-3.5" />
