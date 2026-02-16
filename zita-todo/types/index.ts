@@ -231,52 +231,99 @@ export interface InvitationWithDetails extends Invitation {
   department_list?: Area[]
 }
 
-// Recurrence types - Things 3 style
+// Recurrence types - Things 3 style (v2)
 export type RecurrenceType = 'after_completion' | 'scheduled'
-export type RecurrenceUnit = 'day' | 'week' | 'month' | 'year'
+export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly'
+export type RecurrenceUnit = 'day' | 'week' | 'month' | 'year' // DEPRECATED - pre spätnú kompatibilitu
 export type RecurrenceEndType = 'never' | 'after_count' | 'on_date'
 
 export interface RecurrenceRule {
   // Typ opakovania
   type: RecurrenceType
 
-  // Interval a jednotka
-  interval: number           // 1, 2, 3...
-  unit: RecurrenceUnit
+  // Frekvencia (nové v2)
+  frequency?: RecurrenceFrequency  // Nahradí unit
+  interval: number                  // Každý X (1 = každý, 2 = každý druhý...)
+
+  // Weekly: ktoré dni
+  weekdays?: number[]               // 0=Po, 1=Ut, 2=St, 3=Št, 4=Pi, 5=So, 6=Ne
+
+  // Monthly: ktorý deň
+  month_day?: number                // 1-31 alebo -1 (posledný)
+  month_week?: number               // 1-5 (1.týždeň, 2.týždeň...) alebo -1 (posledný)
+  month_weekday?: number            // 0-6 (Po-Ne) — použije sa s month_week
+
+  // Yearly: ktorý mesiac a deň
+  year_month?: number               // 1-12
+  year_day?: number                 // 1-31
+
+  // Kedy začať
+  start_date?: string               // ISO date odkedy sa začne opakovanie
+  next_date?: string                // Ďalší výskyt
 
   // Kedy skončiť opakovanie
   end_type: RecurrenceEndType
-  end_after_count?: number   // po X opakovaniach
-  end_on_date?: string       // ISO date string
+  end_after_count?: number          // po X opakovaniach
+  end_on_date?: string              // ISO date string
 
-  // Pre scheduled - ďalšie dátumy
-  next_date?: string         // ISO date - kedy je ďalší výskyt
-  completed_count?: number   // počet dokončených opakovaní
+  // Stav
+  completed_count?: number          // počet dokončených opakovaní
 
   // Voliteľné
-  reminder_time?: string     // "12:00" - čas pripomienky
-  deadline_days_before?: number // deadline X dní pred
+  reminder_time?: string            // "12:00" - čas pripomienky
+  deadline_days_before?: number     // deadline X dní pred
+
+  // DEPRECATED - pre spätnú kompatibilitu so starými záznamami
+  unit?: RecurrenceUnit
+}
+
+// Konverzia starého unit na nový frequency
+function unitToFrequency(unit: RecurrenceUnit): RecurrenceFrequency {
+  const map: Record<RecurrenceUnit, RecurrenceFrequency> = {
+    day: 'daily',
+    week: 'weekly',
+    month: 'monthly',
+    year: 'yearly',
+  }
+  return map[unit]
 }
 
 // Helper pre formátovanie recurrence rule do čitateľného textu
 export function formatRecurrenceRule(rule: RecurrenceRule): string {
-  const unitLabels: Record<RecurrenceUnit, { singular: string; plural: string }> = {
-    day: { singular: 'deň', plural: 'dni' },
-    week: { singular: 'týždeň', plural: 'týždne' },
-    month: { singular: 'mesiac', plural: 'mesiace' },
-    year: { singular: 'rok', plural: 'roky' },
+  // Podpora oboch verzií - frequency (nové) alebo unit (staré)
+  const freq = rule.frequency || (rule.unit ? unitToFrequency(rule.unit) : 'weekly')
+  const typeLabel = rule.type === 'after_completion' ? ' po dokončení' : ''
+
+  const WEEKDAYS_SK = ['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne']
+  const MONTHS_SK = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Máj', 'Jún', 'Júl', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
+
+  let label = ''
+  switch (freq) {
+    case 'daily':
+      label = rule.interval === 1 ? 'Denne' : `Každý ${rule.interval}. deň`
+      break
+    case 'weekly':
+      const day = rule.weekdays?.[0] !== undefined ? WEEKDAYS_SK[rule.weekdays[0]] : ''
+      label = rule.interval === 1
+        ? (day ? `Týždenne (${day})` : 'Týždenne')
+        : (day ? `Každý ${rule.interval}. týždeň (${day})` : `Každý ${rule.interval}. týždeň`)
+      break
+    case 'monthly':
+      const dayNum = rule.month_day === -1 ? 'posledný' : `${rule.month_day || 1}.`
+      label = rule.interval === 1
+        ? `Mesačne (${dayNum})`
+        : `Každý ${rule.interval}. mesiac (${dayNum})`
+      break
+    case 'yearly':
+      const yearDay = rule.year_day || 1
+      const yearMonth = MONTHS_SK[rule.year_month || 1]
+      label = rule.interval === 1
+        ? `Ročne (${yearDay}. ${yearMonth})`
+        : `Každý ${rule.interval}. rok (${yearDay}. ${yearMonth})`
+      break
   }
 
-  const unit = unitLabels[rule.unit]
-  const intervalText = rule.interval === 1
-    ? unit.singular
-    : `${rule.interval} ${unit.plural}`
-
-  if (rule.type === 'after_completion') {
-    return `Každý ${intervalText} po dokončení`
-  }
-
-  return `Každý ${intervalText}`
+  return label + typeLabel
 }
 
 // Kanban types - používa TaskStatus namiesto samostatného KanbanColumn
