@@ -126,11 +126,23 @@ export default function LogbookPage() {
   }
 
   const handleInlineTaskUpdate = async (taskId: string, updates: Partial<TaskWithRelations>) => {
+    // Find task for potential rollback
+    const task = tasks.find(t => t.id === taskId)
+
+    // OPTIMISTIC UPDATE: Update local state immediately
+    setTasks(prev => prev.map(t =>
+      t.id === taskId ? { ...t, ...updates } : t
+    ))
+
     try {
       await updateTask(taskId, updates)
-      refetch()
+      // No refetch needed - optimistic update is already done
     } catch (error) {
       console.error('Error updating task:', error)
+      // Rollback on error
+      if (task) {
+        setTasks(prev => prev.map(t => t.id === taskId ? task : t))
+      }
     }
   }
 

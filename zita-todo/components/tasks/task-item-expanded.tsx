@@ -181,12 +181,8 @@ export function TaskItemExpanded({
           onBlur={(e) => {
             const currentNotes = e.target.value.trim()
             const originalNotes = (task.notes || '').trim()
-            console.log('[Notes onBlur] currentNotes:', currentNotes, 'originalNotes:', originalNotes)
             if (currentNotes !== originalNotes) {
-              console.log('[Notes onBlur] Calling onUpdate with:', { notes: currentNotes || null })
               onUpdate({ notes: currentNotes || null })
-            } else {
-              console.log('[Notes onBlur] No change detected, skipping update')
             }
           }}
           onKeyDown={handleNotesKeyDown}
