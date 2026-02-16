@@ -743,6 +743,15 @@ export const TaskQuickAdd = forwardRef<TaskQuickAddHandle, TaskQuickAddProps>(fu
         >
           Zrušiť
         </button>
+
+        {/* Submit button */}
+        <button
+          onClick={handleSubmit}
+          disabled={!title.trim()}
+          className="text-sm font-medium text-white bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors px-4 py-1.5 rounded-lg"
+        >
+          Pridať
+        </button>
       </div>
 
       {/* Selected items preview */}
