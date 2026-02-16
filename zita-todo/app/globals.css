@@ -382,3 +382,33 @@ h3, h4, h5, h6, p, span, div {
   outline: none !important;
   box-shadow: none !important;
 }
+
+/* ============================================
+   PORTAL / POPUP Z-INDEX FIXES
+   ============================================ */
+
+/* Fix for Radix UI poppers (dropdowns, popovers, tooltips) */
+[data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+}
+
+/* Fix for Radix dialog/modal overlays */
+[data-radix-dialog-overlay],
+[data-radix-alert-dialog-overlay] {
+  z-index: 9998 !important;
+}
+
+[data-radix-dialog-content],
+[data-radix-alert-dialog-content] {
+  z-index: 9999 !important;
+}
+
+/* Fix for custom portaled dropdowns */
+.portal-dropdown {
+  z-index: 9999 !important;
+}
+
+/* Ensure modals are above everything */
+.modal-portal {
+  z-index: 9999 !important;
+}

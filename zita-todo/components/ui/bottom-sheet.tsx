@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
@@ -13,9 +14,15 @@ interface BottomSheetProps {
 
 export function BottomSheet({ isOpen, onClose, children, title }: BottomSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null)
+  const [mounted, setMounted] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState(0)
   const startY = useRef(0)
+
+  // Client-side mount check for portal
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Close on escape
   useEffect(() => {
@@ -62,13 +69,13 @@ export function BottomSheet({ isOpen, onClose, children, title }: BottomSheetPro
     setDragOffset(0)
   }, [dragOffset, onClose])
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted) return null
 
-  return (
+  const sheetContent = (
     <>
       {/* Overlay */}
       <div
-        className="fixed inset-0 z-50 bg-black/50 animate-fade-in"
+        className="fixed inset-0 z-[9999] bg-black/50 animate-fade-in"
         onClick={onClose}
       />
 
@@ -76,7 +83,7 @@ export function BottomSheet({ isOpen, onClose, children, title }: BottomSheetPro
       <div
         ref={sheetRef}
         className={cn(
-          'fixed inset-x-0 bottom-0 z-50',
+          'fixed inset-x-0 bottom-0 z-[9999]',
           'bg-card rounded-t-2xl',
           'max-h-[85vh] overflow-hidden',
           'animate-slide-in-up',
@@ -116,4 +123,6 @@ export function BottomSheet({ isOpen, onClose, children, title }: BottomSheetPro
       </div>
     </>
   )
+
+  return createPortal(sheetContent, document.body)
 }

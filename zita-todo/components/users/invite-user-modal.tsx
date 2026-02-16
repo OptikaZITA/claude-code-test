@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { UserRole, Area } from '@/types'
@@ -34,6 +35,7 @@ export function InviteUserModal({
   onInvite,
   departments,
 }: InviteUserModalProps) {
+  const [mounted, setMounted] = useState(false)
   const [formData, setFormData] = useState<InviteUserData>({
     email: '',
     full_name: '',
@@ -44,6 +46,11 @@ export function InviteUserModal({
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Client-side mount check for portal
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -87,15 +94,15 @@ export function InviteUserModal({
     }))
   }
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-lg bg-[var(--bg-primary)] rounded-xl shadow-xl mx-4">
+      <div className="relative z-[9999] w-full max-w-lg bg-[var(--bg-primary)] rounded-xl shadow-xl mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-[var(--border-primary)]">
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">
@@ -227,4 +234,6 @@ export function InviteUserModal({
       </div>
     </div>
   )
+
+  return createPortal(modalContent, document.body)
 }

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Upload, ImageIcon } from 'lucide-react'
 import { Area } from 'react-easy-crop'
 import { AvatarEditor, getCroppedImg } from './avatar-editor'
@@ -23,10 +24,16 @@ export function AvatarUploadModal({
   userInitials,
   onSuccess,
 }: AvatarUploadModalProps) {
+  const [mounted, setMounted] = useState(false)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Client-side mount check for portal
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const { uploading, progress, error, uploadAvatar } = useAvatarUpload({
     onSuccess: (url) => {
@@ -114,10 +121,10 @@ export function AvatarUploadModal({
     fileInputRef.current?.click()
   }
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
       {/* Overlay */}
       <div
         className="absolute inset-0 bg-black/50"
@@ -125,7 +132,7 @@ export function AvatarUploadModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-card rounded-lg shadow-xl w-full max-w-md mx-4 animate-scale-in">
+      <div className="relative z-[9999] bg-card rounded-lg shadow-xl w-full max-w-md mx-4 animate-scale-in">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="text-lg font-heading font-semibold">Profilová fotka</h2>
@@ -251,4 +258,6 @@ export function AvatarUploadModal({
       </div>
     </div>
   )
+
+  return createPortal(modalContent, document.body)
 }

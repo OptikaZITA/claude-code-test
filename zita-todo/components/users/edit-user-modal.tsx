@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Camera, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AvatarUploadModal } from '@/components/profile/avatar-upload-modal'
@@ -40,6 +41,7 @@ export function EditUserModal({
   departments,
   userDepartments,
 }: EditUserModalProps) {
+  const [mounted, setMounted] = useState(false)
   const [formData, setFormData] = useState<EditUserData>({})
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
@@ -47,6 +49,11 @@ export function EditUserModal({
   const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(null)
   const { deleteAvatar, uploading: deletingAvatar } = useAvatarUpload()
+
+  // Client-side mount check for portal
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Reset form when user changes
   useEffect(() => {
@@ -113,10 +120,10 @@ export function EditUserModal({
     )
   }
 
-  if (!isOpen || !user) return null
+  if (!isOpen || !user || !mounted) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
@@ -305,4 +312,6 @@ export function EditUserModal({
       )}
     </div>
   )
+
+  return createPortal(modalContent, document.body)
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Button } from './button'
@@ -22,6 +23,13 @@ const sizeClasses = {
 }
 
 export function Modal({ isOpen, onClose, title, children, className, size = 'md' }: ModalProps) {
+  const [mounted, setMounted] = React.useState(false)
+
+  // Ensure we're on client side for portal rendering
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
   React.useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -38,10 +46,10 @@ export function Modal({ isOpen, onClose, title, children, className, size = 'md'
     }
   }, [isOpen, onClose])
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 dark:bg-black/70 animate-fade-in"
@@ -51,7 +59,7 @@ export function Modal({ isOpen, onClose, title, children, className, size = 'md'
       {/* Modal content */}
       <div
         className={cn(
-          'relative z-50 w-full',
+          'relative z-[9999] w-full',
           'rounded-[var(--radius-lg)] border border-[var(--border)]',
           'bg-card text-foreground',
           'shadow-lg animate-scale-in',
@@ -74,4 +82,7 @@ export function Modal({ isOpen, onClose, title, children, className, size = 'md'
       </div>
     </div>
   )
+
+  // Use createPortal to render modal outside of any parent overflow restrictions
+  return createPortal(modalContent, document.body)
 }

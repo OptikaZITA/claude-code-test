@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,10 +21,16 @@ export function SlackChannelConfigModal({
   onClose,
   config,
 }: SlackChannelConfigModalProps) {
+  const [mounted, setMounted] = useState(false)
   const { createConfig, updateConfig } = useSlackChannelConfigs()
   const { areas } = useAreas()
   const [projects, setProjects] = useState<Project[]>([])
   const supabase = createClient()
+
+  // Client-side mount check for portal
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Fetch projects
   useEffect(() => {
@@ -114,11 +121,11 @@ export function SlackChannelConfigModal({
     }
   }
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-lg bg-[var(--bg-primary)] p-6 shadow-lg">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
+      <div className="relative z-[9999] w-full max-w-md rounded-lg bg-[var(--bg-primary)] p-6 shadow-lg">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">
@@ -274,4 +281,6 @@ export function SlackChannelConfigModal({
       </div>
     </div>
   )
+
+  return createPortal(modalContent, document.body)
 }
