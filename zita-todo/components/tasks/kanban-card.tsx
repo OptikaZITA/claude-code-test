@@ -1,17 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Flag, Trash2, Repeat } from 'lucide-react'
-import { TaskWithRelations, TaskPriority, RecurrenceRule } from '@/types'
+import { TaskWithRelations, TaskPriority } from '@/types'
 import { Avatar } from '@/components/ui/avatar'
 import { TagChipList } from '@/components/tags'
 import { WhenBadge } from '@/components/tasks/when-picker'
 import { DeadlineBadge } from '@/components/tasks/deadline-picker'
 import { TimerPlayButton, TimerTimeDisplay } from '@/components/tasks/inline-time-tracker'
 import { RecurrenceBadge } from '@/components/tasks/recurrence-badge'
-import { RecurrenceConfigModal } from '@/components/tasks/recurrence-config-modal'
 import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
 import { useGlobalTimerContext } from '@/lib/contexts/global-timer-context'
 import { useTaskTimeTotal } from '@/lib/hooks/use-task-time-total'
@@ -38,7 +37,6 @@ const priorityFlagColors: Record<TaskPriority, string> = {
 }
 
 export function KanbanCard({ task, onClick, onDelete, onUpdate, isDragging, hideToday, isSelected = false, onModifierClick }: KanbanCardProps) {
-  const [showRecurrenceModal, setShowRecurrenceModal] = useState(false)
   const { setDraggedTask } = useSidebarDrop()
   const { isRunning, currentTaskId } = useGlobalTimerContext()
   const { totalSeconds } = useTaskTimeTotal(task.id)
@@ -102,27 +100,7 @@ export function KanbanCard({ task, onClick, onDelete, onUpdate, isDragging, hide
       )}
     >
       {/* Action buttons - top right - hidden by default, show on hover */}
-      <div className={cn(
-        "absolute top-1.5 right-1.5 flex gap-0.5 z-10 transition-opacity",
-        !hasRecurrence && "opacity-0 group-hover:opacity-100"
-      )}>
-        {/* Recurrence button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            setShowRecurrenceModal(true)
-          }}
-          className={cn(
-            'p-1 rounded transition-colors',
-            hasRecurrence
-              ? 'text-primary hover:text-primary/80'
-              : 'text-muted-foreground hover:text-foreground'
-          )}
-          title={hasRecurrence ? 'Upraviť opakovanie' : 'Nastaviť opakovanie'}
-        >
-          <Repeat className="h-3.5 w-3.5" />
-        </button>
-
+      <div className="absolute top-1.5 right-1.5 flex gap-0.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
         {/* Delete button */}
         {onDelete && (
           <button
@@ -209,15 +187,6 @@ export function KanbanCard({ task, onClick, onDelete, onUpdate, isDragging, hide
         )}
       </div>
 
-      {/* Recurrence Config Modal */}
-      <RecurrenceConfigModal
-        isOpen={showRecurrenceModal}
-        onClose={() => setShowRecurrenceModal(false)}
-        task={task}
-        onSave={(rule) => {
-          onUpdate?.({ recurrence_rule: rule })
-        }}
-      />
     </div>
   )
 }

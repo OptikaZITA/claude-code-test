@@ -11,10 +11,11 @@ import {
   Flag,
   Calendar,
   Pencil,
+  Repeat,
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { sk } from 'date-fns/locale'
-import { TaskWithRelations, ChecklistItem, User, Project, WhenType, Tag as TagType, TaskPriority } from '@/types'
+import { TaskWithRelations, ChecklistItem, User, Project, WhenType, Tag as TagType, TaskPriority, formatRecurrenceRule, RecurrenceRule } from '@/types'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -28,6 +29,7 @@ import { ProjectSelector } from '@/components/tasks/project-selector'
 import { AssigneeSelector } from '@/components/tasks/assignee-selector'
 import { InlineTimeTracker } from '@/components/tasks/inline-time-tracker'
 import { ScheduleTaskModal } from '@/components/calendar/schedule-task-modal'
+import { RecurrenceConfigModal } from '@/components/tasks/recurrence-config-modal'
 import { useGlobalTimerContext } from '@/lib/contexts/global-timer-context'
 import { useTaskTimeTotal } from '@/lib/hooks/use-task-time-total'
 import { useTimeTracking } from '@/lib/hooks/use-time-tracking'
@@ -66,6 +68,7 @@ export function TaskDetail({
   const [showTimeEntries, setShowTimeEntries] = useState(false)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const [showRecurrenceModal, setShowRecurrenceModal] = useState(false)
 
   const { timeEntries, deleteTimeEntry } = useTimeTracking(task.id)
   const { totalSeconds } = useTaskTimeTotal(task.id)
@@ -159,6 +162,12 @@ export function TaskDetail({
   const handleTagsChange = useCallback((tags: TagType[]) => {
     if (onUpdate) {
       onUpdate({ tags })
+    }
+  }, [onUpdate])
+
+  const handleRecurrenceChange = useCallback((rule: RecurrenceRule | null) => {
+    if (onUpdate) {
+      onUpdate({ recurrence_rule: rule })
     }
   }, [onUpdate])
 
@@ -394,6 +403,32 @@ export function TaskDetail({
             />
           </div>
 
+          {/* Recurrence Section */}
+          <div className="rounded-[var(--radius-lg)] bg-muted p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Repeat className={cn(
+                  "h-4 w-4",
+                  task.recurrence_rule ? "text-primary" : "text-muted-foreground"
+                )} />
+                <span className="text-sm font-medium text-foreground">Opakovanie</span>
+                {task.recurrence_rule && (
+                  <span className="text-xs text-muted-foreground">
+                    • {formatRecurrenceRule(task.recurrence_rule)}
+                  </span>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowRecurrenceModal(true)}
+                className="text-sm"
+              >
+                {task.recurrence_rule ? 'Upraviť' : 'Nastaviť'}
+              </Button>
+            </div>
+          </div>
+
           {/* Time Tracking Section */}
           <div className="rounded-[var(--radius-lg)] bg-muted p-4">
             <div className="flex items-center justify-between">
@@ -454,6 +489,14 @@ export function TaskDetail({
         task={task}
         onSchedule={handleSchedule}
         onUnschedule={handleUnschedule}
+      />
+
+      {/* Recurrence Config Modal */}
+      <RecurrenceConfigModal
+        isOpen={showRecurrenceModal}
+        onClose={() => setShowRecurrenceModal(false)}
+        task={task}
+        onSave={handleRecurrenceChange}
       />
     </Modal>
   )
