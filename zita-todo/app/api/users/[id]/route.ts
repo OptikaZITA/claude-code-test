@@ -2,7 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-// PATCH /api/users/[id] - Update user (admin only)
+// Fields that regular users can update on their own profile
+const SELF_UPDATABLE_FIELDS = ['avatar_url', 'nickname']
+
+// Fields that only admins can update
+const ADMIN_ONLY_FIELDS = ['full_name', 'position', 'role', 'status']
+
+// PATCH /api/users/[id] - Update user
+// - Users can update their own avatar_url and nickname
+// - Admins can update any field for any user
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -11,12 +19,12 @@ export async function PATCH(
     const { id: userId } = await params
     const body = await request.json()
 
-    // Check if current user is admin
+    // Get current authenticated user
     const supabase = await createClient()
     const { data: { user: currentUser } } = await supabase.auth.getUser()
 
     if (!currentUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Neautorizovaný prístup' }, { status: 401 })
     }
 
     // Get current user's role
@@ -27,16 +35,46 @@ export async function PATCH(
       .single()
 
     if (currentUserError || !currentUserData) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Používateľ nenájdený' }, { status: 404 })
     }
 
-    // Only admins can update other users
-    if (currentUserData.role !== 'admin') {
-      return NextResponse.json({ error: 'Only admins can update users' }, { status: 403 })
-    }
+    const isAdmin = currentUserData.role === 'admin'
+    const isUpdatingSelf = currentUser.id === userId
 
-    // Validate update data
+    // Extract fields from body
     const { full_name, nickname, position, role, status, avatar_url } = body
+
+    // Check which fields are being updated
+    const requestedFields: string[] = []
+    if (full_name !== undefined) requestedFields.push('full_name')
+    if (nickname !== undefined) requestedFields.push('nickname')
+    if (position !== undefined) requestedFields.push('position')
+    if (role !== undefined) requestedFields.push('role')
+    if (status !== undefined) requestedFields.push('status')
+    if (avatar_url !== undefined) requestedFields.push('avatar_url')
+
+    // Check if user is trying to update admin-only fields
+    const adminOnlyFieldsRequested = requestedFields.filter(f => ADMIN_ONLY_FIELDS.includes(f))
+
+    // Permission check
+    if (!isAdmin) {
+      // Not admin - can only update own profile with limited fields
+      if (!isUpdatingSelf) {
+        return NextResponse.json(
+          { error: 'Len administrátor môže meniť údaje iných používateľov' },
+          { status: 403 }
+        )
+      }
+
+      if (adminOnlyFieldsRequested.length > 0) {
+        return NextResponse.json(
+          { error: 'Len administrátor môže meniť tieto údaje' },
+          { status: 403 }
+        )
+      }
+    }
+
+    // Build update data
     const updateData: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     }
@@ -66,7 +104,7 @@ export async function PATCH(
   } catch (error) {
     console.error('Error in PATCH /api/users/[id]:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Interná chyba servera' },
       { status: 500 }
     )
   }

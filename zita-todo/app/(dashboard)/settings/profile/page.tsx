@@ -150,11 +150,15 @@ export default function ProfilePage() {
 
         {/* Profile info */}
         <ProfileInfo
+          userId={user.id}
           fullName={user.full_name}
           nickname={user.nickname}
           email={user.email}
           position={user.position}
           role={user.role}
+          onNicknameUpdate={(newNickname) => {
+            setUser((prev) => prev ? { ...prev, nickname: newNickname } : prev)
+          }}
         />
       </div>
 
