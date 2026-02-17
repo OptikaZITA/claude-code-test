@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -13,8 +13,35 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [checkingRecovery, setCheckingRecovery] = useState(true)
   const router = useRouter()
   const supabase = createClient()
+
+  // Check for password recovery token in URL hash
+  useEffect(() => {
+    const handleRecoveryRedirect = async () => {
+      // Check URL hash for recovery token (Supabase sends #access_token=...&type=recovery)
+      const hash = window.location.hash
+      if (hash && hash.includes('type=recovery')) {
+        // Redirect to reset-password page with the hash intact
+        router.replace('/reset-password' + hash)
+        return
+      }
+
+      // Also listen for PASSWORD_RECOVERY event from Supabase
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          router.replace('/reset-password')
+        }
+      })
+
+      setCheckingRecovery(false)
+
+      return () => subscription.unsubscribe()
+    }
+
+    handleRecoveryRedirect()
+  }, [router, supabase])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,6 +63,17 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show loading while checking for recovery token
+  if (checkingRecovery) {
+    return (
+      <div className="rounded-xl bg-[var(--bg-primary)] p-8 shadow-lg border border-[var(--border-primary)]">
+        <div className="flex items-center justify-center py-8">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent" />
+        </div>
+      </div>
+    )
   }
 
   return (

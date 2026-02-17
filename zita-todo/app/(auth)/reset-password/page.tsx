@@ -21,9 +21,33 @@ export default function ResetPasswordPage() {
   // Check if we have a valid recovery session
   useEffect(() => {
     const checkSession = async () => {
+      // First, check if there's a hash with recovery token
+      const hash = window.location.hash
+      if (hash && hash.includes('access_token') && hash.includes('type=recovery')) {
+        // Parse the hash parameters and set the session
+        // Supabase client will automatically handle this
+        const hashParams = new URLSearchParams(hash.substring(1))
+        const accessToken = hashParams.get('access_token')
+        const refreshToken = hashParams.get('refresh_token')
+
+        if (accessToken) {
+          // Set the session from the recovery tokens
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || '',
+          })
+
+          if (!error) {
+            setIsValidSession(true)
+            // Clear the hash from URL for cleaner display
+            window.history.replaceState(null, '', window.location.pathname)
+            return
+          }
+        }
+      }
+
+      // Check existing session
       const { data: { session } } = await supabase.auth.getSession()
-      // Supabase automatically handles the recovery token from the URL
-      // and creates a session if valid
       setIsValidSession(!!session)
     }
     checkSession()
