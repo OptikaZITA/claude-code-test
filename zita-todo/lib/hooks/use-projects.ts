@@ -75,6 +75,7 @@ export function useProjectTasks(projectId: string, assigneeFilter?: AssigneeFilt
           tags:task_tags(tag:tags(id, name, color))
         `)
         .eq('project_id', projectId)
+        .is('deleted_at', null)
         .is('archived_at', null)
 
       // Aplikuj filter podľa assignee_id

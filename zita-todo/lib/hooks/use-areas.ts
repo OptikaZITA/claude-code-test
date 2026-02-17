@@ -104,6 +104,7 @@ export function useAreaTasks(areaId: string, assigneeFilter?: AssigneeFilter) {
         `)
         .eq('area_id', areaId)
         .is('project_id', null)
+        .is('deleted_at', null)
         .is('archived_at', null)
         .neq('status', 'done')
 
