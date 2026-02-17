@@ -299,7 +299,7 @@ export default function InboxPage() {
 
     // Save to DB in background
     try {
-      await Promise.all(
+      const results = await Promise.all(
         reordered.map((task, index) =>
           supabase
             .from('tasks')
@@ -307,9 +307,16 @@ export default function InboxPage() {
             .eq('id', task.id)
         )
       )
+
+      // Check for any RLS or other errors (Supabase doesn't throw, it returns error object)
+      const errors = results.filter(r => r.error)
+      if (errors.length > 0) {
+        console.error('[handleTaskReorder] RLS/DB errors:', errors.map(e => e.error))
+        throw new Error(errors[0].error?.message || 'Nemáte oprávnenie na zmenu poradia úloh')
+      }
       // No refetch() - optimistic update is already done
     } catch (error) {
-      console.error('Error reordering tasks:', error)
+      console.error('[handleTaskReorder] Error reordering tasks:', error)
       refetch() // Rollback: refresh to get correct order on error
     }
   }, [supabase, setTasks, refetch])
