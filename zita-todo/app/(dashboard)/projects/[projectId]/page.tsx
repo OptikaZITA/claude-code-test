@@ -235,9 +235,7 @@ export default function ProjectPage() {
 
   // Task reorder handler for Kanban drag & drop within same column
   const handleTaskReorder = useCallback(async (taskId: string, newIndex: number, currentTasks: TaskWithRelations[]) => {
-    console.log('=== handleTaskReorder START ===', { taskId, newIndex, currentTasksCount: currentTasks.length })
     const oldIndex = currentTasks.findIndex(t => t.id === taskId)
-    console.log('=== handleTaskReorder oldIndex ===', { oldIndex, willSkip: oldIndex === -1 || oldIndex === newIndex })
     if (oldIndex === -1 || oldIndex === newIndex) return
 
     const reordered = arrayMove(currentTasks, oldIndex, newIndex)
@@ -248,14 +246,18 @@ export default function ProjectPage() {
       sortOrderMap.set(task.id, index)
     })
 
-    // OPTIMISTIC UPDATE: Update local state immediately
-    setTasks(prev => prev.map(task => {
-      const newSortOrder = sortOrderMap.get(task.id)
-      if (newSortOrder !== undefined) {
-        return { ...task, sort_order: newSortOrder }
-      }
-      return task
-    }))
+    // OPTIMISTIC UPDATE: Update local state immediately AND re-sort
+    setTasks(prev => {
+      const updated = prev.map(task => {
+        const newSortOrder = sortOrderMap.get(task.id)
+        if (newSortOrder !== undefined) {
+          return { ...task, sort_order: newSortOrder }
+        }
+        return task
+      })
+      // CRITICAL: Sort by sort_order to reflect the new visual order
+      return updated.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    })
 
     // Save to DB in background
     try {
@@ -269,7 +271,6 @@ export default function ProjectPage() {
       )
 
       // Check for any RLS or other errors (Supabase doesn't throw, it returns error object)
-      console.log('=== handleTaskReorder RESULTS ===', results.map(r => ({ error: r.error, status: r.status, statusText: r.statusText })))
       const errors = results.filter(r => r.error)
       if (errors.length > 0) {
         console.error('[handleTaskReorder] RLS/DB errors:', errors.map(e => e.error))

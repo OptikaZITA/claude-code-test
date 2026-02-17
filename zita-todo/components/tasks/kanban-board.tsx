@@ -69,7 +69,9 @@ export function KanbanBoard({
   )
 
   const getTasksByStatus = useCallback((status: TaskStatus) => {
-    return tasks.filter((task) => task.status === status)
+    return tasks
+      .filter((task) => task.status === status)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
   }, [tasks])
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -79,7 +81,6 @@ export function KanbanBoard({
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
-    console.log('=== KANBAN DRAG END ===', { activeId: active.id, overId: over?.id })
     setActiveTask(null)
 
     // Always clear dropTarget at the end of drag
@@ -125,10 +126,11 @@ export function KanbanBoard({
       if (activeTask && overTask) {
         if (activeTask.status === overTask.status) {
           // SAME COLUMN → REORDER
-          const columnTasks = tasks.filter(t => t.status === activeTask.status)
+          const columnTasks = tasks
+            .filter(t => t.status === activeTask.status)
+            .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
           const oldIndex = columnTasks.findIndex(t => t.id === taskId)
           const newIndex = columnTasks.findIndex(t => t.id === overId)
-          console.log('=== REORDER DETECTED ===', { taskId, oldIndex, newIndex, columnTasksCount: columnTasks.length, hasHandler: !!onTaskReorder })
           if (newIndex !== -1 && onTaskReorder) {
             onTaskReorder(taskId, newIndex, columnTasks)
           }
