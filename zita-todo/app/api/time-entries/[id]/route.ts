@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { format, parseISO } from 'date-fns'
 import { sk } from 'date-fns/locale'
 
@@ -143,7 +144,10 @@ export async function PUT(
 
     console.log('[TIME_ENTRY_UPDATE] Saving:', updateData)
 
-    const { data, error } = await supabase
+    // Use admin client for UPDATE after ownership was verified above
+    // This bypasses RLS which can be problematic with complex policies
+    const adminClient = createAdminClient()
+    const { data, error } = await adminClient
       .from('time_entries')
       .update(updateData)
       .eq('id', id)
@@ -206,7 +210,9 @@ export async function DELETE(
     }
 
     // Soft delete - set deleted_at timestamp
-    const { data, error } = await supabase
+    // Use admin client for UPDATE after ownership was verified above
+    const adminClient = createAdminClient()
+    const { data, error } = await adminClient
       .from('time_entries')
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', id)
