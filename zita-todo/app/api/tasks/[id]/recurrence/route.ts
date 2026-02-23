@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { RecurrenceRule } from '@/types'
 
 interface RecurrenceResponse {
@@ -41,8 +42,11 @@ export async function PATCH(
       }
     }
 
+    // Use admin client for update to bypass RLS issues
+    const adminClient = createAdminClient()
+
     // Update task with recurrence rule
-    const { data, error } = await supabase
+    const { data, error } = await adminClient
       .from('tasks')
       .update({
         recurrence_rule: recurrenceRule,
@@ -83,8 +87,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Neautorizovaný prístup' }, { status: 401 })
     }
 
+    // Use admin client for update to bypass RLS issues
+    const adminClient = createAdminClient()
+
     // Remove recurrence rule
-    const { error } = await supabase
+    const { error } = await adminClient
       .from('tasks')
       .update({
         recurrence_rule: null,

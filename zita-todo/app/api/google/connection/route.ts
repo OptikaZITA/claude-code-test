@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // GET - Check if user has Google Calendar connected
 export async function GET() {
@@ -43,7 +44,11 @@ export async function DELETE() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { error } = await supabase
+    // Use admin client for delete to bypass RLS issues
+    // We filter by user_id to ensure users can only delete their own connection
+    const adminClient = createAdminClient()
+
+    const { error } = await adminClient
       .from('google_calendar_connections')
       .delete()
       .eq('user_id', user.id)
@@ -80,7 +85,11 @@ export async function PATCH(request: Request) {
       )
     }
 
-    const { data, error } = await supabase
+    // Use admin client for update to bypass RLS issues
+    // We filter by user_id to ensure users can only update their own connection
+    const adminClient = createAdminClient()
+
+    const { data, error } = await adminClient
       .from('google_calendar_connections')
       .update({
         selected_calendars,

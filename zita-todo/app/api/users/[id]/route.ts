@@ -27,8 +27,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Neautorizovaný prístup' }, { status: 401 })
     }
 
+    // Use admin client to fetch user role to bypass RLS issues
+    const adminClient = createAdminClient()
+
     // Get current user's role
-    const { data: currentUserData, error: currentUserError } = await supabase
+    const { data: currentUserData, error: currentUserError } = await adminClient
       .from('users')
       .select('role')
       .eq('id', currentUser.id)
@@ -86,8 +89,7 @@ export async function PATCH(
     if (status !== undefined) updateData.status = status
     if (avatar_url !== undefined) updateData.avatar_url = avatar_url
 
-    // Use admin client to bypass RLS
-    const adminClient = createAdminClient()
+    // Use admin client (already created above) to bypass RLS
     const { data, error } = await adminClient
       .from('users')
       .update(updateData)

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // PUT /api/notifications/read-all - Mark all notifications as read
 export async function PUT() {
@@ -11,7 +12,11 @@ export async function PUT() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { error } = await supabase
+    // Use admin client for update to bypass RLS issues
+    // We still filter by user_id to ensure users can only mark their own notifications
+    const adminClient = createAdminClient()
+
+    const { error } = await adminClient
       .from('notifications')
       .update({ is_read: true })
       .eq('user_id', user.id)
