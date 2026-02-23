@@ -5,14 +5,15 @@ import { format, parseISO } from 'date-fns'
 import { sk } from 'date-fns/locale'
 
 // Helper function to check for overlapping time entries
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function checkOverlap(
-  supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+  client: any,
   userId: string,
   startedAt: string,
   endedAt: string,
   excludeId?: string
 ): Promise<{ hasOverlap: boolean; overlappingEntry?: { id: string; started_at: string; ended_at: string } }> {
-  let query = supabase
+  let query = client
     .from('time_entries')
     .select('id, started_at, ended_at')
     .eq('user_id', userId)
@@ -62,10 +63,14 @@ export async function PUT(
       }
     }
 
+    // Use admin client for fetches to bypass RLS issues with JOINs
+    // We manually verify ownership below before allowing any updates
+    const adminClient = createAdminClient()
+
     // Get the existing entry to check ownership
-    const { data: existingEntry, error: fetchError } = await supabase
+    const { data: existingEntry, error: fetchError } = await adminClient
       .from('time_entries')
-      .select('*, user:users!time_entries_user_id_fkey(role)')
+      .select('*')
       .eq('id', id)
       .is('deleted_at', null)
       .single()
@@ -75,7 +80,7 @@ export async function PUT(
     }
 
     // Check if user can edit (owner or admin)
-    const { data: currentUser } = await supabase
+    const { data: currentUser } = await adminClient
       .from('users')
       .select('role')
       .eq('id', user.id)
@@ -112,10 +117,10 @@ export async function PUT(
       })
     }
 
-    // Check for overlapping entries
+    // Check for overlapping entries (use admin client to bypass RLS)
     if (finalStartedAt && finalEndedAt) {
       const { hasOverlap, overlappingEntry } = await checkOverlap(
-        supabase,
+        adminClient,
         existingEntry.user_id,
         finalStartedAt,
         finalEndedAt,
@@ -144,9 +149,7 @@ export async function PUT(
 
     console.log('[TIME_ENTRY_UPDATE] Saving:', updateData)
 
-    // Use admin client for UPDATE after ownership was verified above
-    // This bypasses RLS which can be problematic with complex policies
-    const adminClient = createAdminClient()
+    // Use admin client for UPDATE (already created above, ownership verified)
     const { data, error } = await adminClient
       .from('time_entries')
       .update(updateData)
@@ -180,8 +183,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Use admin client for fetches to bypass RLS issues
+    // We manually verify ownership below before allowing any deletes
+    const adminClient = createAdminClient()
+
     // Get the existing entry to check ownership
-    const { data: existingEntry, error: fetchError } = await supabase
+    const { data: existingEntry, error: fetchError } = await adminClient
       .from('time_entries')
       .select('*')
       .eq('id', id)
@@ -193,7 +200,7 @@ export async function DELETE(
     }
 
     // Check if user can delete (owner or admin)
-    const { data: currentUser } = await supabase
+    const { data: currentUser } = await adminClient
       .from('users')
       .select('role')
       .eq('id', user.id)
@@ -209,9 +216,7 @@ export async function DELETE(
       )
     }
 
-    // Soft delete - set deleted_at timestamp
-    // Use admin client for UPDATE after ownership was verified above
-    const adminClient = createAdminClient()
+    // Soft delete - set deleted_at timestamp (ownership already verified above)
     const { data, error } = await adminClient
       .from('time_entries')
       .update({ deleted_at: new Date().toISOString() })
