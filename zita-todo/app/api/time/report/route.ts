@@ -103,6 +103,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<TimeReport
           inbox_user_id
         )
       `)
+      .is('deleted_at', null)
       .gte('started_at', from)
       .lt('started_at', to)
       .not('duration_seconds', 'is', null)
