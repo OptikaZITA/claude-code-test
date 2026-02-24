@@ -263,10 +263,13 @@ export function TimeDashboardTable({
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null)
   const [deletingEntry, setDeletingEntry] = useState<TimeEntry | null>(null)
 
-  // Listen for time entry events to refresh
+  // Listen for time entry events to refresh (only when no modal is open)
   useEffect(() => {
     const handleRefresh = (event: Event) => {
-      console.log('[TIME_DASHBOARD_TABLE] Event received:', event.type)
+      // Skip if edit or delete modal is open - they handle refresh via onSuccess
+      if (editingEntry || deletingEntry) {
+        return
+      }
       onRefresh?.()
     }
 
@@ -279,7 +282,7 @@ export function TimeDashboardTable({
       window.removeEventListener('time-entry:deleted', handleRefresh)
       window.removeEventListener('time-entry:created', handleRefresh)
     }
-  }, [onRefresh])
+  }, [onRefresh, editingEntry, deletingEntry])
 
   // Convert report TimeEntry to component TimeEntry format for modal
   const convertToTimeEntryType = (entry: TimeEntry): TimeEntryType => ({

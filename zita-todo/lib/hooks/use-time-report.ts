@@ -83,7 +83,12 @@ export function useTimeReport(filters: TimeReportFilters) {
 
       // Add cache-busting parameter to ensure fresh data
       params.set('_t', Date.now().toString())
-      const response = await fetch(`/api/time/report?${params}`)
+      const response = await fetch(`/api/time/report?${params}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      })
 
       if (!response.ok) {
         const errorData = await response.json()
