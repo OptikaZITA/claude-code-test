@@ -13,7 +13,7 @@ interface DeleteTimeEntryDialogProps {
   onClose: () => void
   entry: TimeEntry | null
   taskTitle?: string
-  onSuccess?: () => void
+  onSuccess?: () => void | Promise<void>
 }
 
 function formatDuration(seconds: number): string {
@@ -48,7 +48,8 @@ export function DeleteTimeEntryDialog({
   const handleDelete = async () => {
     const success = await deleteTimeEntry(entry.id)
     if (success) {
-      onSuccess?.()
+      // Wait for onSuccess (which triggers data refresh) before closing
+      await onSuccess?.()
       onClose()
     }
   }

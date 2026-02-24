@@ -51,9 +51,6 @@ export async function PUT(
     const body = await request.json()
     const { task_id, description, started_at, stopped_at } = body
 
-    console.log('[TIME_ENTRY_UPDATE] Received body:', JSON.stringify(body, null, 2))
-    console.log('[TIME_ENTRY_UPDATE] Extracted fields:', { task_id, description, started_at, stopped_at })
-
     // Validate times
     if (started_at && stopped_at) {
       const start = new Date(started_at)
@@ -92,24 +89,6 @@ export async function PUT(
     const isOwner = existingEntry.user_id === user.id
     const isAdmin = currentUser?.role === 'admin'
 
-    console.log('[TIME_ENTRY_UPDATE] Ownership check:', {
-      entryUserId: existingEntry.user_id,
-      currentUserId: user.id,
-      isOwner,
-      userRole: currentUser?.role,
-      isAdmin,
-    })
-
-    // Log BEFORE state for comparison
-    console.log('[TIME_ENTRY_UPDATE] BEFORE state (existingEntry):', {
-      id: existingEntry.id,
-      started_at: existingEntry.started_at,
-      ended_at: existingEntry.ended_at,
-      duration_seconds: existingEntry.duration_seconds,
-      description: existingEntry.description,
-      task_id: existingEntry.task_id,
-    })
-
     if (!isOwner && !isAdmin) {
       return NextResponse.json(
         { error: 'Nemáte oprávnenie upraviť tento záznam' },
@@ -128,14 +107,6 @@ export async function PUT(
       const start = new Date(finalStartedAt)
       const stop = new Date(finalEndedAt)
       duration_seconds = Math.floor((stop.getTime() - start.getTime()) / 1000)
-
-      // Debug logging
-      console.log('[TIME_ENTRY_UPDATE] Calculating duration:', {
-        id,
-        started_at: finalStartedAt,
-        ended_at: finalEndedAt,
-        duration_seconds,
-      })
     }
 
     // Check for overlapping entries (use admin client to bypass RLS)
@@ -161,14 +132,6 @@ export async function PUT(
     // Build update object
     const updateData: Record<string, unknown> = {}
 
-    console.log('[TIME_ENTRY_UPDATE] Building updateData from:', {
-      task_id_defined: task_id !== undefined,
-      description_defined: description !== undefined,
-      started_at_defined: started_at !== undefined,
-      stopped_at_defined: stopped_at !== undefined,
-      duration_seconds_not_null: duration_seconds !== null,
-    })
-
     if (task_id !== undefined) updateData.task_id = task_id
     if (description !== undefined) updateData.description = description
     if (started_at !== undefined) updateData.started_at = started_at
@@ -178,12 +141,8 @@ export async function PUT(
 
     // Check if updateData is empty
     if (Object.keys(updateData).length === 0) {
-      console.log('[TIME_ENTRY_UPDATE] WARNING: updateData is empty!')
       return NextResponse.json({ error: 'Žiadne údaje na aktualizáciu' }, { status: 400 })
     }
-
-    console.log('[TIME_ENTRY_UPDATE] Saving updateData:', JSON.stringify(updateData, null, 2))
-    console.log('[TIME_ENTRY_UPDATE] Update target id:', id)
 
     // Use admin client for UPDATE (already created above, ownership verified)
     const { data, error } = await adminClient
@@ -193,31 +152,11 @@ export async function PUT(
       .select()
       .single()
 
-    console.log('[TIME_ENTRY_UPDATE] Update result:', { data: JSON.stringify(data), error })
-
     if (error) {
-      console.error('[TIME_ENTRY_UPDATE] Update error:', error)
+      console.error('PUT /api/time-entries/[id] update error:', error)
       return NextResponse.json({ error: 'Chyba pri aktualizácii' }, { status: 500 })
     }
 
-    // VERIFICATION: Re-fetch the entry to confirm the update persisted
-    const { data: verifyData, error: verifyError } = await adminClient
-      .from('time_entries')
-      .select('id, started_at, ended_at, duration_seconds, description, task_id')
-      .eq('id', id)
-      .single()
-
-    console.log('[TIME_ENTRY_UPDATE] VERIFICATION after update:', {
-      verifyData: JSON.stringify(verifyData),
-      verifyError,
-      matchesUpdateData: verifyData ? {
-        started_at_matches: verifyData.started_at === updateData.started_at,
-        ended_at_matches: verifyData.ended_at === updateData.ended_at,
-        duration_matches: verifyData.duration_seconds === updateData.duration_seconds,
-      } : null,
-    })
-
-    console.log('[TIME_ENTRY_UPDATE] Success, returning data')
     return NextResponse.json(data)
   } catch (error) {
     console.error('PUT /api/time-entries/[id] error:', error)
@@ -281,7 +220,7 @@ export async function DELETE(
       .single()
 
     if (error) {
-      console.error('Delete error:', error)
+      console.error('DELETE /api/time-entries/[id] error:', error)
       return NextResponse.json({ error: 'Chyba pri mazaní' }, { status: 500 })
     }
 

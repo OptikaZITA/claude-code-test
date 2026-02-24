@@ -358,9 +358,14 @@ export function TimeDashboardTable({
           onClose={() => setEditingEntry(null)}
           entry={convertToTimeEntryType(editingEntry)}
           tasks={tasks}
-          onSuccess={() => {
+          onSuccess={async () => {
+            console.log('[TIME_DASHBOARD_TABLE] Edit onSuccess - refreshing data...')
+            // Refresh data FIRST, then close modal
+            if (onRefresh) {
+              await onRefresh()
+              console.log('[TIME_DASHBOARD_TABLE] Refresh completed')
+            }
             setEditingEntry(null)
-            onRefresh?.()
           }}
         />
       )}
@@ -372,9 +377,14 @@ export function TimeDashboardTable({
           onClose={() => setDeletingEntry(null)}
           entry={convertToTimeEntryType(deletingEntry)}
           taskTitle={deletingEntry.taskTitle}
-          onSuccess={() => {
+          onSuccess={async () => {
+            console.log('[TIME_DASHBOARD_TABLE] Delete onSuccess - refreshing data...')
+            // Refresh data FIRST, then close modal
+            if (onRefresh) {
+              await onRefresh()
+              console.log('[TIME_DASHBOARD_TABLE] Refresh completed')
+            }
             setDeletingEntry(null)
-            onRefresh?.()
           }}
         />
       )}

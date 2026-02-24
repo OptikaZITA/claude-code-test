@@ -18,7 +18,7 @@ interface EditTimeEntryModalProps {
   entry?: TimeEntry | null // null = create mode
   tasks: TaskWithRelations[]
   preselectedTaskId?: string
-  onSuccess?: () => void
+  onSuccess?: () => void | Promise<void>
   defaultMode?: TimeInputMode
 }
 
@@ -316,7 +316,10 @@ export function EditTimeEntryModal({
         }
       }
 
-      onSuccess?.()
+      // Wait for onSuccess (which triggers data refresh) before closing
+      console.log('[EDIT_TIME_MODAL] Calling onSuccess to refresh data...')
+      await onSuccess?.()
+      console.log('[EDIT_TIME_MODAL] onSuccess completed, closing modal')
       onClose()
     } catch (err) {
       console.error('[EDIT_TIME_MODAL] Error:', err)
