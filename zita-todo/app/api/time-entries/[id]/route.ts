@@ -100,6 +100,16 @@ export async function PUT(
       isAdmin,
     })
 
+    // Log BEFORE state for comparison
+    console.log('[TIME_ENTRY_UPDATE] BEFORE state (existingEntry):', {
+      id: existingEntry.id,
+      started_at: existingEntry.started_at,
+      ended_at: existingEntry.ended_at,
+      duration_seconds: existingEntry.duration_seconds,
+      description: existingEntry.description,
+      task_id: existingEntry.task_id,
+    })
+
     if (!isOwner && !isAdmin) {
       return NextResponse.json(
         { error: 'Nemáte oprávnenie upraviť tento záznam' },
@@ -189,6 +199,23 @@ export async function PUT(
       console.error('[TIME_ENTRY_UPDATE] Update error:', error)
       return NextResponse.json({ error: 'Chyba pri aktualizácii' }, { status: 500 })
     }
+
+    // VERIFICATION: Re-fetch the entry to confirm the update persisted
+    const { data: verifyData, error: verifyError } = await adminClient
+      .from('time_entries')
+      .select('id, started_at, ended_at, duration_seconds, description, task_id')
+      .eq('id', id)
+      .single()
+
+    console.log('[TIME_ENTRY_UPDATE] VERIFICATION after update:', {
+      verifyData: JSON.stringify(verifyData),
+      verifyError,
+      matchesUpdateData: verifyData ? {
+        started_at_matches: verifyData.started_at === updateData.started_at,
+        ended_at_matches: verifyData.ended_at === updateData.ended_at,
+        duration_matches: verifyData.duration_seconds === updateData.duration_seconds,
+      } : null,
+    })
 
     console.log('[TIME_ENTRY_UPDATE] Success, returning data')
     return NextResponse.json(data)
