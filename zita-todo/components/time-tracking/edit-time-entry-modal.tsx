@@ -47,7 +47,7 @@ export function EditTimeEntryModal({
   defaultMode = 'duration',
 }: EditTimeEntryModalProps) {
   const isEditMode = !!entry
-  const { updateTimeEntry, loading: updateLoading, error: updateError } = useUpdateTimeEntry()
+  const { updateTimeEntry, loading: updateLoading } = useUpdateTimeEntry()
   const { createTimeEntry, loading: createLoading, error: createError } = useCreateTimeEntry()
 
   // Form state
@@ -257,15 +257,15 @@ export function EditTimeEntryModal({
 
     try {
       if (isEditMode && entry) {
-        const result = await updateTimeEntry(entry.id, {
+        const { data: result, error: updateErr } = await updateTimeEntry(entry.id, {
           task_id: taskId,
           description: description || undefined,
           started_at,
           stopped_at,
         })
 
-        if (!result) {
-          setError(updateError?.message || 'Chyba pri ukladaní. Skúste to znova.')
+        if (!result || updateErr) {
+          setError(updateErr?.message || 'Chyba pri ukladaní. Skúste to znova.')
           return
         }
       } else {

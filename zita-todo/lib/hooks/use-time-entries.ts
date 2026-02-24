@@ -22,7 +22,7 @@ export function useUpdateTimeEntry() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const updateTimeEntry = useCallback(async (id: string, data: UpdateTimeEntryData): Promise<TimeEntry | null> => {
+  const updateTimeEntry = useCallback(async (id: string, data: UpdateTimeEntryData): Promise<{ data: TimeEntry | null; error: Error | null }> => {
     setLoading(true)
     setError(null)
 
@@ -45,10 +45,11 @@ export function useUpdateTimeEntry() {
         detail: { id, data: updatedEntry }
       }))
 
-      return updatedEntry
+      return { data: updatedEntry, error: null }
     } catch (err) {
-      setError(err as Error)
-      return null
+      const error = err as Error
+      setError(error)
+      return { data: null, error }
     } finally {
       setLoading(false)
     }
