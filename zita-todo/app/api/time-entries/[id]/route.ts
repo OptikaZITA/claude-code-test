@@ -51,6 +51,9 @@ export async function PUT(
     const body = await request.json()
     const { task_id, description, started_at, stopped_at } = body
 
+    console.log('[TIME_ENTRY_UPDATE] Received body:', JSON.stringify(body, null, 2))
+    console.log('[TIME_ENTRY_UPDATE] Extracted fields:', { task_id, description, started_at, stopped_at })
+
     // Validate times
     if (started_at && stopped_at) {
       const start = new Date(started_at)
@@ -88,6 +91,14 @@ export async function PUT(
 
     const isOwner = existingEntry.user_id === user.id
     const isAdmin = currentUser?.role === 'admin'
+
+    console.log('[TIME_ENTRY_UPDATE] Ownership check:', {
+      entryUserId: existingEntry.user_id,
+      currentUserId: user.id,
+      isOwner,
+      userRole: currentUser?.role,
+      isAdmin,
+    })
 
     if (!isOwner && !isAdmin) {
       return NextResponse.json(
@@ -140,6 +151,14 @@ export async function PUT(
     // Build update object
     const updateData: Record<string, unknown> = {}
 
+    console.log('[TIME_ENTRY_UPDATE] Building updateData from:', {
+      task_id_defined: task_id !== undefined,
+      description_defined: description !== undefined,
+      started_at_defined: started_at !== undefined,
+      stopped_at_defined: stopped_at !== undefined,
+      duration_seconds_not_null: duration_seconds !== null,
+    })
+
     if (task_id !== undefined) updateData.task_id = task_id
     if (description !== undefined) updateData.description = description
     if (started_at !== undefined) updateData.started_at = started_at
@@ -147,7 +166,14 @@ export async function PUT(
     // Always update duration_seconds if we calculated it
     if (duration_seconds !== null) updateData.duration_seconds = duration_seconds
 
-    console.log('[TIME_ENTRY_UPDATE] Saving:', updateData)
+    // Check if updateData is empty
+    if (Object.keys(updateData).length === 0) {
+      console.log('[TIME_ENTRY_UPDATE] WARNING: updateData is empty!')
+      return NextResponse.json({ error: 'Žiadne údaje na aktualizáciu' }, { status: 400 })
+    }
+
+    console.log('[TIME_ENTRY_UPDATE] Saving updateData:', JSON.stringify(updateData, null, 2))
+    console.log('[TIME_ENTRY_UPDATE] Update target id:', id)
 
     // Use admin client for UPDATE (already created above, ownership verified)
     const { data, error } = await adminClient
@@ -157,11 +183,14 @@ export async function PUT(
       .select()
       .single()
 
+    console.log('[TIME_ENTRY_UPDATE] Update result:', { data: JSON.stringify(data), error })
+
     if (error) {
-      console.error('Update error:', error)
+      console.error('[TIME_ENTRY_UPDATE] Update error:', error)
       return NextResponse.json({ error: 'Chyba pri aktualizácii' }, { status: 500 })
     }
 
+    console.log('[TIME_ENTRY_UPDATE] Success, returning data')
     return NextResponse.json(data)
   } catch (error) {
     console.error('PUT /api/time-entries/[id] error:', error)
