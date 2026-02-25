@@ -60,6 +60,7 @@ export function useTimeReport(filters: TimeReportFilters) {
   const [error, setError] = useState<Error | null>(null)
 
   const fetchReport = useCallback(async () => {
+    console.log('[USE_TIME_REPORT] fetchReport called, filters:', filters.from, '-', filters.to)
     setLoading(true)
     setError(null)
 
@@ -96,6 +97,7 @@ export function useTimeReport(filters: TimeReportFilters) {
       }
 
       const reportData = await response.json()
+      console.log('[USE_TIME_REPORT] Data received, entries count:', reportData.entries?.length)
       setData(reportData)
     } catch (err) {
       setError(err as Error)

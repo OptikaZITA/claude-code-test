@@ -41,9 +41,11 @@ export function useUpdateTimeEntry() {
       const updatedEntry = await response.json()
 
       // Dispatch custom event for cross-component sync
+      console.log('[USE_TIME_ENTRIES] Dispatching time-entry:updated event for id:', id)
       window.dispatchEvent(new CustomEvent('time-entry:updated', {
         detail: { id, data: updatedEntry }
       }))
+      console.log('[USE_TIME_ENTRIES] Event dispatched')
 
       return { data: updatedEntry, error: null }
     } catch (err) {
