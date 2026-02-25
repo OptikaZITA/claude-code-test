@@ -265,6 +265,8 @@ export function TimeDashboardTable({
 
   // Listen for time entry events to refresh
   useEffect(() => {
+    console.log('[TIME_TABLE] Registering event listeners, onRefresh exists:', !!onRefresh)
+
     const handleRefresh = (event: Event) => {
       console.log('[TIME_TABLE] Event received:', event.type, 'onRefresh exists:', !!onRefresh)
       if (onRefresh) {
@@ -278,7 +280,10 @@ export function TimeDashboardTable({
     window.addEventListener('time-entry:deleted', handleRefresh)
     window.addEventListener('time-entry:created', handleRefresh)
 
+    console.log('[TIME_TABLE] Event listeners registered')
+
     return () => {
+      console.log('[TIME_TABLE] Removing event listeners')
       window.removeEventListener('time-entry:updated', handleRefresh)
       window.removeEventListener('time-entry:deleted', handleRefresh)
       window.removeEventListener('time-entry:created', handleRefresh)
