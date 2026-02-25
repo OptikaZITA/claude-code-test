@@ -48,9 +48,9 @@ export function DeleteTimeEntryDialog({
   const handleDelete = async () => {
     const success = await deleteTimeEntry(entry.id)
     if (success) {
-      // Wait for onSuccess (which triggers data refresh) before closing
-      await onSuccess?.()
-      onClose()
+      // onSuccess closes the dialog, event listener handles data refresh
+      onSuccess?.()
+      // Don't call onClose here - onSuccess handles it
     }
   }
 

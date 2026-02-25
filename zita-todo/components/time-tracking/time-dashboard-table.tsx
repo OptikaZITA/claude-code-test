@@ -263,13 +263,9 @@ export function TimeDashboardTable({
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null)
   const [deletingEntry, setDeletingEntry] = useState<TimeEntry | null>(null)
 
-  // Listen for time entry events to refresh (only when no modal is open)
+  // Listen for time entry events to refresh
   useEffect(() => {
-    const handleRefresh = (event: Event) => {
-      // Skip if edit or delete modal is open - they handle refresh via onSuccess
-      if (editingEntry || deletingEntry) {
-        return
-      }
+    const handleRefresh = () => {
       onRefresh?.()
     }
 
@@ -282,7 +278,7 @@ export function TimeDashboardTable({
       window.removeEventListener('time-entry:deleted', handleRefresh)
       window.removeEventListener('time-entry:created', handleRefresh)
     }
-  }, [onRefresh, editingEntry, deletingEntry])
+  }, [onRefresh])
 
   // Convert report TimeEntry to component TimeEntry format for modal
   const convertToTimeEntryType = (entry: TimeEntry): TimeEntryType => ({
@@ -361,11 +357,9 @@ export function TimeDashboardTable({
           onClose={() => setEditingEntry(null)}
           entry={convertToTimeEntryType(editingEntry)}
           tasks={tasks}
-          onSuccess={async () => {
-            // Refresh data - modal will close via onClose() after this completes
-            if (onRefresh) {
-              await onRefresh()
-            }
+          onSuccess={() => {
+            // Event listener handles refresh via 'time-entry:updated' event
+            setEditingEntry(null)
           }}
         />
       )}
@@ -377,11 +371,9 @@ export function TimeDashboardTable({
           onClose={() => setDeletingEntry(null)}
           entry={convertToTimeEntryType(deletingEntry)}
           taskTitle={deletingEntry.taskTitle}
-          onSuccess={async () => {
-            // Refresh data - dialog will close via onClose() after this completes
-            if (onRefresh) {
-              await onRefresh()
-            }
+          onSuccess={() => {
+            // Event listener handles refresh via 'time-entry:deleted' event
+            setDeletingEntry(null)
           }}
         />
       )}

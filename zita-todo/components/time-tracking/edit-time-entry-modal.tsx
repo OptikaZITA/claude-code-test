@@ -283,9 +283,9 @@ export function EditTimeEntryModal({
         }
       }
 
-      // Wait for onSuccess (which triggers data refresh) before closing
-      await onSuccess?.()
-      onClose()
+      // onSuccess closes the modal, event listener handles data refresh
+      onSuccess?.()
+      // Don't call onClose here - onSuccess handles it
     } catch (err) {
       console.error('Edit time entry error:', err)
       setError((err as Error).message || 'Nastala neočakávaná chyba')
