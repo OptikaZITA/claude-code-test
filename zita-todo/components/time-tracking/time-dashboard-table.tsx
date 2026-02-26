@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { sk } from 'date-fns/locale'
 import { Pencil, Trash2, Eye } from 'lucide-react'
@@ -263,33 +263,6 @@ export function TimeDashboardTable({
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null)
   const [deletingEntry, setDeletingEntry] = useState<TimeEntry | null>(null)
 
-  // Listen for time entry events to refresh
-  useEffect(() => {
-    console.log('[TIME_TABLE] Registering event listeners, onRefresh exists:', !!onRefresh)
-
-    const handleRefresh = (event: Event) => {
-      console.log('[TIME_TABLE] Event received:', event.type, 'onRefresh exists:', !!onRefresh)
-      if (onRefresh) {
-        console.log('[TIME_TABLE] Calling onRefresh...')
-        onRefresh()
-        console.log('[TIME_TABLE] onRefresh called')
-      }
-    }
-
-    window.addEventListener('time-entry:updated', handleRefresh)
-    window.addEventListener('time-entry:deleted', handleRefresh)
-    window.addEventListener('time-entry:created', handleRefresh)
-
-    console.log('[TIME_TABLE] Event listeners registered')
-
-    return () => {
-      console.log('[TIME_TABLE] Removing event listeners')
-      window.removeEventListener('time-entry:updated', handleRefresh)
-      window.removeEventListener('time-entry:deleted', handleRefresh)
-      window.removeEventListener('time-entry:created', handleRefresh)
-    }
-  }, [onRefresh])
-
   // Convert report TimeEntry to component TimeEntry format for modal
   const convertToTimeEntryType = (entry: TimeEntry): TimeEntryType => ({
     id: entry.id,
@@ -368,8 +341,9 @@ export function TimeDashboardTable({
           entry={convertToTimeEntryType(editingEntry)}
           tasks={tasks}
           onSuccess={() => {
-            // Event listener handles refresh via 'time-entry:updated' event
             setEditingEntry(null)
+            // Priamy callback - žiadne eventy
+            onRefresh?.()
           }}
         />
       )}
@@ -382,8 +356,9 @@ export function TimeDashboardTable({
           entry={convertToTimeEntryType(deletingEntry)}
           taskTitle={deletingEntry.taskTitle}
           onSuccess={() => {
-            // Event listener handles refresh via 'time-entry:deleted' event
             setDeletingEntry(null)
+            // Priamy callback - žiadne eventy
+            onRefresh?.()
           }}
         />
       )}

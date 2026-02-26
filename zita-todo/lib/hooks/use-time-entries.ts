@@ -33,21 +33,13 @@ export function useUpdateTimeEntry() {
         body: JSON.stringify(data),
       })
 
+      const result = await response.json()
+
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Chyba pri aktualizácii')
+        throw new Error(result.error || 'Chyba pri aktualizácii')
       }
 
-      const updatedEntry = await response.json()
-
-      // Dispatch custom event for cross-component sync
-      console.log('[USE_TIME_ENTRIES] Dispatching time-entry:updated event for id:', id)
-      window.dispatchEvent(new CustomEvent('time-entry:updated', {
-        detail: { id, data: updatedEntry }
-      }))
-      console.log('[USE_TIME_ENTRIES] Event dispatched')
-
-      return { data: updatedEntry, error: null }
+      return { data: result, error: null }
     } catch (err) {
       const error = err as Error
       setError(error)
@@ -78,11 +70,6 @@ export function useDeleteTimeEntry() {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Chyba pri mazaní')
       }
-
-      // Dispatch custom event for cross-component sync
-      window.dispatchEvent(new CustomEvent('time-entry:deleted', {
-        detail: { id }
-      }))
 
       return true
     } catch (err) {
@@ -118,12 +105,6 @@ export function useCreateTimeEntry() {
       }
 
       const newEntry = await response.json()
-
-      // Dispatch custom event for cross-component sync
-      window.dispatchEvent(new CustomEvent('time-entry:created', {
-        detail: { data: newEntry }
-      }))
-
       return newEntry
     } catch (err) {
       setError(err as Error)

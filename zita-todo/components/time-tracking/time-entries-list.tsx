@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { format, parseISO, isToday, isYesterday, startOfDay } from 'date-fns'
 import { sk } from 'date-fns/locale'
 import { Pencil, Trash2, Clock, Plus } from 'lucide-react'
@@ -70,23 +70,6 @@ export function TimeEntriesList({
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null)
   const [deletingEntry, setDeletingEntry] = useState<TimeEntry | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
-
-  // Listen for time entry events to refresh
-  useEffect(() => {
-    const handleUpdate = () => onRefresh?.()
-    const handleDelete = () => onRefresh?.()
-    const handleCreate = () => onRefresh?.()
-
-    window.addEventListener('time-entry:updated', handleUpdate)
-    window.addEventListener('time-entry:deleted', handleDelete)
-    window.addEventListener('time-entry:created', handleCreate)
-
-    return () => {
-      window.removeEventListener('time-entry:updated', handleUpdate)
-      window.removeEventListener('time-entry:deleted', handleDelete)
-      window.removeEventListener('time-entry:created', handleCreate)
-    }
-  }, [onRefresh])
 
   const groupedEntries = useMemo(() => groupEntriesByDate(entries), [entries])
 

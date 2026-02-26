@@ -41,6 +41,7 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
+    const body = await request.json()
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -48,7 +49,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
     const { task_id, description, started_at, stopped_at } = body
 
     // Validate times
