@@ -205,16 +205,23 @@ export function EditTimeEntryModal({
   }, [mode, durationHours, durationMinutes, startDate, startTime, endDate, endTime])
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log('=== EDIT TIME ENTRY: handleSubmit CALLED ===')
+    console.log('=== EDIT TIME ENTRY: isEditMode =', isEditMode, 'entry =', entry?.id)
+    console.log('=== EDIT TIME ENTRY: taskId =', taskId, 'mode =', mode)
+    console.log('=== EDIT TIME ENTRY: calculatedDuration =', calculatedDuration)
+
     e.preventDefault()
     setError(null)
 
     // Validate
     if (!taskId) {
+      console.log('=== EDIT TIME ENTRY: VALIDATION FAILED - no taskId ===')
       setError('Vyberte úlohu')
       return
     }
 
     if (calculatedDuration < 60) {
+      console.log('=== EDIT TIME ENTRY: VALIDATION FAILED - duration < 60 ===')
       setError('Minimálne trvanie je 1 minúta')
       return
     }
@@ -256,13 +263,19 @@ export function EditTimeEntryModal({
     }
 
     try {
+      console.log('=== EDIT TIME ENTRY: try block entered ===')
+      console.log('=== EDIT TIME ENTRY: started_at =', started_at)
+      console.log('=== EDIT TIME ENTRY: stopped_at =', stopped_at)
+
       if (isEditMode && entry) {
+        console.log('=== EDIT TIME ENTRY: Calling updateTimeEntry for id:', entry.id)
         const { data: result, error: updateErr } = await updateTimeEntry(entry.id, {
           task_id: taskId,
           description: description || undefined,
           started_at,
           stopped_at,
         })
+        console.log('=== EDIT TIME ENTRY: updateTimeEntry returned:', { result: !!result, error: updateErr?.message })
 
         if (!result || updateErr) {
           setError(updateErr?.message || 'Chyba pri ukladaní. Skúste to znova.')
