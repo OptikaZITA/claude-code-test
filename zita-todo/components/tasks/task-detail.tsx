@@ -70,7 +70,7 @@ export function TaskDetail({
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [showRecurrenceModal, setShowRecurrenceModal] = useState(false)
 
-  const { timeEntries, deleteTimeEntry } = useTimeTracking(task.id)
+  const { timeEntries, deleteTimeEntry, refetch: refetchTimeEntries } = useTimeTracking(task.id)
   const { totalSeconds } = useTaskTimeTotal(task.id)
   const { isRunning, currentTaskId, elapsedSeconds } = useGlobalTimerContext()
   const { scheduleTask, unscheduleTask } = useTimeBlockActions()
@@ -462,6 +462,9 @@ export function TaskDetail({
                 <TimeEntriesList
                   entries={timeEntries}
                   onDelete={deleteTimeEntry}
+                  onRefresh={refetchTimeEntries}
+                  taskId={task.id}
+                  taskTitle={task.title}
                 />
               </div>
             )}

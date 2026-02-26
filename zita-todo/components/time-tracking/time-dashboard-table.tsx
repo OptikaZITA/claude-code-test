@@ -340,6 +340,10 @@ export function TimeDashboardTable({
           onClose={() => setEditingEntry(null)}
           entry={convertToTimeEntryType(editingEntry)}
           tasks={tasks}
+          onSuccess={async () => {
+            setEditingEntry(null)
+            await onRefresh?.()
+          }}
         />
       )}
 
@@ -350,6 +354,10 @@ export function TimeDashboardTable({
           onClose={() => setDeletingEntry(null)}
           entry={convertToTimeEntryType(deletingEntry)}
           taskTitle={deletingEntry.taskTitle}
+          onSuccess={async () => {
+            setDeletingEntry(null)
+            await onRefresh?.()
+          }}
         />
       )}
     </div>

@@ -283,9 +283,11 @@ export function EditTimeEntryModal({
         }
       }
 
-      // Close modal and force page reload to show updated data
+      // Close modal and notify parent to refresh data
+      if (onSuccess) {
+        await onSuccess()
+      }
       onClose()
-      window.location.reload()
     } catch (err) {
       console.error('Edit time entry error:', err)
       setError((err as Error).message || 'Nastala neočakávaná chyba')
