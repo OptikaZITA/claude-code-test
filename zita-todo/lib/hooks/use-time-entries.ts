@@ -23,27 +23,17 @@ export function useUpdateTimeEntry() {
   const [error, setError] = useState<Error | null>(null)
 
   const updateTimeEntry = useCallback(async (id: string, data: UpdateTimeEntryData): Promise<{ data: TimeEntry | null; error: Error | null }> => {
-    console.log('=== USE_TIME_ENTRIES: updateTimeEntry CALLED ===')
-    console.log('=== USE_TIME_ENTRIES: id =', id)
-    console.log('=== USE_TIME_ENTRIES: data =', JSON.stringify(data))
-
     setLoading(true)
     setError(null)
 
     try {
-      const url = `/api/time-entries/${id}`
-      console.log('=== USE_TIME_ENTRIES: Fetching URL:', url)
-
-      const response = await fetch(url, {
+      const response = await fetch(`/api/time-entries/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
 
-      console.log('=== USE_TIME_ENTRIES: Response status:', response.status)
-
       const result = await response.json()
-      console.log('=== USE_TIME_ENTRIES: Response body:', result)
 
       if (!response.ok) {
         throw new Error(result.error || 'Chyba pri aktualizácii')
@@ -52,7 +42,6 @@ export function useUpdateTimeEntry() {
       return { data: result, error: null }
     } catch (err) {
       const error = err as Error
-      console.log('=== USE_TIME_ENTRIES: ERROR:', error.message)
       setError(error)
       return { data: null, error }
     } finally {

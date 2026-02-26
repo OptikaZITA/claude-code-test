@@ -183,11 +183,6 @@ export function TimeEntriesList({
         entry={editingEntry}
         tasks={tasks}
         preselectedTaskId={taskId}
-        onSuccess={() => {
-          onRefresh?.()
-          setEditingEntry(null)
-          setShowAddModal(false)
-        }}
       />
 
       {/* Delete dialog */}
@@ -196,10 +191,6 @@ export function TimeEntriesList({
         onClose={() => setDeletingEntry(null)}
         entry={deletingEntry}
         taskTitle={taskTitle}
-        onSuccess={() => {
-          onRefresh?.()
-          setDeletingEntry(null)
-        }}
       />
     </div>
   )

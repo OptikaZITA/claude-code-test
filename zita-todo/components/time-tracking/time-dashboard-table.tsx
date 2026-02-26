@@ -340,17 +340,6 @@ export function TimeDashboardTable({
           onClose={() => setEditingEntry(null)}
           entry={convertToTimeEntryType(editingEntry)}
           tasks={tasks}
-          onSuccess={() => {
-            console.log('=== TIME_TABLE: onSuccess called, onRefresh exists:', !!onRefresh)
-            setEditingEntry(null)
-            if (onRefresh) {
-              console.log('=== TIME_TABLE: Calling onRefresh...')
-              onRefresh()
-            } else {
-              console.log('=== TIME_TABLE: No onRefresh, reloading page...')
-              window.location.reload()
-            }
-          }}
         />
       )}
 
@@ -361,17 +350,6 @@ export function TimeDashboardTable({
           onClose={() => setDeletingEntry(null)}
           entry={convertToTimeEntryType(deletingEntry)}
           taskTitle={deletingEntry.taskTitle}
-          onSuccess={() => {
-            console.log('=== TIME_TABLE: delete onSuccess called, onRefresh exists:', !!onRefresh)
-            setDeletingEntry(null)
-            if (onRefresh) {
-              console.log('=== TIME_TABLE: Calling onRefresh...')
-              onRefresh()
-            } else {
-              console.log('=== TIME_TABLE: No onRefresh, reloading page...')
-              window.location.reload()
-            }
-          }}
         />
       )}
     </div>
