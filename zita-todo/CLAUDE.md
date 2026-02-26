@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 13. februára 2026
-**Verzia špecifikácie**: 2.45 (Drag & Drop Fixes + Area Tasks Query)
+**Verzia špecifikácie**: 2.46 (Time Tracking UI Refresh Fix)
 
 ---
 
@@ -1333,6 +1333,16 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
   - [x] `createTask` auto-nastavuje `area_id` z projektu
   - [x] DB migrácia: opravené všetky existujúce tasky s `area_id = NULL`
 - [x] **Odstránenie debug logov** - Vyčistené console.log z produkčného kódu
+
+### Funkcie v2.46 - VŠETKY DOKONČENÉ ✅
+- [x] **Time Tracking UI Refresh Fix** - UI sa aktualizuje okamžite po uložení/vymazaní
+  - [x] Odstránený `window.location.reload()` - spôsoboval stratu kontextu
+  - [x] Implementovaný callback flow: `onSuccess() → refetch() → onClose()`
+  - [x] `edit-time-entry-modal.tsx` - volá onSuccess() potom onClose()
+  - [x] `delete-time-entry-dialog.tsx` - volá onSuccess() potom onClose()
+  - [x] `time-dashboard-table.tsx` - onSuccess handlery volajú onRefresh
+  - [x] `time-entries-list.tsx` - onSuccess handlery volajú onRefresh
+  - [x] `task-detail.tsx` - pridaný onRefresh={refetchTimeEntries}
 
 ---
 

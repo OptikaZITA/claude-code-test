@@ -4,6 +4,42 @@ História všetkých zmien v projekte.
 
 ---
 
+### v2.46 (26. februára 2026)
+**Time Tracking UI Refresh Fix:**
+
+Kritická oprava - po úprave/vymazaní time entry sa UI okamžite aktualizuje bez potreby refreshu stránky.
+
+**Problém:**
+- Po editácii time entry (PUT 200 OK) sa dáta uložili do DB
+- ALE UI sa neaktualizovalo - používateľ videl staré hodnoty
+- Treba bolo F5 (hard refresh) aby sa zmeny zobrazili
+
+**Riešenie:**
+- Odstránený `window.location.reload()` - spôsoboval stratu kontextu (vyhodilo z task detailu)
+- Implementovaný správny callback flow: `onSuccess() → refetch() → onClose()`
+- UI sa teraz aktualizuje okamžite, používateľ ostáva v kontexte
+
+**Flow po uložení:**
+```
+1. Používateľ upraví čas → klikne Uložiť
+2. API PUT vracia 200 + aktualizované dáta
+3. Modal zavolá onSuccess()
+4. onSuccess() triggerne refetch() v rodičovskom komponente
+5. Dáta sa načítajú znova z API
+6. Modal sa zatvorí cez onClose()
+7. UI zobrazí aktuálne dáta - žiadny reload
+```
+
+**Upravené súbory:**
+- `components/time-tracking/edit-time-entry-modal.tsx` - onSuccess() + onClose() pattern
+- `components/time-tracking/delete-time-entry-dialog.tsx` - onSuccess() + onClose() pattern
+- `components/time-tracking/time-dashboard-table.tsx` - onSuccess handlery volajú onRefresh
+- `components/time-tracking/time-entries-list.tsx` - onSuccess handlery volajú onRefresh
+- `components/tasks/task-detail.tsx` - Pridaný onRefresh={refetchTimeEntries} do TimeEntriesList
+- `lib/hooks/use-time-entries.ts` - Vyčistené debug logy
+
+---
+
 ### v2.45 (13. februára 2026)
 **Drag & Drop Fixes + Area Tasks Query Fix:**
 
