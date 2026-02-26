@@ -296,9 +296,16 @@ export function EditTimeEntryModal({
         }
       }
 
-      // onSuccess closes the modal, event listener handles data refresh
-      onSuccess?.()
-      // Don't call onClose here - onSuccess handles it
+      // Call onSuccess to close modal and trigger refresh
+      console.log('=== EDIT TIME ENTRY: Calling onSuccess, exists:', !!onSuccess)
+      if (onSuccess) {
+        onSuccess()
+        console.log('=== EDIT TIME ENTRY: onSuccess called')
+      } else {
+        console.log('=== EDIT TIME ENTRY: No onSuccess, forcing reload')
+        onClose()
+        window.location.reload()
+      }
     } catch (err) {
       console.error('Edit time entry error:', err)
       setError((err as Error).message || 'Nastala neočakávaná chyba')
