@@ -278,6 +278,7 @@ export default function AreaDetailPage() {
   useTaskMoved(refetchTasks)
 
   // Group tasks by project
+  // Filter out completed tasks (they fade out and disappear in list view)
   const { projectTasks, looseTasks, orphanTasks } = useMemo(() => {
     const projectTasksMap = new Map<string, TaskWithRelations[]>()
     const loose: TaskWithRelations[] = []
@@ -286,7 +287,10 @@ export default function AreaDetailPage() {
     // Get set of active project IDs for quick lookup
     const activeProjectIds = new Set(projects.filter(p => p.status === 'active').map(p => p.id))
 
-    tagFilteredTasks.forEach(task => {
+    // Filter out completed tasks for list view (they appear in Logbook instead)
+    const activeTasks = tagFilteredTasks.filter(task => task.status !== 'done')
+
+    activeTasks.forEach(task => {
       if (task.project_id) {
         // Check if project is in our active projects
         if (activeProjectIds.has(task.project_id)) {

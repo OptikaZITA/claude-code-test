@@ -5,8 +5,8 @@
 ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zobrazením, sledovaním času a Toggl-style time trackingom. Určená pre ~20 členný tím s podporou osobnej aj tímovej produktivity.
 
 **Dátum vytvorenia**: 2. januára 2026
-**Posledná aktualizácia**: 13. februára 2026
-**Verzia špecifikácie**: 2.46 (Time Tracking UI Refresh Fix)
+**Posledná aktualizácia**: 1. marca 2026
+**Verzia špecifikácie**: 2.47 (Completed Task Behavior - Things 3 štýl)
 
 ---
 
@@ -1343,6 +1343,19 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
   - [x] `time-dashboard-table.tsx` - onSuccess handlery volajú onRefresh
   - [x] `time-entries-list.tsx` - onSuccess handlery volajú onRefresh
   - [x] `task-detail.tsx` - pridaný onRefresh={refetchTimeEntries}
+
+### Funkcie v2.47 - VŠETKY DOKONČENÉ ✅
+- [x] **Completed Task Behavior (Things 3 štýl)** - Správanie dokončených úloh podľa view
+  - [x] **Today View** - Fade-out animácia (300ms) + zmiznutie → presun do Logbooku
+  - [x] **List View (Area)** - Rovnaké ako Today - fade-out → zmiznutie
+  - [x] **Inbox** - Rovnaké ako Today - fade-out → zmiznutie
+  - [x] **Upcoming** - Rovnaké ako Today - fade-out → zmiznutie
+  - [x] **Kanban View** - Tasky sa presunú do Done stĺpca (zostávajú viditeľné, zašednuté)
+  - [x] **Project View** - Zbaliteľná sekcia "Dokončené" na spodku (existuje od v2.44)
+  - [x] Fade-out animácia: `opacity-0 scale-95 -translate-y-1` s `duration-300`
+  - [x] Checkbox `disabled` počas animácie aby sa zabránilo dvojkliku
+  - [x] `skipFadeOut` prop pre prípady kde animácia nie je potrebná
+  - [x] Logbook správne zobrazuje dokončené úlohy zoradené podľa `completed_at`
 
 ---
 

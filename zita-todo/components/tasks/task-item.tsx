@@ -15,6 +15,7 @@ import { getDisplayName } from '@/lib/utils/user'
 
 const SWIPE_THRESHOLD = 80 // pixels to trigger delete action
 const DELETE_BUTTON_WIDTH = 80 // width of delete button
+const FADE_OUT_DURATION = 300 // ms - animation duration
 
 interface TaskItemProps {
   task: TaskWithRelations
@@ -36,6 +37,8 @@ interface TaskItemProps {
   onModifierClick?: (event: React.MouseEvent) => void
   /** Callback for single click selection (Things 3 style) */
   onSelect?: () => void
+  /** Skip fade-out animation (e.g. in Kanban where task moves to Done column) */
+  skipFadeOut?: boolean
 }
 
 // Priority flag colors: red (high), yellow (low)
@@ -86,10 +89,37 @@ export function TaskItem({
   isSelected = false,
   onModifierClick,
   onSelect,
+  skipFadeOut = false,
 }: TaskItemProps) {
   const isCompleted = task.status === 'done'
   const isMobile = useIsMobile()
   const isTodayTask = isTaskToday(task)
+
+  // Fade-out animation state
+  const [isAnimatingOut, setIsAnimatingOut] = useState(false)
+
+  // Handler for completing task with fade-out animation
+  const handleCompleteWithAnimation = useCallback((checked: boolean) => {
+    // If uncompleting, no animation needed
+    if (!checked) {
+      onComplete(false)
+      return
+    }
+
+    // If already completed or skipFadeOut is true, complete immediately
+    if (isCompleted || skipFadeOut) {
+      onComplete(true)
+      return
+    }
+
+    // Start fade-out animation
+    setIsAnimatingOut(true)
+
+    // After animation, call onComplete
+    setTimeout(() => {
+      onComplete(true)
+    }, FADE_OUT_DURATION)
+  }, [isCompleted, onComplete, skipFadeOut])
 
   // Swipe state
   const [swipeOffset, setSwipeOffset] = useState(0)
@@ -220,6 +250,7 @@ export function TaskItem({
         onComplete={onComplete}
         onCollapse={onCollapse || (() => {})}
         onDelete={onDelete}
+        skipFadeOut={skipFadeOut}
       />
     )
   }
@@ -251,14 +282,16 @@ export function TaskItem({
       <div
         className={cn(
           'group rounded-[var(--radius-lg)] bg-card px-3 py-2 cursor-pointer relative',
-          'transition-all duration-200',
-          isCompleted && 'opacity-60',
+          'transition-all duration-300',
+          isCompleted && !isAnimatingOut && 'opacity-60',
           !isSwiping && 'transition-transform',
           !isMobile && 'hover:bg-accent/50',
-          isSelected && 'ring-2 ring-primary bg-primary/5'
+          isSelected && 'ring-2 ring-primary bg-primary/5',
+          // Fade-out animation
+          isAnimatingOut && 'opacity-0 scale-95 -translate-y-1 pointer-events-none'
         )}
         style={{
-          transform: isMobile ? `translateX(-${swipeOffset}px)` : undefined,
+          transform: isMobile && !isAnimatingOut ? `translateX(-${swipeOffset}px)` : undefined,
         }}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
@@ -273,8 +306,9 @@ export function TaskItem({
             {/* Checkbox */}
             <div onClick={(e) => e.stopPropagation()} className="shrink-0 mt-0.5">
               <Checkbox
-                checked={isCompleted}
-                onChange={(checked) => onComplete(checked)}
+                checked={isCompleted || isAnimatingOut}
+                onChange={handleCompleteWithAnimation}
+                disabled={isAnimatingOut}
               />
             </div>
 
@@ -305,7 +339,7 @@ export function TaskItem({
                 <span
                   className={cn(
                     'text-sm font-medium text-foreground',
-                    isCompleted && 'line-through text-muted-foreground'
+                    (isCompleted || isAnimatingOut) && 'line-through text-muted-foreground'
                   )}
                 >
                   {task.title}
@@ -378,8 +412,9 @@ export function TaskItem({
             {/* Checkbox */}
             <div onClick={(e) => e.stopPropagation()} className="shrink-0">
               <Checkbox
-                checked={isCompleted}
-                onChange={(checked) => onComplete(checked)}
+                checked={isCompleted || isAnimatingOut}
+                onChange={handleCompleteWithAnimation}
+                disabled={isAnimatingOut}
               />
             </div>
 
@@ -403,7 +438,7 @@ export function TaskItem({
             <span
               className={cn(
                 'text-sm font-medium text-foreground truncate flex-1',
-                isCompleted && 'line-through text-muted-foreground'
+                (isCompleted || isAnimatingOut) && 'line-through text-muted-foreground'
               )}
             >
               {task.title}

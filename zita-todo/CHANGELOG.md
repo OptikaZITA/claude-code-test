@@ -4,6 +4,43 @@ História všetkých zmien v projekte.
 
 ---
 
+### v2.47 (1. marca 2026)
+**Completed Task Behavior - Things 3 štýl:**
+
+Implementácia správania dokončených úloh podľa kontextu view - inšpirované Things 3.
+
+**Správanie podľa view:**
+| View | Správanie po dokončení |
+|------|------------------------|
+| Today | Fade-out animácia → zmizne → Logbook |
+| Inbox | Fade-out animácia → zmizne → Logbook |
+| Area (list) | Fade-out animácia → zmizne → Logbook |
+| Upcoming | Fade-out animácia → zmizne → Logbook |
+| Kanban | Presun do "Done" stĺpca (zašednuté) |
+| Project | Presun do zbaliteľnej sekcie "Dokončené" |
+
+**Fade-out animácia:**
+- Trvanie: 300ms
+- CSS: `opacity-0 scale-95 -translate-y-1`
+- Checkbox sa disable počas animácie (prevencia dvojkliku)
+- Po animácii sa task vyfiltruje zo zoznamu
+
+**Technické zmeny:**
+- `task-item.tsx`: Pridaný `isAnimatingOut` state + `handleCompleteWithAnimation` handler
+- `task-item-expanded.tsx`: Rovnaká animačná logika pre rozbalený stav
+- `checkbox.tsx`: Pridaný `disabled` prop
+- `today/page.tsx`: Filter `status !== 'done'` pre overdueTasks a todayTasks
+- `inbox/page.tsx`: Filter `status !== 'done'` pre activeTagFilteredTasks
+- `areas/[areaId]/page.tsx`: Filter `status !== 'done'` pri groupovaní úloh
+- `upcoming/page.tsx`: Filter `status !== 'done'` v groupedTasks
+
+**Logbook:**
+- Dokončené úlohy sa správne zobrazujú
+- Zoradené podľa `completed_at` (najnovšie hore)
+- Možnosť "odkliknutia" späť (vrátenie medzi aktívne)
+
+---
+
 ### v2.46 (26. februára 2026)
 **Time Tracking UI Refresh Fix:**
 

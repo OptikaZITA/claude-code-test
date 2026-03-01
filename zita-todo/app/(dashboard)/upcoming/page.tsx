@@ -55,10 +55,14 @@ export default function UpcomingPage() {
   useTaskMoved(refetch)
 
   // Group tasks by deadline date
+  // Filter out completed tasks (they fade out and appear in Logbook)
   const groupedTasks = useMemo(() => {
     const groups: Map<string, TaskWithRelations[]> = new Map()
 
-    tagFilteredTasks.forEach(task => {
+    // Only include active (non-completed) tasks
+    const activeTasks = tagFilteredTasks.filter(task => task.status !== 'done')
+
+    activeTasks.forEach(task => {
       if (task.deadline) {
         const dateKey = startOfDay(parseISO(task.deadline)).toISOString()
         if (!groups.has(dateKey)) {

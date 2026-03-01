@@ -61,6 +61,11 @@ export default function InboxPage() {
     )
   }, [filteredTasks, selectedTag])
 
+  // Filter out completed tasks for list view (they fade out and appear in Logbook)
+  const activeTagFilteredTasks = useMemo(() => {
+    return tagFilteredTasks.filter(task => task.status !== 'done')
+  }, [tagFilteredTasks])
+
   // Listen for task:moved events to refresh the list
   useTaskMoved(refetch)
 
@@ -442,7 +447,7 @@ export default function InboxPage() {
             onAdd={handleQuickAdd}
           />
 
-          {tagFilteredTasks.length === 0 && tasks.length === 0 && dbAssigneeFilter === undefined ? (
+          {activeTagFilteredTasks.length === 0 && tasks.length === 0 && dbAssigneeFilter === undefined ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Inbox className="mb-4 h-12 w-12 text-muted-foreground" />
               <p className="mb-2 text-lg font-medium text-foreground">Váš inbox je prázdny</p>
@@ -450,7 +455,7 @@ export default function InboxPage() {
                 Pridajte úlohy pomocou formulára vyššie
               </p>
             </div>
-          ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag || dbAssigneeFilter !== undefined) ? (
+          ) : activeTagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag || dbAssigneeFilter !== undefined) ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Inbox className="mb-4 h-12 w-12 text-muted-foreground" />
               <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
@@ -464,7 +469,7 @@ export default function InboxPage() {
           ) : null}
 
           <TaskList
-            tasks={tagFilteredTasks}
+            tasks={activeTagFilteredTasks}
             onTaskClick={setSelectedTask}
             onTaskComplete={handleTaskComplete}
             onTaskUpdate={handleInlineTaskUpdate}

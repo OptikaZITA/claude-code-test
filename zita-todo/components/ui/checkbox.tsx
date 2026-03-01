@@ -10,6 +10,8 @@ interface CheckboxProps {
   className?: string
   /** Use circular style (Things 3 style) */
   circular?: boolean
+  /** Disable the checkbox */
+  disabled?: boolean
 }
 
 export function Checkbox({
@@ -17,13 +19,16 @@ export function Checkbox({
   onChange,
   className,
   circular = true, // Default to circular per design spec
+  disabled = false,
 }: CheckboxProps) {
   return (
     <button
       type="button"
       role="checkbox"
       aria-checked={checked}
-      onClick={() => onChange?.(!checked)}
+      aria-disabled={disabled}
+      disabled={disabled}
+      onClick={() => !disabled && onChange?.(!checked)}
       className={cn(
         'flex items-center justify-center border-2 transition-all',
         // Size
@@ -34,6 +39,8 @@ export function Checkbox({
         checked
           ? 'border-success bg-success text-white'
           : 'border-primary bg-transparent hover:border-primary/70 hover:bg-primary/5',
+        // Disabled state
+        disabled && 'opacity-50 cursor-not-allowed',
         className
       )}
     >

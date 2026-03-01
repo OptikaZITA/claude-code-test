@@ -70,14 +70,16 @@ export default function TodayPage() {
   useTaskMoved(refetch)
 
   // Separate overdue tasks from today's tasks based on deadline
+  // Filter out completed tasks (they fade out and disappear)
   const today = new Date().toISOString().split('T')[0]
+  const activeTasks = tagFilteredTasks.filter(task => task.status !== 'done')
 
-  const overdueTasks = tagFilteredTasks.filter(task => {
+  const overdueTasks = activeTasks.filter(task => {
     if (!task.deadline) return false
     return task.deadline < today
   })
 
-  const todayTasks = tagFilteredTasks.filter(task => {
+  const todayTasks = activeTasks.filter(task => {
     if (!task.deadline) return false
     return task.deadline === today
   })

@@ -15,12 +15,16 @@ import { InlineLocationSelector } from './inline-location-selector'
 import { InlineTimeTracker } from './inline-time-tracker'
 import { RecurrenceConfigModal } from './recurrence-config-modal'
 
+const FADE_OUT_DURATION = 300 // ms - animation duration
+
 interface TaskItemExpandedProps {
   task: TaskWithRelations
   onUpdate: (updates: Partial<TaskWithRelations>) => void
   onComplete: (completed: boolean) => void
   onCollapse: () => void
   onDelete?: () => void
+  /** Skip fade-out animation (e.g. in Kanban where task moves to Done column) */
+  skipFadeOut?: boolean
 }
 
 export function TaskItemExpanded({
@@ -29,17 +33,42 @@ export function TaskItemExpanded({
   onComplete,
   onCollapse,
   onDelete,
+  skipFadeOut = false,
 }: TaskItemExpandedProps) {
   const [title, setTitle] = useState(task.title)
   const [notes, setNotes] = useState(task.notes || '')
   const [showRecurrenceModal, setShowRecurrenceModal] = useState(false)
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false)
+  const [isAnimatingOut, setIsAnimatingOut] = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const notesRef = useRef<HTMLTextAreaElement>(null)
   const priorityButtonRef = useRef<HTMLButtonElement>(null)
 
   const isCompleted = task.status === 'done'
   const hasRecurrence = !!task.recurrence_rule
+
+  // Handler for completing task with fade-out animation
+  const handleCompleteWithAnimation = useCallback((checked: boolean) => {
+    // If uncompleting, no animation needed
+    if (!checked) {
+      onComplete(false)
+      return
+    }
+
+    // If already completed or skipFadeOut is true, complete immediately
+    if (isCompleted || skipFadeOut) {
+      onComplete(true)
+      return
+    }
+
+    // Start fade-out animation
+    setIsAnimatingOut(true)
+
+    // After animation, call onComplete
+    setTimeout(() => {
+      onComplete(true)
+    }, FADE_OUT_DURATION)
+  }, [isCompleted, onComplete, skipFadeOut])
 
   // Sync local state with task prop when task changes
   useEffect(() => {
@@ -141,9 +170,11 @@ export function TaskItemExpanded({
   return (
     <div
       className={cn(
-        'rounded-[var(--radius-lg)] border border-[var(--border)] p-4 transition-all',
+        'rounded-[var(--radius-lg)] border border-[var(--border)] p-4 transition-all duration-300',
         'bg-card',
-        isCompleted && 'opacity-60'
+        isCompleted && !isAnimatingOut && 'opacity-60',
+        // Fade-out animation
+        isAnimatingOut && 'opacity-0 scale-95 -translate-y-1 pointer-events-none'
       )}
       onClick={(e) => e.stopPropagation()}
     >
@@ -151,8 +182,9 @@ export function TaskItemExpanded({
       <div className="flex items-start gap-3">
         <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
           <Checkbox
-            checked={isCompleted}
-            onChange={(checked) => onComplete(checked)}
+            checked={isCompleted || isAnimatingOut}
+            onChange={handleCompleteWithAnimation}
+            disabled={isAnimatingOut}
           />
         </div>
 
@@ -167,7 +199,7 @@ export function TaskItemExpanded({
           className={cn(
             'flex-1 bg-transparent text-base font-medium outline-none',
             'text-foreground placeholder:text-muted-foreground',
-            isCompleted && 'line-through text-muted-foreground'
+            (isCompleted || isAnimatingOut) && 'line-through text-muted-foreground'
           )}
         />
       </div>
