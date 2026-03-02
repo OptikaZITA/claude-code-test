@@ -317,17 +317,11 @@ export default function AreaDetailPage() {
     return projects.filter(p => p.status === 'active')
   }, [projects])
 
-  // Initialize expanded projects: expand only those with tasks
+  // Initialize expanded projects: all projects collapsed by default
   const resolvedExpandedProjects = useMemo(() => {
     if (expandedProjects !== null) return expandedProjects
-    const withTasks = new Set<string>()
-    activeProjects.forEach(p => {
-      if ((projectTasks.get(p.id) || []).length > 0) {
-        withTasks.add(p.id)
-      }
-    })
-    return withTasks
-  }, [expandedProjects, activeProjects, projectTasks])
+    return new Set<string>()
+  }, [expandedProjects])
 
   const toggleProject = (projectId: string) => {
     setExpandedProjects(prev => {
