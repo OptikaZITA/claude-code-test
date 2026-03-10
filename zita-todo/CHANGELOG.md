@@ -4,6 +4,22 @@ História všetkých zmien v projekte.
 
 ---
 
+### v2.49 (10. marca 2026)
+**Drag & Drop na Logbook:**
+
+Pridaná možnosť pretiahnuť task na "Logbook" v sidebari pre rýchle dokončenie úlohy.
+
+**Zmeny:**
+- `sidebar-drop-context.tsx` - Pridaný `logbook` drop target type + handleDrop logika
+- `sidebar.tsx` - Logbook zmenený z Link na SidebarDropItem s dropTarget
+
+**Správanie pri drop na Logbook:**
+- Task sa označí ako dokončený (`status: 'done'`)
+- Nastaví sa `completed_at` na aktuálny čas
+- Vymaže sa `when_type` (už nie je naplánovaný)
+
+---
+
 ### v2.48 (10. marca 2026)
 **Click Outside Autosave - Globálne správanie:**
 

@@ -38,6 +38,7 @@ export type DropTarget =
   | { type: 'project'; projectId: string }
   | { type: 'area'; areaId: string }
   | { type: 'trash' }
+  | { type: 'logbook' }
   | { type: 'calendar' }
 
 const SidebarDropContext = createContext<SidebarDropContextValue | null>(null)
@@ -197,6 +198,18 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
           .from('tasks')
           .update({
             deleted_at: new Date().toISOString(),
+          })
+          .eq('id', draggedTask.id)
+        updateError = error
+
+      } else if (target.type === 'logbook') {
+        // Mark task as completed
+        const { error } = await supabase
+          .from('tasks')
+          .update({
+            status: 'done',
+            completed_at: new Date().toISOString(),
+            when_type: null,
           })
           .eq('id', draggedTask.id)
         updateError = error

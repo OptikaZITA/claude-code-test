@@ -157,19 +157,14 @@ export function Sidebar({
             count={counts.upcoming}
             onClick={onNavigate}
           />
-          <Link
+          <SidebarDropItem
             href="/logbook"
+            isActive={isActive('/logbook')}
+            dropTarget={{ type: 'logbook' }}
+            icon={<BookOpen className="h-[18px] w-[18px] text-success" />}
+            label="Logbook"
             onClick={onNavigate}
-            className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-              isActive('/logbook')
-                ? 'bg-accent text-foreground font-medium'
-                : 'text-foreground hover:bg-accent/50'
-            )}
-          >
-            <BookOpen className="h-[18px] w-[18px] text-success" />
-            <span>Logbook</span>
-          </Link>
+          />
           <SidebarDropItem
             href="/trash"
             isActive={isActive('/trash')}

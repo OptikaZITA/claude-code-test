@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 10. marca 2026
-**Verzia špecifikácie**: 2.48 (Click Outside Autosave - Globálne správanie)
+**Verzia špecifikácie**: 2.49 (Drag & Drop na Logbook)
 
 ---
 
@@ -1366,6 +1366,12 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
   - [x] `checklist-item.tsx` - Escape klávesa ukladá zmeny (predtým resetovala)
   - [x] `modal.tsx` - Blur pred zatvorením pre autosave (Escape aj backdrop click)
   - [x] Ignorované portálové elementy: `[data-radix-portal]`, `[role="dialog"]`, `.rdp`, atď.
+
+### Funkcie v2.49 - VŠETKY DOKONČENÉ ✅
+- [x] **Drag & Drop na Logbook** - Rýchle dokončenie úlohy pretiahnutím na sidebar
+  - [x] `sidebar-drop-context.tsx` - Pridaný `logbook` drop target type
+  - [x] `sidebar.tsx` - Logbook zmenený na SidebarDropItem s dropTarget
+  - [x] Drop na Logbook nastaví `status: 'done'`, `completed_at`, vymaže `when_type`
 
 ---
 
