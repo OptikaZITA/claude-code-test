@@ -117,15 +117,21 @@ export function TaskItemExpanded({
       notesRef.current?.focus()
     }
     if (e.key === 'Escape') {
-      setTitle(task.title)
+      // Save changes before closing (autosave behavior)
+      handleTitleBlur()
       onCollapse()
     }
   }
 
-  // Handle keyboard on notes: Cmd/Ctrl+Enter to save, Escape to cancel
+  // Handle keyboard on notes: Cmd/Ctrl+Enter to save, Escape to save and close
   const handleNotesKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
-      setNotes(task.notes || '') // Reset to original
+      // Save changes before closing (autosave behavior)
+      const currentNotes = notes.trim()
+      const originalNotes = (task.notes || '').trim()
+      if (currentNotes !== originalNotes) {
+        onUpdate({ notes: currentNotes || null })
+      }
       onCollapse()
     }
     // Cmd/Ctrl + Enter or Cmd/Ctrl + S to save

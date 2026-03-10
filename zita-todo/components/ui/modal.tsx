@@ -32,7 +32,14 @@ export function Modal({ isOpen, onClose, title, children, className, size = 'md'
 
   React.useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        // Blur any focused input/textarea first to trigger autosave
+        const activeElement = document.activeElement as HTMLElement
+        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+          activeElement.blur()
+        }
+        onClose()
+      }
     }
 
     if (isOpen) {
@@ -53,7 +60,14 @@ export function Modal({ isOpen, onClose, title, children, className, size = 'md'
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 dark:bg-black/70 animate-fade-in"
-        onClick={onClose}
+        onClick={() => {
+          // Blur any focused input/textarea first to trigger autosave
+          const activeElement = document.activeElement as HTMLElement
+          if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+            activeElement.blur()
+          }
+          onClose()
+        }}
         aria-hidden="true"
       />
       {/* Modal content */}

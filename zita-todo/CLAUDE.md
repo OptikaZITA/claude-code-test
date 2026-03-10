@@ -5,8 +5,8 @@
 ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zobrazením, sledovaním času a Toggl-style time trackingom. Určená pre ~20 členný tím s podporou osobnej aj tímovej produktivity.
 
 **Dátum vytvorenia**: 2. januára 2026
-**Posledná aktualizácia**: 1. marca 2026
-**Verzia špecifikácie**: 2.47 (Completed Task Behavior - Things 3 štýl)
+**Posledná aktualizácia**: 10. marca 2026
+**Verzia špecifikácie**: 2.48 (Click Outside Autosave - Globálne správanie)
 
 ---
 
@@ -897,6 +897,7 @@ zita-todo/
 │   │   ├── use-cascading-time-filters.ts # NOVÉ v2.16 - Kaskádové filtre pre Časovač
 │   │   ├── use-task-time-total.ts    # NOVÉ v2.13 - Total time per task
 │   │   ├── use-time-blocks.ts        # NOVÉ v2.41 - Time blocking hooks (useTimeBlocks, useUnscheduledTasks, useTimeBlockActions)
+│   │   ├── use-click-outside.ts      # NOVÉ v2.48 - Click outside detection s portal-aware handling
 │   │   ├── use-organization.ts
 │   │   ├── use-realtime.ts
 │   │   ├── use-realtime-tasks.ts
@@ -1356,6 +1357,15 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
   - [x] Checkbox `disabled` počas animácie aby sa zabránilo dvojkliku
   - [x] `skipFadeOut` prop pre prípady kde animácia nie je potrebná
   - [x] Logbook správne zobrazuje dokončené úlohy zoradené podľa `completed_at`
+
+### Funkcie v2.48 - VŠETKY DOKONČENÉ ✅
+- [x] **Click Outside Autosave** - Globálne správanie pre celú aplikáciu
+  - [x] `lib/hooks/use-click-outside.ts` - Reusable hook pre click-outside detekciu
+  - [x] `task-list.tsx` - Rozšírená detekcia portálových elementov (rdp, radix, floating-ui, sonner)
+  - [x] `task-item-expanded.tsx` - Escape klávesa ukladá zmeny (predtým resetovala)
+  - [x] `checklist-item.tsx` - Escape klávesa ukladá zmeny (predtým resetovala)
+  - [x] `modal.tsx` - Blur pred zatvorením pre autosave (Escape aj backdrop click)
+  - [x] Ignorované portálové elementy: `[data-radix-portal]`, `[role="dialog"]`, `.rdp`, atď.
 
 ---
 

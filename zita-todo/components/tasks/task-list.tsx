@@ -123,34 +123,51 @@ export function TaskList({
     })
   )
 
-  // Handle click outside to collapse
+  // Click outside detection with portal-aware handling
   useEffect(() => {
     if (!expandedTaskId) return
 
-    const handleClickOutside = (e: MouseEvent) => {
-      // Don't collapse if clicking inside a dropdown/popover
+    const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement
-      if (target.closest('[data-radix-popper-content-wrapper]') ||
-          target.closest('[role="dialog"]') ||
-          target.closest('[role="listbox"]')) {
+
+      // Check if click is on a portal element (should not close)
+      const isPortal =
+        // Radix UI portals (shadcn/ui uses these)
+        target.closest('[data-radix-portal]') ||
+        target.closest('[data-radix-popper-content-wrapper]') ||
+        // Dialog/Modal
+        target.closest('[role="dialog"]') ||
+        // Listbox (Select, Combobox)
+        target.closest('[role="listbox"]') ||
+        // Menu (DropdownMenu)
+        target.closest('[role="menu"]') ||
+        // React Day Picker (calendar)
+        target.closest('.rdp') ||
+        target.closest('[data-rdp]') ||
+        // Floating UI portals
+        target.closest('[data-floating-ui-portal]') ||
+        // Toast notifications
+        target.closest('[data-sonner-toast]') ||
+        target.closest('[data-toaster]')
+
+      if (isPortal) {
         return
       }
 
       if (containerRef.current && !containerRef.current.contains(target)) {
-        // Use click event (not mousedown) so blur fires first and saves data
+        // Click fires AFTER blur, so autosave happens first
         setExpandedTaskId(null)
       }
     }
 
     // Use setTimeout to avoid immediate collapse on the same click
-    // Use 'click' instead of 'mousedown' - click fires AFTER blur
     const timeoutId = setTimeout(() => {
-      document.addEventListener('click', handleClickOutside)
+      document.addEventListener('click', handleClick)
     }, 0)
 
     return () => {
       clearTimeout(timeoutId)
-      document.removeEventListener('click', handleClickOutside)
+      document.removeEventListener('click', handleClick)
     }
   }, [expandedTaskId])
 

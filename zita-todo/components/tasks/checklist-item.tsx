@@ -61,8 +61,8 @@ export function ChecklistItem({
     if (e.key === 'Enter') {
       handleBlur()
     } else if (e.key === 'Escape') {
-      setText(item.text)
-      setIsEditing(false)
+      // Save changes before closing (autosave behavior)
+      handleBlur()
     }
   }
 

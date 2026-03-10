@@ -4,6 +4,42 @@ História všetkých zmien v projekte.
 
 ---
 
+### v2.48 (10. marca 2026)
+**Click Outside Autosave - Globálne správanie:**
+
+Implementácia konzistentného správania "kliknutie mimo = zatvorenie + autosave" naprieč celou aplikáciou.
+
+**Pravidlo:**
+> Kliknutie kamkoľvek mimo editovaný element = zatvorenie editácie + automatické uloženie zmien.
+
+**Nové súbory:**
+- `lib/hooks/use-click-outside.ts` - Reusable hook pre click-outside detekciu
+
+**Upravené súbory:**
+- `components/tasks/task-list.tsx` - Rozšírená detekcia portálových elementov
+- `components/tasks/task-item-expanded.tsx` - Escape klávesa teraz uloží zmeny (predtým resetovala)
+- `components/tasks/checklist-item.tsx` - Escape klávesa teraz uloží zmeny (predtým resetovala)
+- `components/ui/modal.tsx` - Blur pred zatvorením pre autosave (Escape aj backdrop click)
+
+**Ignorované portálové elementy:**
+- `[data-radix-portal]` - Radix UI portály
+- `[data-radix-popper-content-wrapper]` - Shadcn/ui popovers
+- `[role="dialog"]` - Modal dialógy
+- `[role="listbox"]` - Select, Combobox
+- `[role="menu"]` - DropdownMenu
+- `.rdp` / `[data-rdp]` - React Day Picker (kalendár)
+- `[data-floating-ui-portal]` - Floating UI
+- `[data-sonner-toast]` / `[data-toaster]` - Toast notifikácie
+
+**Zmena správania:**
+| Komponent | Predtým | Teraz |
+|-----------|---------|-------|
+| task-item-expanded.tsx | Escape = reset + zatvor | Escape = ulož + zatvor |
+| checklist-item.tsx | Escape = reset | Escape = ulož |
+| modal.tsx | Escape/backdrop = zatvor | Escape/backdrop = blur → ulož → zatvor |
+
+---
+
 ### v2.47 (1. marca 2026)
 **Completed Task Behavior - Things 3 štýl:**
 
