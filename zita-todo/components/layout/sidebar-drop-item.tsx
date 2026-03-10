@@ -1,8 +1,9 @@
 'use client'
 
-import { ReactNode, useCallback } from 'react'
+import { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useDroppable } from '@dnd-kit/core'
 import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react'
 import { useSidebarDrop, DropTarget } from '@/lib/contexts/sidebar-drop-context'
 import { SidebarStarBadge } from '@/components/indicators'
@@ -20,6 +21,33 @@ interface SidebarDropItemProps {
   onClick?: () => void
 }
 
+/**
+ * Get the droppable ID for a drop target.
+ * These IDs are recognized by GlobalDndContext.
+ */
+function getDroppableId(target: DropTarget): string {
+  switch (target.type) {
+    case 'inbox':
+      return 'sidebar-inbox'
+    case 'today':
+      return 'sidebar-today'
+    case 'upcoming':
+      return 'sidebar-upcoming'
+    case 'logbook':
+      return 'sidebar-logbook'
+    case 'trash':
+      return 'sidebar-trash'
+    case 'calendar':
+      return 'sidebar-calendar'
+    case 'area':
+      return `sidebar-area-${target.areaId}`
+    case 'project':
+      return `sidebar-project-${target.projectId}`
+    default:
+      return 'sidebar-unknown'
+  }
+}
+
 export function SidebarDropItem({
   href,
   isActive,
@@ -31,95 +59,31 @@ export function SidebarDropItem({
   isDeadline,
   onClick,
 }: SidebarDropItemProps) {
-  const {
-    isDragging,
-    draggedTask,
-    draggedProject,
-    dropTarget: currentDropTarget,
-    setDropTarget,
-    handleDrop,
-  } = useSidebarDrop()
+  const { isDragging } = useSidebarDrop()
 
-  const isDropTarget =
-    currentDropTarget &&
-    JSON.stringify(currentDropTarget) === JSON.stringify(dropTarget)
-
-  // Use pointer events for @dnd-kit compatibility
-  const handlePointerEnter = useCallback(() => {
-    if (isDragging) {
-      setDropTarget(dropTarget)
-    }
-  }, [isDragging, setDropTarget, dropTarget])
-
-  const handlePointerLeave = useCallback(() => {
-    if (isDragging) {
-      setDropTarget(null)
-    }
-  }, [isDragging, setDropTarget])
-
-  // Keep drag events for native drag (DraggableTask)
-  const handleDragOver = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      if (isDragging) {
-        setDropTarget(dropTarget)
-      }
-    },
-    [isDragging, setDropTarget, dropTarget]
-  )
-
-  const handleDragLeave = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      const rect = e.currentTarget.getBoundingClientRect()
-      const { clientX, clientY } = e
-      if (
-        clientX < rect.left ||
-        clientX > rect.right ||
-        clientY < rect.top ||
-        clientY > rect.bottom
-      ) {
-        setDropTarget(null)
-      }
-    },
-    [setDropTarget]
-  )
-
-  const handleDropEvent = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      if (draggedTask || draggedProject) {
-        handleDrop(dropTarget)
-      }
-    },
-    [draggedTask, draggedProject, handleDrop, dropTarget]
-  )
+  // Use @dnd-kit's useDroppable for proper drag detection
+  const { setNodeRef, isOver } = useDroppable({
+    id: getDroppableId(dropTarget),
+  })
 
   return (
     <Link
+      ref={setNodeRef}
       href={href}
       onClick={onClick}
-      onPointerEnter={handlePointerEnter}
-      onPointerLeave={handlePointerLeave}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDropEvent}
       className={cn(
         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all',
         isActive
           ? 'bg-accent text-foreground font-medium'
           : 'text-foreground hover:bg-accent/50',
         isDragging && 'cursor-copy',
-        isDropTarget && 'ring-2 ring-primary bg-primary/10 scale-105',
+        isOver && 'ring-2 ring-primary bg-primary/10 scale-105',
         className
       )}
     >
       {icon}
       <span className="flex-1">{label}</span>
-      {isDropTarget ? (
+      {isOver ? (
         <span className="text-xs text-primary font-medium">
           Pustiť sem
         </span>
@@ -167,90 +131,26 @@ export function SidebarDropArea({
   todayTasksCount = 0,
 }: SidebarDropAreaProps) {
   const pathname = usePathname()
-  const {
-    isDragging,
-    draggedTask,
-    dropTarget: currentDropTarget,
-    setDropTarget,
-    handleDrop,
-  } = useSidebarDrop()
+  const { isDragging } = useSidebarDrop()
 
-  const dropTarget: DropTarget = { type: 'area', areaId }
+  // Use @dnd-kit's useDroppable for proper drag detection
+  const { setNodeRef, isOver } = useDroppable({
+    id: `sidebar-area-${areaId}`,
+  })
+
   const isActive = pathname === `/areas/${areaId}`
-
-  const isDropTarget =
-    currentDropTarget &&
-    currentDropTarget.type === 'area' &&
-    currentDropTarget.areaId === areaId
-
-  // Use pointer events for @dnd-kit compatibility
-  const handlePointerEnter = useCallback(() => {
-    if (isDragging) {
-      setDropTarget(dropTarget)
-    }
-  }, [isDragging, setDropTarget, dropTarget])
-
-  const handlePointerLeave = useCallback(() => {
-    if (isDragging) {
-      setDropTarget(null)
-    }
-  }, [isDragging, setDropTarget])
-
-  const handleDragOver = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      if (isDragging) {
-        setDropTarget(dropTarget)
-      }
-    },
-    [isDragging, setDropTarget, dropTarget]
-  )
-
-  const handleDragLeave = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      const rect = e.currentTarget.getBoundingClientRect()
-      const { clientX, clientY } = e
-      if (
-        clientX < rect.left ||
-        clientX > rect.right ||
-        clientY < rect.top ||
-        clientY > rect.bottom
-      ) {
-        setDropTarget(null)
-      }
-    },
-    [setDropTarget]
-  )
-
-  const handleDropEvent = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      if (draggedTask) {
-        handleDrop(dropTarget)
-      }
-    },
-    [draggedTask, handleDrop, dropTarget]
-  )
 
   return (
     <div>
       <div
-        onPointerEnter={handlePointerEnter}
-        onPointerLeave={handlePointerLeave}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDropEvent}
+        ref={setNodeRef}
         className={cn(
           'group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all',
           isActive
             ? 'bg-accent text-foreground font-medium'
             : 'text-foreground hover:bg-accent/50',
           isDragging && 'cursor-copy',
-          isDropTarget && 'ring-2 ring-primary bg-primary/10 scale-[1.02]'
+          isOver && 'ring-2 ring-primary bg-primary/10 scale-[1.02]'
         )}
       >
         <button
@@ -275,7 +175,7 @@ export function SidebarDropArea({
           <span className="flex-1 text-left truncate">{areaName}</span>
           <SidebarStarBadge todayTasksCount={todayTasksCount} />
         </Link>
-        {isDropTarget ? (
+        {isOver ? (
           <span className="text-xs text-primary font-medium">
             +
           </span>
@@ -326,100 +226,36 @@ export function SidebarDropProject({
 }: SidebarDropProjectProps) {
   const {
     isDragging,
-    draggedTask,
     draggedProject,
     setDraggedProject,
-    dropTarget: currentDropTarget,
     setDropTarget,
-    handleDrop,
   } = useSidebarDrop()
 
-  const dropTarget: DropTarget = { type: 'project', projectId }
-
-  const isDropTarget =
-    currentDropTarget &&
-    currentDropTarget.type === 'project' &&
-    currentDropTarget.projectId === projectId
+  // Use @dnd-kit's useDroppable for proper drag detection
+  const { setNodeRef, isOver } = useDroppable({
+    id: `sidebar-project-${projectId}`,
+  })
 
   const isDraggingThis = draggedProject?.id === projectId
 
-  const handleDragStart = useCallback(
-    (e: React.DragEvent) => {
-      e.dataTransfer.effectAllowed = 'move'
-      e.dataTransfer.setData('text/plain', projectId)
-      setDraggedProject({ id: projectId, name: label })
-    },
-    [projectId, label, setDraggedProject]
-  )
+  // Native HTML5 drag for project dragging (separate from task dragging)
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', projectId)
+    setDraggedProject({ id: projectId, name: label })
+  }
 
-  const handleDragEnd = useCallback(() => {
+  const handleDragEnd = () => {
     setDraggedProject(null)
     setDropTarget(null)
-  }, [setDraggedProject, setDropTarget])
-
-  // Use pointer events for @dnd-kit compatibility
-  const handlePointerEnter = useCallback(() => {
-    if (isDragging) {
-      setDropTarget(dropTarget)
-    }
-  }, [isDragging, setDropTarget, dropTarget])
-
-  const handlePointerLeave = useCallback(() => {
-    if (isDragging) {
-      setDropTarget(null)
-    }
-  }, [isDragging, setDropTarget])
-
-  const handleDragOver = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      if (isDragging) {
-        setDropTarget(dropTarget)
-      }
-    },
-    [isDragging, setDropTarget, dropTarget]
-  )
-
-  const handleDragLeave = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      const rect = e.currentTarget.getBoundingClientRect()
-      const { clientX, clientY } = e
-      if (
-        clientX < rect.left ||
-        clientX > rect.right ||
-        clientY < rect.top ||
-        clientY > rect.bottom
-      ) {
-        setDropTarget(null)
-      }
-    },
-    [setDropTarget]
-  )
-
-  const handleDropEvent = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      if (draggedTask && !draggedProject) {
-        handleDrop(dropTarget)
-      }
-    },
-    [draggedTask, draggedProject, handleDrop, dropTarget]
-  )
+  }
 
   return (
     <div
+      ref={setNodeRef}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      onPointerEnter={handlePointerEnter}
-      onPointerLeave={handlePointerLeave}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDropEvent}
       className={cn(
         'group flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all',
         isActive
@@ -427,7 +263,7 @@ export function SidebarDropProject({
           : 'text-foreground hover:bg-accent/50',
         isDragging && !isDraggingThis && 'cursor-copy',
         isDraggingThis && 'opacity-50',
-        isDropTarget && 'ring-2 ring-primary bg-primary/10 scale-105'
+        isOver && 'ring-2 ring-primary bg-primary/10 scale-105'
       )}
     >
       <Link
@@ -438,7 +274,7 @@ export function SidebarDropProject({
         {icon}
         <span className="flex-1 truncate">{label}</span>
       </Link>
-      {isDropTarget ? (
+      {isOver ? (
         <span className="text-xs text-primary font-medium shrink-0">
           +
         </span>

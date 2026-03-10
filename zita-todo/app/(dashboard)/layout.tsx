@@ -11,6 +11,7 @@ import { SidebarDropProvider } from '@/lib/contexts/sidebar-drop-context'
 import { GlobalTimerProvider } from '@/lib/contexts/global-timer-context'
 import { SidebarProvider } from '@/lib/contexts/sidebar-context'
 import { MultiSelectProvider } from '@/lib/contexts/multi-select-context'
+import { GlobalDndContext } from '@/components/dnd/global-dnd-context'
 import { ProjectFormModal } from '@/components/projects/project-form-modal'
 import { AreaForm } from '@/components/areas/area-form'
 import { CalendarDropPicker } from '@/components/layout/calendar-drop-picker'
@@ -205,26 +206,27 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     <GlobalTimerProvider>
       <SidebarDropProvider>
         <MultiSelectProvider>
-          <div className="min-h-screen bg-background">
-            {/* Sidebar - vždy viditeľný, fixed vľavo (skrytý na mobile) */}
-            <aside className="fixed left-0 top-0 h-full w-64 bg-card border-r border-[var(--border)] z-30 hidden lg:block">
-              <Sidebar
-                user={user}
-                areas={areas}
-                onLogout={handleLogout}
-                onCreateProject={handleCreateProject}
-                onCreateArea={() => setShowAreaForm(true)}
-                onRefresh={refetchAreas}
-              />
-            </aside>
+          <GlobalDndContext>
+            <div className="min-h-screen bg-background">
+              {/* Sidebar - vždy viditeľný, fixed vľavo (skrytý na mobile) */}
+              <aside className="fixed left-0 top-0 h-full w-64 bg-card border-r border-[var(--border)] z-30 hidden lg:block">
+                <Sidebar
+                  user={user}
+                  areas={areas}
+                  onLogout={handleLogout}
+                  onCreateProject={handleCreateProject}
+                  onCreateArea={() => setShowAreaForm(true)}
+                  onRefresh={refetchAreas}
+                />
+              </aside>
 
-            {/* Mobile Navigation (bottom bar) */}
-            <MobileNav />
+              {/* Mobile Navigation (bottom bar) */}
+              <MobileNav />
 
-            {/* Main Content - odsadený o šírku sidebaru na desktop */}
-            <main className="min-h-screen lg:ml-64 pb-16 lg:pb-0">
-              {children}
-            </main>
+              {/* Main Content - odsadený o šírku sidebaru na desktop */}
+              <main className="min-h-screen lg:ml-64 pb-16 lg:pb-0">
+                {children}
+              </main>
 
             {/* Bulk Action Toolbar - shows when tasks are selected */}
             <BulkActionToolbar />
@@ -257,6 +259,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             {/* Calendar Drop Picker Modal */}
             <CalendarDropPicker />
           </div>
+          </GlobalDndContext>
         </MultiSelectProvider>
       </SidebarDropProvider>
     </GlobalTimerProvider>

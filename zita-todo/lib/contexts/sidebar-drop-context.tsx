@@ -4,6 +4,12 @@ import { createContext, useContext, useState, useCallback, useRef, ReactNode } f
 import { TaskWithRelations, Project } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 
+// Reorder handler type for list/kanban sorting
+export type ReorderHandler = (
+  activeId: string,
+  overId: string,
+) => void
+
 interface SidebarDropContextValue {
   // Dragged task
   draggedTask: TaskWithRelations | null
@@ -29,6 +35,11 @@ interface SidebarDropContextValue {
   pendingCalendarTask: TaskWithRelations | null
   handleCalendarDateSelect: (date: Date) => Promise<void>
   handleCalendarCancel: () => void
+
+  // Reorder handler registration (for GlobalDndContext to delegate sorting)
+  registerReorderHandler: (handler: ReorderHandler) => void
+  unregisterReorderHandler: () => void
+  reorderHandler: ReorderHandler | null
 }
 
 export type DropTarget =
@@ -51,7 +62,17 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
   const [pendingCalendarTask, setPendingCalendarTask] = useState<TaskWithRelations | null>(null)
   // Use ref to avoid stale closure in handleCalendarDateSelect
   const pendingCalendarTaskRef = useRef<TaskWithRelations | null>(null)
+  // Reorder handler for delegating sorting from GlobalDndContext
+  const reorderHandlerRef = useRef<ReorderHandler | null>(null)
   const supabase = createClient()
+
+  const registerReorderHandler = useCallback((handler: ReorderHandler) => {
+    reorderHandlerRef.current = handler
+  }, [])
+
+  const unregisterReorderHandler = useCallback(() => {
+    reorderHandlerRef.current = null
+  }, [])
 
   const handleCalendarDateSelect = useCallback(async (date: Date) => {
     // Use ref to get the current task (avoids stale closure)
@@ -262,6 +283,9 @@ export function SidebarDropProvider({ children }: { children: ReactNode }) {
         pendingCalendarTask,
         handleCalendarDateSelect,
         handleCalendarCancel,
+        registerReorderHandler,
+        unregisterReorderHandler,
+        reorderHandler: reorderHandlerRef.current,
       }}
     >
       {children}

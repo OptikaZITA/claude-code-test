@@ -2,19 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
-  DndContext,
-  DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
-  PointerSensor,
-  KeyboardSensor,
-  useSensor,
-  useSensors,
-  closestCenter,
-} from '@dnd-kit/core'
-import {
   SortableContext,
-  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { TaskWithRelations } from '@/types'
@@ -22,7 +10,6 @@ import { TaskItem } from './task-item'
 import { TaskQuickAdd, TaskQuickAddData } from './task-quick-add'
 import { SortableTaskItem } from './sortable-task-item'
 import { DraggableTask } from './draggable-task'
-import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
 import { useMultiSelectContext } from '@/lib/contexts/multi-select-context'
 
 interface TaskListProps {
@@ -61,9 +48,7 @@ export function TaskList({
   showTodayStar = false,
 }: TaskListProps) {
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null)
-  const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const { dropTarget, handleDrop: handleSidebarDrop, setDropTarget } = useSidebarDrop()
 
   // Multi-select context
   const {
@@ -111,17 +96,23 @@ export function TaskList({
     selectTask(taskId)
   }, [selectTask])
 
-  // Sensors for drag and drop
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8, // 8px movement before drag starts
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
+  // Listen for reorder events from GlobalDndContext
+  useEffect(() => {
+    const handleReorder = (e: CustomEvent<{ activeId: string; overId: string }>) => {
+      const { activeId, overId } = e.detail
+
+      // Only handle if both IDs are tasks in our list
+      const oldIndex = tasks.findIndex((t) => t.id === activeId)
+      const newIndex = tasks.findIndex((t) => t.id === overId)
+
+      if (oldIndex !== -1 && newIndex !== -1 && onReorder) {
+        onReorder(activeId, newIndex, tasks)
+      }
+    }
+
+    window.addEventListener('dnd:reorder', handleReorder as EventListener)
+    return () => window.removeEventListener('dnd:reorder', handleReorder as EventListener)
+  }, [tasks, onReorder])
 
   // Click outside detection with portal-aware handling
   useEffect(() => {
@@ -211,47 +202,6 @@ export function TaskList({
 
   const handleTaskUpdate = (taskId: string, updates: Partial<TaskWithRelations>) => {
     onTaskUpdate?.(taskId, updates)
-  }
-
-  // Drag handlers for sortable
-  const handleDragStart = (event: DragStartEvent) => {
-    const task = tasks.find((t) => t.id === event.active.id)
-    setActiveTask(task || null)
-  }
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    setActiveTask(null)
-
-    // Always clear dropTarget at the end of drag
-    const currentDropTarget = dropTarget
-    setDropTarget(null)
-
-    // Check if there's a sidebar drop target (trash, when, project, area)
-    if (currentDropTarget) {
-      handleSidebarDrop(currentDropTarget)
-      return
-    }
-
-    if (!over) {
-      return
-    }
-
-    if (active.id === over.id) {
-      return
-    }
-
-    const oldIndex = tasks.findIndex((t) => t.id === active.id)
-    const newIndex = tasks.findIndex((t) => t.id === over.id)
-
-    if (oldIndex !== -1 && newIndex !== -1 && onReorder) {
-      onReorder(active.id as string, newIndex, tasks)
-    }
-  }
-
-  const handleDragCancel = () => {
-    setActiveTask(null)
-    setDropTarget(null)
   }
 
   // Render with sortable context if reorder is enabled
@@ -345,33 +295,12 @@ export function TaskList({
           </div>
         ) : null
       ) : shouldUseSortable ? (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDragCancel={handleDragCancel}
+        <SortableContext
+          items={tasks.map((t) => t.id)}
+          strategy={verticalListSortingStrategy}
         >
-          <SortableContext
-            items={tasks.map((t) => t.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            {taskList}
-          </SortableContext>
-
-          <DragOverlay>
-            {activeTask && (
-              <div className="opacity-90 shadow-lg rounded-lg">
-                <TaskItem
-                  task={activeTask}
-                  isExpanded={false}
-                  onComplete={() => {}}
-                  enableInlineEdit={false}
-                />
-              </div>
-            )}
-          </DragOverlay>
-        </DndContext>
+          {taskList}
+        </SortableContext>
       ) : (
         taskList
       )}

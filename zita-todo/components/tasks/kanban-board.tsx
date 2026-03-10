@@ -1,21 +1,8 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
-import {
-  DndContext,
-  DragEndEvent,
-  DragOverEvent,
-  DragOverlay,
-  DragStartEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  pointerWithin,
-} from '@dnd-kit/core'
+import { useCallback, useEffect } from 'react'
 import { TaskWithRelations, TaskStatus, DEFAULT_KANBAN_COLUMNS } from '@/types'
 import { KanbanColumn as KanbanColumnComponent } from './kanban-column'
-import { KanbanCard } from './kanban-card'
-import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
 import { useMultiSelectContext } from '@/lib/contexts/multi-select-context'
 
 interface KanbanBoardProps {
@@ -40,9 +27,6 @@ export function KanbanBoard({
   onQuickAdd,
   hideToday,
 }: KanbanBoardProps) {
-  const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null)
-  const { dropTarget, handleDrop: handleSidebarDrop, setDropTarget } = useSidebarDrop()
-
   // Multi-select context
   const {
     isSelected,
@@ -60,133 +44,78 @@ export function KanbanBoard({
     handleMultiSelectClick(taskId, event)
   }, [handleMultiSelectClick])
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  )
-
   const getTasksByStatus = useCallback((status: TaskStatus) => {
     return tasks
       .filter((task) => task.status === status)
       .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
   }, [tasks])
 
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    const task = tasks.find((t) => t.id === event.active.id)
-    setActiveTask(task || null)
-  }, [tasks])
+  // Listen for reorder events from GlobalDndContext
+  useEffect(() => {
+    const handleReorder = (e: CustomEvent<{ activeId: string; overId: string }>) => {
+      const { activeId, overId } = e.detail
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event
-    setActiveTask(null)
+      // Skip if same position
+      if (activeId === overId) return
 
-    // Always clear dropTarget at the end of drag
-    const currentDropTarget = dropTarget
-    setDropTarget(null)
+      // Check if the activeId is a task in our list
+      const activeTask = tasks.find((t) => t.id === activeId)
+      if (!activeTask) return
 
-    // Check if there's a sidebar drop target (trash, when, project, area)
-    // This has priority over Kanban column drops
-    if (currentDropTarget) {
-      handleSidebarDrop(currentDropTarget)
-      return
-    }
+      // Check if dropped on a column (status)
+      const isColumn = DEFAULT_KANBAN_COLUMNS.some((col) => col.id === overId)
 
-    if (!over) {
-      return
-    }
-
-    const taskId = active.id as string
-    const overId = over.id as string
-
-    // Skip if same position
-    if (taskId === overId) return
-
-    // Check if dropped on a column (status)
-    const isColumn = DEFAULT_KANBAN_COLUMNS.some((col) => col.id === overId)
-
-    if (isColumn) {
-      const newStatus = overId as TaskStatus
-      const task = tasks.find((t) => t.id === taskId)
-
-      if (task && task.status !== newStatus) {
-        try {
-          onTaskMove(taskId, newStatus)
-        } catch (err) {
-          console.error('[KanbanBoard] onTaskMove threw error:', err)
-        }
-      }
-    } else {
-      // Dropped on another task
-      const activeTask = tasks.find((t) => t.id === taskId)
-      const overTask = tasks.find((t) => t.id === overId)
-
-      if (activeTask && overTask) {
-        if (activeTask.status === overTask.status) {
-          // SAME COLUMN → REORDER
-          const columnTasks = tasks
-            .filter(t => t.status === activeTask.status)
-            .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-          const oldIndex = columnTasks.findIndex(t => t.id === taskId)
-          const newIndex = columnTasks.findIndex(t => t.id === overId)
-          if (newIndex !== -1 && onTaskReorder) {
-            onTaskReorder(taskId, newIndex, columnTasks)
+      if (isColumn) {
+        const newStatus = overId as TaskStatus
+        if (activeTask.status !== newStatus) {
+          try {
+            onTaskMove(activeId, newStatus)
+          } catch (err) {
+            console.error('[KanbanBoard] onTaskMove threw error:', err)
           }
-        } else {
-          // DIFFERENT COLUMN → change status
-          onTaskMove(taskId, overTask.status as TaskStatus)
+        }
+      } else {
+        // Dropped on another task
+        const overTask = tasks.find((t) => t.id === overId)
+
+        if (overTask) {
+          if (activeTask.status === overTask.status) {
+            // SAME COLUMN → REORDER
+            const columnTasks = tasks
+              .filter(t => t.status === activeTask.status)
+              .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+            const newIndex = columnTasks.findIndex(t => t.id === overId)
+            if (newIndex !== -1 && onTaskReorder) {
+              onTaskReorder(activeId, newIndex, columnTasks)
+            }
+          } else {
+            // DIFFERENT COLUMN → change status
+            onTaskMove(activeId, overTask.status as TaskStatus)
+          }
         }
       }
     }
-  }, [tasks, onTaskMove, onTaskReorder, dropTarget, handleSidebarDrop, setDropTarget])
 
-  const handleDragOver = useCallback((_event: DragOverEvent) => {
-    // Kept for potential future use
-  }, [])
-
-  const handleDragCancel = useCallback(() => {
-    setActiveTask(null)
-    setDropTarget(null)
-  }, [setDropTarget])
+    window.addEventListener('dnd:reorder', handleReorder as EventListener)
+    return () => window.removeEventListener('dnd:reorder', handleReorder as EventListener)
+  }, [tasks, onTaskMove, onTaskReorder])
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={pointerWithin}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-      onDragCancel={handleDragCancel}
-    >
-      <div className="flex h-full gap-4 overflow-x-auto p-6 bg-background">
-        {DEFAULT_KANBAN_COLUMNS.map((column) => (
-          <KanbanColumnComponent
-            key={column.id}
-            column={column}
-            tasks={getTasksByStatus(column.id)}
-            onTaskClick={onTaskClick}
-            onTaskDelete={onTaskDelete}
-            onTaskUpdate={onTaskUpdate}
-            onQuickAdd={(title) => onQuickAdd(title, column.id)}
-            hideToday={hideToday}
-            isTaskSelected={isSelected}
-            onModifierClick={handleModifierClick}
-          />
-        ))}
-      </div>
-
-      <DragOverlay>
-        {activeTask && (
-          <KanbanCard
-            task={activeTask}
-            onClick={() => {}}
-            isDragging
-            hideToday={hideToday}
-          />
-        )}
-      </DragOverlay>
-    </DndContext>
+    <div className="flex h-full gap-4 overflow-x-auto p-6 bg-background">
+      {DEFAULT_KANBAN_COLUMNS.map((column) => (
+        <KanbanColumnComponent
+          key={column.id}
+          column={column}
+          tasks={getTasksByStatus(column.id)}
+          onTaskClick={onTaskClick}
+          onTaskDelete={onTaskDelete}
+          onTaskUpdate={onTaskUpdate}
+          onQuickAdd={(title) => onQuickAdd(title, column.id)}
+          hideToday={hideToday}
+          isTaskSelected={isSelected}
+          onModifierClick={handleModifierClick}
+        />
+      ))}
+    </div>
   )
 }

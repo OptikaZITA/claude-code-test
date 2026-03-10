@@ -2,26 +2,13 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
-  DndContext,
-  DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
-  PointerSensor,
-  KeyboardSensor,
-  useSensor,
-  useSensors,
-  closestCenter,
-} from '@dnd-kit/core'
-import {
   SortableContext,
-  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { ChevronRight } from 'lucide-react'
 import { TaskWithRelations } from '@/types'
 import { TaskItem } from './task-item'
 import { SortableTaskItem } from './sortable-task-item'
-import { useSidebarDrop } from '@/lib/contexts/sidebar-drop-context'
 import { useMultiSelectContext } from '@/lib/contexts/multi-select-context'
 import { cn } from '@/lib/utils/cn'
 
@@ -52,8 +39,6 @@ export function ProjectTaskList({
 }: ProjectTaskListProps) {
   const [showCompleted, setShowCompleted] = useState(false)
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null)
-  const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null)
-  const { dropTarget, handleDrop: handleSidebarDrop, setDropTarget } = useSidebarDrop()
 
   // Multi-select context
   const {
@@ -78,74 +63,29 @@ export function ProjectTaskList({
     selectTask(taskId)
   }, [selectTask])
 
-  // Sensors for drag and drop
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
-
   // Split into active and completed tasks
   const activeTasks = useMemo(() => tasks.filter(t => t.status !== 'done'), [tasks])
   const completedTasks = useMemo(() => tasks.filter(t => t.status === 'done'), [tasks])
 
   const isEmpty = tasks.length === 0
 
-  // Drag handlers
-  const handleDragStart = (event: DragStartEvent) => {
-    const task = activeTasks.find((t) => t.id === event.active.id)
-    setActiveTask(task || null)
-  }
+  // Listen for reorder events from GlobalDndContext
+  useEffect(() => {
+    const handleReorder = (e: CustomEvent<{ activeId: string; overId: string }>) => {
+      const { activeId, overId } = e.detail
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    setActiveTask(null)
+      // Only handle if both IDs are tasks in our active list
+      const oldIndex = activeTasks.findIndex((t) => t.id === activeId)
+      const newIndex = activeTasks.findIndex((t) => t.id === overId)
 
-    console.log('=== [ProjectTaskList] DRAG END ===')
-    console.log('[ProjectTaskList] active:', active)
-    console.log('[ProjectTaskList] over:', over)
-    console.log('[ProjectTaskList] dropTarget:', dropTarget)
-
-    // Always clear dropTarget at the end of drag
-    const currentDropTarget = dropTarget
-    setDropTarget(null)
-
-    // Check if there's a sidebar drop target (trash, when, project, area)
-    if (currentDropTarget) {
-      console.log('[ProjectTaskList] Dropping to sidebar:', currentDropTarget)
-      handleSidebarDrop(currentDropTarget)
-      return
+      if (oldIndex !== -1 && newIndex !== -1 && onReorder) {
+        onReorder(activeId, newIndex, activeTasks)
+      }
     }
 
-    if (!over) {
-      console.log('[ProjectTaskList] No drop target (over is null)')
-      return
-    }
-
-    if (active.id === over.id) {
-      console.log('[ProjectTaskList] Same position - no reorder')
-      return
-    }
-
-    const oldIndex = activeTasks.findIndex((t) => t.id === active.id)
-    const newIndex = activeTasks.findIndex((t) => t.id === over.id)
-
-    console.log('[ProjectTaskList] Reorder:', { oldIndex, newIndex, hasOnReorder: !!onReorder })
-
-    if (oldIndex !== -1 && newIndex !== -1 && onReorder) {
-      onReorder(active.id as string, newIndex, activeTasks)
-    }
-  }
-
-  const handleDragCancel = () => {
-    setActiveTask(null)
-    setDropTarget(null)
-  }
+    window.addEventListener('dnd:reorder', handleReorder as EventListener)
+    return () => window.removeEventListener('dnd:reorder', handleReorder as EventListener)
+  }, [activeTasks, onReorder])
 
   const handleTaskExpand = (taskId: string) => {
     setExpandedTaskId(taskId)
@@ -225,33 +165,12 @@ export function ProjectTaskList({
       {/* Active tasks with drag & drop */}
       {activeTasks.length > 0 && (
         shouldUseSortable ? (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDragCancel={handleDragCancel}
+          <SortableContext
+            items={activeTasks.map((t) => t.id)}
+            strategy={verticalListSortingStrategy}
           >
-            <SortableContext
-              items={activeTasks.map((t) => t.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              {activeTaskList}
-            </SortableContext>
-
-            <DragOverlay>
-              {activeTask && (
-                <div className="opacity-90 shadow-lg rounded-lg">
-                  <TaskItem
-                    task={activeTask}
-                    isExpanded={false}
-                    onComplete={() => {}}
-                    enableInlineEdit={false}
-                  />
-                </div>
-              )}
-            </DragOverlay>
-          </DndContext>
+            {activeTaskList}
+          </SortableContext>
         ) : (
           activeTaskList
         )
