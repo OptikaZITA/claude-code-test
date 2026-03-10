@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { TaskWithRelations } from '@/types'
@@ -71,6 +71,24 @@ export function SortableTaskItem({
     }
   }, [isDragging, task, setDraggedTask])
 
+  // HTML5 drag handlers for sidebar drop compatibility
+  // @dnd-kit uses pointer capture which blocks pointer events on sidebar
+  // So we also emit HTML5 drag events for sidebar drop targets
+  const handleDragStart = useCallback(
+    (e: React.DragEvent) => {
+      // Set data transfer for sidebar drop handlers
+      e.dataTransfer.effectAllowed = 'move'
+      e.dataTransfer.setData('text/plain', task.id)
+      e.dataTransfer.setData('application/x-task', JSON.stringify({ id: task.id, title: task.title }))
+      setDraggedTask(task)
+    },
+    [task, setDraggedTask]
+  )
+
+  const handleDragEnd = useCallback(() => {
+    // Note: setDraggedTask(null) is handled by the useEffect above when isDragging becomes false
+  }, [])
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -104,6 +122,9 @@ export function SortableTaskItem({
       style={style}
       {...attributes}
       {...listeners}
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       className={cn(
         'group relative cursor-grab active:cursor-grabbing',
         isDragging && 'opacity-50 z-50'

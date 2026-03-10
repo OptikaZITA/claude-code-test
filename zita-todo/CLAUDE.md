@@ -6,7 +6,7 @@ ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zo
 
 **Dátum vytvorenia**: 2. januára 2026
 **Posledná aktualizácia**: 10. marca 2026
-**Verzia špecifikácie**: 2.49 (Drag & Drop na Logbook)
+**Verzia špecifikácie**: 2.50 (Drag & Drop na Sidebar - Fix)
 
 ---
 
@@ -1372,6 +1372,12 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
   - [x] `sidebar-drop-context.tsx` - Pridaný `logbook` drop target type
   - [x] `sidebar.tsx` - Logbook zmenený na SidebarDropItem s dropTarget
   - [x] Drop na Logbook nastaví `status: 'done'`, `completed_at`, vymaže `when_type`
+
+### Funkcie v2.50 - VŠETKY DOKONČENÉ ✅
+- [x] **Drag & Drop na Sidebar - Fix** - Oprava nefungujúceho drop na sidebar
+  - [x] `sortable-task-item.tsx` - Pridané HTML5 drag handlers (`draggable`, `onDragStart`)
+  - [x] `kanban-card.tsx` - Pridané HTML5 drag handlers
+  - [x] @dnd-kit + HTML5 kombinácia: reorder v liste + drop na sidebar
 
 ---
 

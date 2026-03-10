@@ -4,6 +4,36 @@ História všetkých zmien v projekte.
 
 ---
 
+### v2.50 (10. marca 2026)
+**Drag & Drop na Sidebar - Fix:**
+
+Oprava nefungujúceho drag & drop na sidebar sekcie.
+
+**Problém:**
+- @dnd-kit používa pointer capture počas drag
+- Pointer events na sidebar sekciách sa nevyvolali
+- Drop na sidebar nefungoval pre SortableTaskItem a KanbanCard
+
+**Riešenie:**
+- Pridané HTML5 drag handlers (`draggable`, `onDragStart`, `onDragEnd`) do:
+  - `sortable-task-item.tsx`
+  - `kanban-card.tsx`
+- Sidebar používa HTML5 drop events (`onDragOver`, `onDrop`)
+- Teraz funguje kombinácia @dnd-kit (pre reorder) + HTML5 (pre sidebar drop)
+
+**Teraz funguje:**
+| Drop target | Akcia |
+|-------------|-------|
+| Nadchádzajúce | Otvorí date picker |
+| Dnes | Nastaví dnešný dátum |
+| Inbox | Presunie do inbox |
+| Oddelenie | Presunie do area |
+| Projekt | Presunie do projektu |
+| Kôš | Soft delete |
+| Logbook | Označí ako dokončené |
+
+---
+
 ### v2.49 (10. marca 2026)
 **Drag & Drop na Logbook:**
 
