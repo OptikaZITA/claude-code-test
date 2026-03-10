@@ -310,13 +310,6 @@ export function Sidebar({
         )}
       </nav>
 
-      {/* Drag indicator */}
-      {isDragging && (
-        <div className="mx-3 mb-3 rounded-lg bg-primary/10 p-3 text-center text-xs text-primary font-medium">
-          Potiahni úlohu na sekciu pre jej presun
-        </div>
-      )}
-
       {/* User Section */}
       <div className="border-t border-[var(--border)] p-3">
         <div className="flex items-center gap-3 rounded-lg px-2 py-2">

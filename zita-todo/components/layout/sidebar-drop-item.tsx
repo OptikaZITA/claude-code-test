@@ -83,11 +83,7 @@ export function SidebarDropItem({
     >
       {icon}
       <span className="flex-1">{label}</span>
-      {isOver ? (
-        <span className="text-xs text-primary font-medium">
-          Pustiť sem
-        </span>
-      ) : count !== undefined && count > 0 ? (
+      {count !== undefined && count > 0 && (
         <span
           className={cn(
             'min-w-[20px] h-5 flex items-center justify-center rounded-full px-1.5 text-xs font-medium',
@@ -98,7 +94,7 @@ export function SidebarDropItem({
         >
           {count > 99 ? '99+' : count}
         </span>
-      ) : null}
+      )}
     </Link>
   )
 }
@@ -175,21 +171,18 @@ export function SidebarDropArea({
           <span className="flex-1 text-left truncate">{areaName}</span>
           <SidebarStarBadge todayTasksCount={todayTasksCount} />
         </Link>
-        {isOver ? (
-          <span className="text-xs text-primary font-medium">
-            +
-          </span>
-        ) : (
-          <span
-            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded hover:bg-muted shrink-0 cursor-pointer transition-all"
-            onClick={(e) => {
-              e.stopPropagation()
-              onCreateProject()
-            }}
-          >
-            <Plus className="h-3 w-3" />
-          </span>
-        )}
+        <span
+          className={cn(
+            "h-6 w-6 p-0 flex items-center justify-center rounded hover:bg-muted shrink-0 cursor-pointer transition-all",
+            isOver ? "opacity-0" : "opacity-0 group-hover:opacity-100"
+          )}
+          onClick={(e) => {
+            e.stopPropagation()
+            onCreateProject()
+          }}
+        >
+          <Plus className="h-3 w-3" />
+        </span>
       </div>
 
       {isExpanded && children && (
@@ -274,28 +267,25 @@ export function SidebarDropProject({
         {icon}
         <span className="flex-1 truncate">{label}</span>
       </Link>
-      {isOver ? (
-        <span className="text-xs text-primary font-medium shrink-0">
-          +
-        </span>
-      ) : (
-        <div className="flex items-center gap-1 shrink-0">
-          <SidebarStarBadge todayTasksCount={todayTasksCount} />
-          {onDelete && (
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                onDelete()
-              }}
-              className="h-5 w-5 p-0.5 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
-              title="Zmazať projekt"
-            >
-              <Trash2 className="h-3 w-3" />
-            </button>
-          )}
-        </div>
-      )}
+      <div className={cn(
+        "flex items-center gap-1 shrink-0",
+        isOver && "opacity-0"
+      )}>
+        <SidebarStarBadge todayTasksCount={todayTasksCount} />
+        {onDelete && (
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              onDelete()
+            }}
+            className="h-5 w-5 p-0.5 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+            title="Zmazať projekt"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        )}
+      </div>
     </div>
   )
 }
