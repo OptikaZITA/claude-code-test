@@ -57,7 +57,7 @@ interface ProjectSectionProps {
   onTaskComplete: (taskId: string, completed: boolean) => void
   onTaskUpdate: (taskId: string, updates: Partial<TaskWithRelations>) => void
   onTaskDelete: (taskId: string) => void
-  onQuickAdd: (title: string, projectId: string) => void
+  onQuickAdd: (taskData: TaskQuickAddData, projectId: string) => void
   onProjectDelete: (project: Project) => void
   onExpand: () => void
   onTaskReorder?: (taskId: string, newIndex: number, tasks: TaskWithRelations[]) => void
@@ -106,7 +106,7 @@ function ProjectSection({
   }
 
   const handleQuickAdd = (taskData: TaskQuickAddData) => {
-    onQuickAdd(taskData.title, project.id)
+    onQuickAdd(taskData, project.id)
   }
 
   return (
@@ -181,7 +181,7 @@ function ProjectSection({
             onTaskComplete={onTaskComplete}
             onTaskUpdate={onTaskUpdate}
             onTaskDelete={onTaskDelete}
-            onQuickAdd={(title) => onQuickAdd(title, project.id)}
+            onQuickAdd={(title) => onQuickAdd({ title }, project.id)}
             onReorder={onTaskReorder}
             emptyMessage="Žiadne úlohy v projekte"
             showQuickAdd={false}
@@ -408,13 +408,33 @@ export default function AreaDetailPage() {
     }
   }
 
-  // For ProjectSection and TaskList which pass only title (and optionally projectId)
-  const handleSimpleQuickAdd = async (title: string, projectId?: string) => {
+  // For ProjectSection - accepts full TaskQuickAddData with projectId
+  const handleProjectQuickAdd = async (taskData: TaskQuickAddData, projectId: string) => {
+    try {
+      await createTask({
+        title: taskData.title,
+        notes: taskData.notes,
+        area_id: taskData.area_id || areaId,
+        project_id: projectId,
+        assignee_id: taskData.assignee_id,
+        deadline: taskData.deadline,
+        when_type: taskData.when_type || 'anytime',
+        when_date: taskData.when_date,
+        is_inbox: false,
+      })
+      refetchTasks()
+    } catch (error) {
+      console.error('Error creating task:', error)
+    }
+  }
+
+  // For TaskList which passes only title
+  const handleSimpleQuickAdd = async (title: string) => {
     try {
       await createTask({
         title,
         area_id: areaId,
-        project_id: projectId || null,
+        project_id: null,
         is_inbox: false,
       })
       refetchTasks()
@@ -764,7 +784,7 @@ export default function AreaDetailPage() {
                 onTaskComplete={handleTaskComplete}
                 onTaskUpdate={handleTaskUpdate}
                 onTaskDelete={handleTaskDelete}
-                onQuickAdd={handleSimpleQuickAdd}
+                onQuickAdd={handleProjectQuickAdd}
                 onProjectDelete={setProjectToDelete}
                 onTaskReorder={handleTaskReorder}
                 onExpand={() => {
