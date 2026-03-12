@@ -42,6 +42,20 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
       category: 'actions',
     },
     {
+      key: 'k',
+      meta: true,
+      description: 'Vyhľadávanie (Cmd+K)',
+      action: () => options.onSearch?.(),
+      category: 'actions',
+    },
+    {
+      key: 'k',
+      ctrl: true,
+      description: 'Vyhľadávanie (Ctrl+K)',
+      action: () => options.onSearch?.(),
+      category: 'actions',
+    },
+    {
       key: 'd',
       description: 'Prepnúť dark mode',
       action: () => setTheme(theme === 'dark' ? 'light' : 'dark'),
@@ -100,6 +114,8 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
       action: () => {
         setShowHelp(false)
         options.onToggleHelp?.()
+        // Dispatch global close event for any listening components
+        window.dispatchEvent(new CustomEvent('close-active'))
       },
       category: 'other',
     },

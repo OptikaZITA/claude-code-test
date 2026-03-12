@@ -152,34 +152,21 @@ export const TaskQuickAdd = forwardRef<TaskQuickAddHandle, TaskQuickAddProps>(fu
     }
   }, [isActive])
 
-  // Listen for keyboard shortcut
+  // Listen for keyboard shortcut to open new task form
   useEffect(() => {
     const handleKeyboardNewTask = () => setIsActive(true)
     window.addEventListener('keyboard:newTask', handleKeyboardNewTask)
     return () => window.removeEventListener('keyboard:newTask', handleKeyboardNewTask)
   }, [])
 
-  // Click outside handler - only for inline variant
-  useEffect(() => {
-    if (!isActive || variant !== 'inline') return
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (formRef.current && !formRef.current.contains(e.target as Node)) {
-        if (title.trim()) {
-          handleSubmit()
-        } else {
-          handleCancel()
-        }
-      }
+  const handleSubmit = useCallback(() => {
+    console.log('[TaskQuickAdd] handleSubmit called, title:', title)
+    if (!title.trim()) {
+      console.log('[TaskQuickAdd] handleSubmit: title is empty, returning')
+      return
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isActive, title, variant])
-
-  const handleSubmit = useCallback(() => {
-    if (!title.trim()) return
-
+    console.log('[TaskQuickAdd] handleSubmit: calling onAdd with:', { title: title.trim() })
     onAdd({
       title: title.trim(),
       notes: notes.trim() || undefined,
@@ -203,18 +190,31 @@ export const TaskQuickAdd = forwardRef<TaskQuickAddHandle, TaskQuickAddProps>(fu
     setDeadline(null)
     setSelectedTagIds([])
     setIsActive(false)
+    console.log('[TaskQuickAdd] handleSubmit: form reset, isActive set to false')
   }, [title, notes, whenType, whenDate, areaId, projectId, assigneeId, deadline, selectedTagIds, onAdd, context])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    console.log('[TaskQuickAdd] handleKeyDown:', e.key)
     if (e.key === 'Escape') {
       handleCancel()
     } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
+      console.log('[TaskQuickAdd] Enter pressed, calling handleSubmit')
       handleSubmit()
     }
   }
 
-  const handleCancel = () => {
+  const closeAllPickers = useCallback(() => {
+    setShowWhenPicker(false)
+    setShowLocationPicker(false)
+    setShowAssigneePicker(false)
+    setShowDeadlinePicker(false)
+    setShowTagPicker(false)
+    setTagSearch('')
+  }, [])
+
+  const handleCancel = useCallback(() => {
+    console.log('[TaskQuickAdd] handleCancel called')
     setTitle('')
     setNotes('')
     setWhenType(context?.defaultWhenType || null)
@@ -227,16 +227,42 @@ export const TaskQuickAdd = forwardRef<TaskQuickAddHandle, TaskQuickAddProps>(fu
     setTagSearch('')
     setIsActive(false)
     closeAllPickers()
-  }
+  }, [context, closeAllPickers])
 
-  const closeAllPickers = () => {
-    setShowWhenPicker(false)
-    setShowLocationPicker(false)
-    setShowAssigneePicker(false)
-    setShowDeadlinePicker(false)
-    setShowTagPicker(false)
-    setTagSearch('')
-  }
+  // Click outside handler - only for inline variant
+  useEffect(() => {
+    if (!isActive || variant !== 'inline') return
+
+    const handleClickOutside = (e: MouseEvent) => {
+      console.log('[TaskQuickAdd] click-outside: mousedown detected')
+      if (formRef.current && !formRef.current.contains(e.target as Node)) {
+        console.log('[TaskQuickAdd] click-outside: clicked OUTSIDE form')
+        if (title.trim()) {
+          console.log('[TaskQuickAdd] click-outside: has title, calling handleSubmit')
+          handleSubmit()
+        } else {
+          console.log('[TaskQuickAdd] click-outside: no title, calling handleCancel')
+          handleCancel()
+        }
+      } else {
+        console.log('[TaskQuickAdd] click-outside: clicked INSIDE form, doing nothing')
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isActive, title, variant, handleSubmit, handleCancel])
+
+  // Listen for global close event (Escape key from keyboard shortcuts)
+  useEffect(() => {
+    const handleCloseActive = () => {
+      if (isActive) {
+        handleCancel()
+      }
+    }
+    window.addEventListener('close-active', handleCloseActive)
+    return () => window.removeEventListener('close-active', handleCloseActive)
+  }, [isActive, handleCancel])
 
   // Helper to get selected area/project names
   const selectedArea = areas.find(a => a.id === areaId)
@@ -746,7 +772,12 @@ export const TaskQuickAdd = forwardRef<TaskQuickAddHandle, TaskQuickAddProps>(fu
 
         {/* Submit button */}
         <button
-          onClick={handleSubmit}
+          onClick={(e) => {
+            console.log('[TaskQuickAdd] Pridať button clicked, title:', title, 'disabled:', !title.trim())
+            e.preventDefault()
+            e.stopPropagation()
+            handleSubmit()
+          }}
           disabled={!title.trim()}
           className="text-sm font-medium text-white bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors px-4 py-1.5 rounded-lg"
         >

@@ -88,8 +88,13 @@ export function useTasks() {
   }, [fetchTasks])
 
   const createTask = async (task: Partial<Task>) => {
+    console.log('[useTasks.createTask] START:', task)
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
+    if (!user) {
+      console.error('[useTasks.createTask] Not authenticated')
+      throw new Error('Not authenticated')
+    }
+    console.log('[useTasks.createTask] User:', user.id)
 
     const whenType = task.when_type || 'inbox'
 
@@ -154,7 +159,11 @@ export function useTasks() {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('[useTasks.createTask] Supabase ERROR:', error)
+      throw error
+    }
+    console.log('[useTasks.createTask] SUCCESS, task created:', data)
     await fetchTasks()
     return data
   }

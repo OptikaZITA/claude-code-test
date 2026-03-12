@@ -96,9 +96,11 @@ export default function TodayPage() {
   }, [overdueTasks, todayTasks])
 
   const handleQuickAdd = async (taskData: TaskQuickAddData) => {
+    console.log('[TodayPage] handleQuickAdd called with:', taskData)
     try {
       // Today task: deadline = today
       const todayDate = format(new Date(), 'yyyy-MM-dd')
+      console.log('[TodayPage] Calling createTask...')
       await createTask({
         title: taskData.title,
         notes: taskData.notes,
@@ -107,9 +109,10 @@ export default function TodayPage() {
         assignee_id: taskData.assignee_id,
         deadline: taskData.deadline || todayDate, // Default to today
       })
+      console.log('[TodayPage] createTask completed, calling refetch')
       refetch()
     } catch (error) {
-      console.error('Error creating task:', error)
+      console.error('[TodayPage] Error creating task:', error)
     }
   }
 
