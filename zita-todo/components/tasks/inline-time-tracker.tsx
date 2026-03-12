@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils/cn'
 interface InlineTimeTrackerProps {
   taskId: string
   className?: string
+  /** Callback when user double-clicks on the time display */
+  onDoubleClickTime?: () => void
 }
 
 function formatTime(seconds: number): string {
@@ -33,7 +35,7 @@ function formatRunningTime(seconds: number): string {
   return `${minutes}:${secs.toString().padStart(2, '0')}`
 }
 
-export function InlineTimeTracker({ taskId, className }: InlineTimeTrackerProps) {
+export function InlineTimeTracker({ taskId, className, onDoubleClickTime }: InlineTimeTrackerProps) {
   const {
     isRunning,
     currentTaskId,
@@ -104,12 +106,21 @@ export function InlineTimeTracker({ taskId, className }: InlineTimeTrackerProps)
       {/* Time display */}
       {hasTime && (
         <span
+          onDoubleClick={(e) => {
+            e.stopPropagation()
+            // Don't allow editing while timer is running
+            if (!isThisTaskRunning && onDoubleClickTime) {
+              onDoubleClickTime()
+            }
+          }}
           className={cn(
             'text-xs font-mono tabular-nums',
             isThisTaskRunning
               ? 'text-[var(--color-success)] font-medium'
-              : 'text-[var(--text-secondary)]'
+              : 'text-[var(--text-secondary)] cursor-pointer hover:underline',
+            onDoubleClickTime && !isThisTaskRunning && 'hover:text-[var(--text-primary)]'
           )}
+          title={!isThisTaskRunning && onDoubleClickTime ? 'Dvojklik pre úpravu času' : undefined}
         >
           {isThisTaskRunning ? formatRunningTime(displaySeconds) : formatTime(displaySeconds)}
         </span>

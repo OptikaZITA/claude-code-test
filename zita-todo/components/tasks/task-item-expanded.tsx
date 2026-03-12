@@ -14,6 +14,8 @@ import { InlineTagSelector } from './inline-tag-selector'
 import { InlineLocationSelector } from './inline-location-selector'
 import { InlineTimeTracker } from './inline-time-tracker'
 import { RecurrenceConfigModal } from './recurrence-config-modal'
+import { EditTimeEntryModal } from '@/components/time-tracking/edit-time-entry-modal'
+import { TimeEntry } from '@/types'
 
 const FADE_OUT_DURATION = 300 // ms - animation duration
 
@@ -40,6 +42,9 @@ export function TaskItemExpanded({
   const [showRecurrenceModal, setShowRecurrenceModal] = useState(false)
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false)
   const [isAnimatingOut, setIsAnimatingOut] = useState(false)
+  const [showTimeEditModal, setShowTimeEditModal] = useState(false)
+  const [editingTimeEntry, setEditingTimeEntry] = useState<TimeEntry | null>(null)
+  const [loadingTimeEntry, setLoadingTimeEntry] = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const notesRef = useRef<HTMLTextAreaElement>(null)
   const priorityButtonRef = useRef<HTMLButtonElement>(null)
@@ -167,6 +172,25 @@ export function TaskItemExpanded({
     setShowPriorityDropdown(false)
   }
 
+  // Handle double-click on time - fetch latest time entry and open edit modal
+  const handleDoubleClickTime = useCallback(async () => {
+    setLoadingTimeEntry(true)
+    try {
+      const response = await fetch(`/api/time-entries?task_id=${task.id}&limit=1`)
+      if (response.ok) {
+        const entries = await response.json()
+        if (entries && entries.length > 0) {
+          setEditingTimeEntry(entries[0])
+          setShowTimeEditModal(true)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch time entry:', error)
+    } finally {
+      setLoadingTimeEntry(false)
+    }
+  }, [task.id])
+
   // Priority flag colors: red (high), yellow (low)
   const priorityFlagColors: Record<TaskPriority, string> = {
     high: 'text-red-500',     // Červená
@@ -235,7 +259,10 @@ export function TaskItemExpanded({
         {/* Toolbar icons */}
         <div className="flex items-center gap-1">
           {/* Time Tracker */}
-          <InlineTimeTracker taskId={task.id} />
+          <InlineTimeTracker
+            taskId={task.id}
+            onDoubleClickTime={handleDoubleClickTime}
+          />
 
           {/* Divider */}
           <div className="w-px h-5 bg-[var(--border)] mx-1" />
@@ -423,6 +450,19 @@ export function TaskItemExpanded({
         onClose={() => setShowRecurrenceModal(false)}
         task={task}
         onSave={handleRecurrenceSave}
+      />
+
+      {/* Time Entry Edit Modal */}
+      <EditTimeEntryModal
+        isOpen={showTimeEditModal}
+        onClose={() => {
+          setShowTimeEditModal(false)
+          setEditingTimeEntry(null)
+        }}
+        entry={editingTimeEntry}
+        tasks={[{ ...task, tags: task.tags || [] }]}
+        preselectedTaskId={task.id}
+        defaultMode="range"
       />
     </div>
   )
