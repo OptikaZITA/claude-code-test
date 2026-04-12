@@ -167,6 +167,9 @@ function DetailedTable({
               Úloha
             </th>
             <th className="text-left py-3 px-4 text-xs font-medium uppercase text-[var(--text-secondary)]">
+              Tagy
+            </th>
+            <th className="text-left py-3 px-4 text-xs font-medium uppercase text-[var(--text-secondary)]">
               Projekt
             </th>
             <th className="text-left py-3 px-4 text-xs font-medium uppercase text-[var(--text-secondary)]">
@@ -200,6 +203,22 @@ function DetailedTable({
                 </td>
                 <td className="py-3 px-4 text-sm text-[var(--text-primary)] max-w-xs truncate">
                   {entry.taskTitle}
+                </td>
+                <td className="py-3 px-4 text-sm text-[var(--text-secondary)]">
+                  {entry.tags && entry.tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {entry.tags.map((tag, i) => (
+                        <span
+                          key={i}
+                          className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    '-'
+                  )}
                 </td>
                 <td className="py-3 px-4 text-sm text-[var(--text-secondary)]">
                   {entry.projectName || '-'}

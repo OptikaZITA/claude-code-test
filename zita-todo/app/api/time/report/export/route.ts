@@ -112,13 +112,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const taskIds = filteredEntries.map(e => e.task_id).filter(Boolean)
 
       const { data: taggedTasks } = await supabase
-        .from('item_tags')
-        .select('item_id')
-        .eq('item_type', 'task')
+        .from('task_tags')
+        .select('task_id')
         .in('tag_id', tagIds)
-        .in('item_id', taskIds)
+        .in('task_id', taskIds)
 
-      const taggedTaskIds = new Set(taggedTasks?.map(t => t.item_id) || [])
+      const taggedTaskIds = new Set(taggedTasks?.map(t => t.task_id) || [])
       filteredEntries = filteredEntries.filter(e => taggedTaskIds.has(e.task_id))
     }
 
@@ -127,24 +126,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     let taskTagsMap = new Map<string, string[]>()
 
     if (taskIds.length > 0) {
-      const { data: itemTags } = await supabase
-        .from('item_tags')
+      const { data: taskTagsData } = await supabase
+        .from('task_tags')
         .select(`
-          item_id,
+          task_id,
           tags (
             name
           )
         `)
-        .eq('item_type', 'task')
-        .in('item_id', taskIds)
+        .in('task_id', taskIds)
 
-      if (itemTags) {
-        itemTags.forEach(it => {
-          const current = taskTagsMap.get(it.item_id) || []
-          const tagName = (it.tags as any)?.name
+      if (taskTagsData) {
+        taskTagsData.forEach(tt => {
+          const current = taskTagsMap.get(tt.task_id) || []
+          const tagName = (tt.tags as any)?.name
           if (tagName) {
             current.push(tagName)
-            taskTagsMap.set(it.item_id, current)
+            taskTagsMap.set(tt.task_id, current)
           }
         })
       }
