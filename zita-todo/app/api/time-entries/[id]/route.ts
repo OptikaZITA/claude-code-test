@@ -49,7 +49,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { task_id, description, started_at, stopped_at } = body
+    const { task_id, description, started_at, stopped_at, mode } = body
 
     // Validate times
     if (started_at && stopped_at) {
@@ -109,8 +109,9 @@ export async function PUT(
       duration_seconds = Math.floor((stop.getTime() - start.getTime()) / 1000)
     }
 
-    // Check for overlapping entries (use admin client to bypass RLS)
-    if (finalStartedAt && finalEndedAt) {
+    // Check for overlapping entries only in range mode
+    // In duration mode, user only specifies how long they worked, not exact time slot
+    if (mode !== 'duration' && finalStartedAt && finalEndedAt) {
       const { hasOverlap, overlappingEntry } = await checkOverlap(
         adminClient,
         existingEntry.user_id,

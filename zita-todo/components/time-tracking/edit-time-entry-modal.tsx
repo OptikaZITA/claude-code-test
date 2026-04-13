@@ -262,6 +262,7 @@ export function EditTimeEntryModal({
           description: description || undefined,
           started_at,
           stopped_at,
+          mode,
         })
 
         if (!result || updateErr) {
@@ -274,6 +275,7 @@ export function EditTimeEntryModal({
           description: description || undefined,
           started_at,
           stopped_at,
+          mode,
         })
 
         if (!result) {

@@ -8,6 +8,7 @@ export interface UpdateTimeEntryData {
   description?: string
   started_at?: string
   stopped_at?: string
+  mode?: 'duration' | 'range'
 }
 
 export interface CreateTimeEntryData {
@@ -15,6 +16,7 @@ export interface CreateTimeEntryData {
   description?: string
   started_at: string
   stopped_at: string
+  mode?: 'duration' | 'range'
 }
 
 // Hook for updating a time entry

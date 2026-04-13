@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { task_id, description, started_at, stopped_at } = body
+    const { task_id, description, started_at, stopped_at, mode } = body
 
     // Validate required fields
     if (!task_id) {
@@ -70,21 +70,24 @@ export async function POST(request: NextRequest) {
     // Use admin client for all operations to bypass RLS issues
     const adminClient = createAdminClient()
 
-    // Check for overlapping entries (use admin client)
-    const { hasOverlap, overlappingEntry } = await checkOverlapAdmin(
-      adminClient,
-      user.id,
-      started_at,
-      stopped_at
-    )
-
-    if (hasOverlap && overlappingEntry) {
-      const overlapStart = format(parseISO(overlappingEntry.started_at), 'HH:mm', { locale: sk })
-      const overlapEnd = format(parseISO(overlappingEntry.ended_at), 'HH:mm', { locale: sk })
-      return NextResponse.json(
-        { error: `Časový záznam sa prekrýva s iným záznamom (${overlapStart} – ${overlapEnd})` },
-        { status: 400 }
+    // Check for overlapping entries only in range mode
+    // In duration mode, user only specifies how long they worked, not exact time slot
+    if (mode !== 'duration') {
+      const { hasOverlap, overlappingEntry } = await checkOverlapAdmin(
+        adminClient,
+        user.id,
+        started_at,
+        stopped_at
       )
+
+      if (hasOverlap && overlappingEntry) {
+        const overlapStart = format(parseISO(overlappingEntry.started_at), 'HH:mm', { locale: sk })
+        const overlapEnd = format(parseISO(overlappingEntry.ended_at), 'HH:mm', { locale: sk })
+        return NextResponse.json(
+          { error: `Časový záznam sa prekrýva s iným záznamom (${overlapStart} – ${overlapEnd})` },
+          { status: 400 }
+        )
+      }
     }
 
     // Get task details for denormalization

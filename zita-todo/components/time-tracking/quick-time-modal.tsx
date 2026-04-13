@@ -82,6 +82,7 @@ export function QuickTimeModal({
         task_id: taskId,
         started_at: started.toISOString(),
         stopped_at: now.toISOString(),
+        mode: 'duration',
       })
 
       onComplete()
