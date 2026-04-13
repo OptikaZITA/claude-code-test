@@ -493,8 +493,8 @@ export function useTodayTasks(assigneeFilter?: AssigneeFilter) {
       }
 
       const { data, error } = await query
-        .order('deadline', { ascending: true })
         .order('sort_order', { ascending: true })
+        .order('deadline', { ascending: true })
 
       if (error) throw error
       setTasks(transformTasks(data || []))
