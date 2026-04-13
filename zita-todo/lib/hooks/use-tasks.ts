@@ -492,7 +492,9 @@ export function useTodayTasks(assigneeFilter?: AssigneeFilter) {
         query = query.eq('assignee_id', effectiveFilter)
       }
 
-      const { data, error } = await query.order('deadline', { ascending: true })
+      const { data, error } = await query
+        .order('deadline', { ascending: true })
+        .order('sort_order', { ascending: true })
 
       if (error) throw error
       setTasks(transformTasks(data || []))
@@ -555,7 +557,9 @@ export function useUpcomingTasks(assigneeFilter?: AssigneeFilter) {
         query = query.eq('assignee_id', effectiveFilter)
       }
 
-      const { data, error } = await query.order('deadline', { ascending: true })
+      const { data, error } = await query
+        .order('deadline', { ascending: true })
+        .order('sort_order', { ascending: true })
 
       if (error) throw error
       setTasks(transformTasks(data || []))

@@ -63,9 +63,10 @@ export function InlineWhenPicker({
     const updatePosition = () => {
       const rect = triggerRef.current!.getBoundingClientRect()
       const dropdownWidth = 288 // w-72 = 18rem = 288px
+      const dropdownHeight = 450 // approximate height of when picker dropdown
 
       let left = rect.left
-      const top = rect.bottom + 8
+      let top = rect.bottom + 8
 
       // Ensure dropdown doesn't go off-screen right
       if (left + dropdownWidth > window.innerWidth - 8) {
@@ -73,6 +74,12 @@ export function InlineWhenPicker({
       }
       // Ensure dropdown doesn't go off-screen left
       if (left < 8) left = 8
+
+      // If dropdown would extend below viewport, position above the trigger
+      if (top + dropdownHeight > window.innerHeight - 8) {
+        top = rect.top - dropdownHeight - 8
+        if (top < 8) top = 8
+      }
 
       setDropdownPosition({ top, left })
     }
