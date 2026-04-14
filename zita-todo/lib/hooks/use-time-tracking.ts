@@ -19,7 +19,7 @@ export function useTimeTracking(taskId?: string) {
       setLoading(true)
       const { data, error } = await supabase
         .from('time_entries')
-        .select('*')
+        .select('id, user_id, task_id, organization_id, started_at, ended_at, duration_seconds, note, description, entry_type, deleted_at, created_at')
         .eq('task_id', taskId)
         .order('started_at', { ascending: false })
 

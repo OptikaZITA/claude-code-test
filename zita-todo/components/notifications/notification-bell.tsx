@@ -25,11 +25,6 @@ export function NotificationBell() {
 
   useEffect(() => {
     fetchUnreadCount()
-
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchUnreadCount, 30000)
-
-    return () => clearInterval(interval)
   }, [fetchUnreadCount])
 
   // Listen for realtime updates

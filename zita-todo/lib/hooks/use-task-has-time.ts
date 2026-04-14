@@ -17,7 +17,7 @@ export function useTaskHasTime() {
 
       const { count, error } = await supabase
         .from('time_entries')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .eq('task_id', taskId)
         .is('deleted_at', null)
 

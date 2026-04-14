@@ -23,7 +23,7 @@ export function useArea(areaId: string) {
         setLoading(true)
         const { data, error } = await supabase
           .from('areas')
-          .select('*')
+          .select('id, name, icon, color, sort_order, is_global, is_private, owner_id, organization_id, archived_at')
           .eq('id', areaId)
           .single()
 
@@ -55,7 +55,7 @@ export function useAreaProjects(areaId: string) {
       setLoading(true)
       const { data, error } = await supabase
         .from('projects')
-        .select('*')
+        .select('id, name, color, sort_order, area_id, status, deadline, deleted_at, archived_at, owner_id, organization_id')
         .eq('area_id', areaId)
         .is('deleted_at', null)
         .order('sort_order', { ascending: true })
@@ -98,7 +98,9 @@ export function useAreaTasks(areaId: string, assigneeFilter?: AssigneeFilter) {
       let query = supabase
         .from('tasks')
         .select(`
-          *,
+          id, title, status, priority, deadline, when_type, when_date,
+          area_id, project_id, assignee_id, sort_order, created_at, completed_at, deleted_at, archived_at,
+          is_inbox, inbox_type, inbox_user_id, created_by, total_time_seconds, is_private, added_to_today_at,
           assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
           project:projects(id, name, color)
         `)
@@ -171,11 +173,14 @@ export function useAllAreaTasks(areaId: string, assigneeFilter?: AssigneeFilter)
       let query = supabase
         .from('tasks')
         .select(`
-          *,
+          id, title, status, priority, deadline, when_type, when_date,
+          area_id, project_id, assignee_id, sort_order, created_at, completed_at, deleted_at, archived_at,
+          is_inbox, inbox_type, inbox_user_id, created_by, total_time_seconds, is_private, added_to_today_at,
+          organization_id, heading_id, due_date,
           assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
           project:projects!left(id, name, color, area_id),
           area:areas(id, name, color),
-          tags:task_tags(tag:tags(*))
+          tags:task_tags(tag:tags(id, name, color))
         `)
         .is('deleted_at', null)
         .is('archived_at', null)
@@ -238,7 +243,7 @@ export function useAreas() {
       setLoading(true)
       const { data, error } = await supabase
         .from('areas')
-        .select('*')
+        .select('id, name, icon, color, sort_order, is_global, is_private, owner_id, organization_id, archived_at')
         .is('archived_at', null)
         .order('sort_order', { ascending: true })
 

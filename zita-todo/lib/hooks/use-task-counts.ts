@@ -80,10 +80,6 @@ export function useTaskCounts() {
 
   useEffect(() => {
     fetchCounts()
-
-    // Refetch counts every 30 seconds
-    const interval = setInterval(fetchCounts, 30000)
-    return () => clearInterval(interval)
   }, [fetchCounts])
 
   // Subscribe to realtime changes

@@ -29,7 +29,7 @@ export function useUnassignedTaskCount(): UseUnassignedTaskCountResult {
       // Count unassigned tasks (assignee_id IS NULL, not deleted, not archived, not done)
       const { count: unassignedCount, error: fetchError } = await supabase
         .from('tasks')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .is('assignee_id', null)
         .is('deleted_at', null)
         .is('archived_at', null)

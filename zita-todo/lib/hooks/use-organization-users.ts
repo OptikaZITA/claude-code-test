@@ -34,7 +34,7 @@ export function useOrganizationUsers(): UseOrganizationUsersResult {
       // Rovnaký vzor ako useUsersManagement ktorý funguje
       const { data, error: fetchError } = await supabase
         .from('users')
-        .select('*')
+        .select('id, full_name, nickname, avatar_url, position, status, email, role, is_active, organization_id, invited_by, invited_at, last_login_at, start_date, created_at, updated_at')
         .order('nickname', { ascending: true, nullsFirst: false })
         .order('full_name', { ascending: true })
 

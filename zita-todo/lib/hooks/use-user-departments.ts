@@ -51,7 +51,7 @@ export function useUserDepartments(): UseUserDepartmentsResult {
       // Fetch all global departments
       const { data: globalDepts, error: globalError } = await supabase
         .from('areas')
-        .select('*')
+        .select('id, name, description, color, sort_order, is_global, is_private, owner_id, organization_id, archived_at, created_at, updated_at')
         .eq('is_global', true)
         .is('archived_at', null)
         .order('sort_order', { ascending: true })

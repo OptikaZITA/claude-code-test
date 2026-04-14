@@ -64,7 +64,7 @@ export function useUsersManagement(): UseUsersManagementResult {
       // Fetch all users
       const { data: usersData, error: usersError } = await supabase
         .from('users')
-        .select('*')
+        .select('id, email, full_name, nickname, avatar_url, position, role, status, organization_id, invited_by, invited_at, last_login_at, start_date, created_at')
         .order('full_name', { ascending: true })
 
       if (usersError) throw usersError
@@ -73,7 +73,7 @@ export function useUsersManagement(): UseUsersManagementResult {
       // Fetch pending invitations
       const { data: invitationsData, error: invitationsError } = await supabase
         .from('invitations')
-        .select('*')
+        .select('id, email, full_name, nickname, position, role, departments, invited_by, accepted_at, expires_at, organization_id, created_at')
         .is('accepted_at', null)
         .order('created_at', { ascending: false })
 
@@ -83,7 +83,7 @@ export function useUsersManagement(): UseUsersManagementResult {
       // Fetch all departments (global areas)
       const { data: deptData, error: deptError } = await supabase
         .from('areas')
-        .select('*')
+        .select('id, name, is_global, sort_order, organization_id')
         .eq('is_global', true)
         .is('archived_at', null)
         .order('sort_order', { ascending: true })

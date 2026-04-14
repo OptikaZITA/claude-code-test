@@ -42,6 +42,20 @@ function shouldCreateRecurringTask(rule: RecurrenceRule, nextDate: Date): boolea
   return true
 }
 
+// Optimized select for list views - excludes heavy columns (notes, description, checklist_items, recurrence_rule, source_metadata)
+const TASK_LIST_SELECT = `
+  id, title, status, priority, deadline, when_type, when_date,
+  area_id, project_id, assignee_id, heading_id, organization_id,
+  sort_order, created_at, updated_at, completed_at, deleted_at, archived_at,
+  is_inbox, inbox_type, inbox_user_id, created_by,
+  added_to_today_at, total_time_seconds, is_private,
+  scheduled_start, scheduled_end, due_date, start_date, source, source_url,
+  assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
+  project:projects(id, name, color),
+  area:areas(id, name, color),
+  tags:task_tags(tag:tags(id, name, color))
+`
+
 // Helper to transform Supabase nested tags structure to flat Tag[]
 // Supabase returns: tags: [{ tag: { id, name, color } }, ...]
 // We need: tags: [{ id, name, color }, ...]
@@ -63,13 +77,7 @@ export function useTasks() {
       setLoading(true)
       const { data, error } = await supabase
         .from('tasks')
-        .select(`
-          *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
-          project:projects(id, name, color),
-          area:areas(id, name, color),
-          tags:task_tags(tag:tags(id, name, color))
-        `)
+        .select(TASK_LIST_SELECT)
         .is('archived_at', null)
         .is('deleted_at', null)
         .order('sort_order', { ascending: true })
@@ -402,13 +410,7 @@ export function useInboxTasks(assigneeFilter?: AssigneeFilter) {
 
       let query = supabase
         .from('tasks')
-        .select(`
-          *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
-          project:projects(id, name, color),
-          area:areas(id, name, color),
-          tags:task_tags(tag:tags(id, name, color))
-        `)
+        .select(TASK_LIST_SELECT)
         .is('project_id', null)
         .is('deadline', null)
         .is('archived_at', null)
@@ -468,13 +470,7 @@ export function useTodayTasks(assigneeFilter?: AssigneeFilter) {
       // Get tasks with deadline = today OR overdue (deadline < today)
       let query = supabase
         .from('tasks')
-        .select(`
-          *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
-          project:projects(id, name, color),
-          area:areas(id, name, color),
-          tags:task_tags(tag:tags(id, name, color))
-        `)
+        .select(TASK_LIST_SELECT)
         .lte('deadline', today)
         .is('archived_at', null)
         .is('deleted_at', null)
@@ -535,13 +531,7 @@ export function useUpcomingTasks(assigneeFilter?: AssigneeFilter) {
       // Get tasks with deadline > today
       let query = supabase
         .from('tasks')
-        .select(`
-          *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
-          project:projects(id, name, color),
-          area:areas(id, name, color),
-          tags:task_tags(tag:tags(id, name, color))
-        `)
+        .select(TASK_LIST_SELECT)
         .gt('deadline', today)
         .is('archived_at', null)
         .is('deleted_at', null)
@@ -597,13 +587,7 @@ export function useAnytimeTasks(assigneeFilter?: AssigneeFilter) {
       // Include both anytime and someday tasks (merged)
       let query = supabase
         .from('tasks')
-        .select(`
-          *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
-          project:projects(id, name, color),
-          area:areas(id, name, color),
-          tags:task_tags(tag:tags(id, name, color))
-        `)
+        .select(TASK_LIST_SELECT)
         .in('when_type', ['anytime', 'someday'])
         .is('archived_at', null)
         .is('deleted_at', null)
@@ -654,16 +638,16 @@ export function useLogbookTasks(assigneeFilter?: AssigneeFilter) {
       // Default = prihlásený používateľ
       const effectiveFilter = assigneeFilter || user.id
 
+      // Limit logbook to last 90 days to reduce bandwidth
+      const ninetyDaysAgo = new Date()
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+      const ninetyDaysAgoISO = ninetyDaysAgo.toISOString()
+
       let query = supabase
         .from('tasks')
-        .select(`
-          *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
-          project:projects(id, name, color),
-          area:areas(id, name, color),
-          tags:task_tags(tag:tags(id, name, color))
-        `)
+        .select(TASK_LIST_SELECT)
         .eq('status', 'done')
+        .gte('completed_at', ninetyDaysAgoISO)
         .is('archived_at', null)
         .is('deleted_at', null)
 
@@ -715,13 +699,7 @@ export function useTrashTasks(assigneeFilter?: AssigneeFilter) {
 
       let query = supabase
         .from('tasks')
-        .select(`
-          *,
-          assignee:users!tasks_assignee_id_fkey(id, full_name, nickname, avatar_url, status),
-          project:projects(id, name, color),
-          area:areas(id, name, color),
-          tags:task_tags(tag:tags(id, name, color))
-        `)
+        .select(TASK_LIST_SELECT)
         .not('deleted_at', 'is', null)
 
       // Aplikuj filter podľa assignee_id

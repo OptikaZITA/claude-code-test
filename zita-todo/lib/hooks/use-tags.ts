@@ -15,7 +15,7 @@ export function useTags() {
       setLoading(true)
       const { data, error } = await supabase
         .from('tags')
-        .select('*')
+        .select('id, name, color, organization_id, created_at')
         .order('name', { ascending: true })
 
       if (error) throw error
