@@ -229,8 +229,8 @@ export default function ProjectPage() {
     }
   }
 
-  const handleKanbanQuickAdd = async (title: string, status: TaskStatus) => {
-    await handleQuickAdd({ title })
+  const handleKanbanQuickAdd = async (taskData: TaskQuickAddData, status: TaskStatus) => {
+    await handleQuickAdd(taskData)
   }
 
   // Task reorder handler for Kanban drag & drop within same column

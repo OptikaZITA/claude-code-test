@@ -23,7 +23,7 @@ export function useArea(areaId: string) {
         setLoading(true)
         const { data, error } = await supabase
           .from('areas')
-          .select('id, name, icon, color, sort_order, is_global, is_private, owner_id, organization_id, archived_at')
+          .select('*')
           .eq('id', areaId)
           .single()
 
@@ -55,7 +55,7 @@ export function useAreaProjects(areaId: string) {
       setLoading(true)
       const { data, error } = await supabase
         .from('projects')
-        .select('id, name, color, sort_order, area_id, status, deadline, deleted_at, archived_at, owner_id, organization_id')
+        .select('*')
         .eq('area_id', areaId)
         .is('deleted_at', null)
         .order('sort_order', { ascending: true })
@@ -124,7 +124,7 @@ export function useAreaTasks(areaId: string, assigneeFilter?: AssigneeFilter) {
       const { data, error } = await query.order('sort_order', { ascending: true })
 
       if (error) throw error
-      setTasks(data || [])
+      setTasks((data || []) as unknown as TaskWithRelations[])
     } catch (err) {
       setError(err as Error)
     } finally {
@@ -215,7 +215,7 @@ export function useAllAreaTasks(areaId: string, assigneeFilter?: AssigneeFilter)
       }))
 
       // Apply today-first sorting
-      setTasks(sortTasksTodayFirst(transformedTasks))
+      setTasks(sortTasksTodayFirst(transformedTasks as unknown as TaskWithRelations[]))
     } catch (err) {
       setError(err as Error)
     } finally {
@@ -243,7 +243,7 @@ export function useAreas() {
       setLoading(true)
       const { data, error } = await supabase
         .from('areas')
-        .select('id, name, icon, color, sort_order, is_global, is_private, owner_id, organization_id, archived_at')
+        .select('*')
         .is('archived_at', null)
         .order('sort_order', { ascending: true })
 

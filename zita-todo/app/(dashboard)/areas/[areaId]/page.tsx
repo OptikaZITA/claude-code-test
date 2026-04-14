@@ -181,7 +181,7 @@ function ProjectSection({
             onTaskComplete={onTaskComplete}
             onTaskUpdate={onTaskUpdate}
             onTaskDelete={onTaskDelete}
-            onQuickAdd={(title) => onQuickAdd({ title }, project.id)}
+            onQuickAdd={(taskData) => onQuickAdd(taskData, project.id)}
             onReorder={onTaskReorder}
             emptyMessage="Žiadne úlohy v projekte"
             showQuickAdd={false}
@@ -623,8 +623,8 @@ export default function AreaDetailPage() {
     }
   }
 
-  const handleKanbanQuickAdd = async (title: string, status: TaskStatus) => {
-    await handleQuickAdd({ title })
+  const handleKanbanQuickAdd = async (taskData: TaskQuickAddData, status: TaskStatus) => {
+    await handleQuickAdd(taskData)
   }
 
   // Calendar handlers
@@ -830,7 +830,7 @@ export default function AreaDetailPage() {
                 onTaskComplete={handleTaskComplete}
                 onTaskUpdate={handleTaskUpdate}
                 onTaskDelete={handleTaskDelete}
-                onQuickAdd={(title) => handleSimpleQuickAdd(title)}
+                onQuickAdd={(taskData) => handleSimpleQuickAdd(taskData.title)}
                 emptyMessage=""
                 showQuickAdd={false}
                 showTodayStar={true}
@@ -877,7 +877,7 @@ export default function AreaDetailPage() {
                 onTaskComplete={() => {}}
                 onTaskUpdate={() => {}}
                 onTaskDelete={() => {}}
-                onQuickAdd={(title) => handleSimpleQuickAdd(title)}
+                onQuickAdd={(taskData) => handleSimpleQuickAdd(taskData.title)}
                 emptyMessage=""
                 showQuickAdd={true}
               />

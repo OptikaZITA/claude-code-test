@@ -276,8 +276,8 @@ export default function InboxPage() {
     }
   }
 
-  const handleKanbanQuickAdd = async (title: string, status: TaskStatus) => {
-    await handleQuickAdd({ title })
+  const handleKanbanQuickAdd = async (taskData: TaskQuickAddData, status: TaskStatus) => {
+    await handleQuickAdd(taskData)
   }
 
   // Task reorder handler for Kanban drag & drop within same column
@@ -474,7 +474,7 @@ export default function InboxPage() {
             onTaskComplete={handleTaskComplete}
             onTaskUpdate={handleInlineTaskUpdate}
             onTaskDelete={handleTaskDelete}
-            onQuickAdd={handleSimpleQuickAdd}
+            onQuickAdd={(taskData) => handleSimpleQuickAdd(taskData.title)}
             onReorder={handleReorder}
             showQuickAdd={false}
             emptyMessage=""

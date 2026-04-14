@@ -396,7 +396,7 @@ export default function UpcomingPage() {
                         onTaskComplete={handleTaskComplete}
                         onTaskUpdate={handleInlineTaskUpdate}
                         onTaskDelete={handleTaskDelete}
-                        onQuickAdd={handleSimpleQuickAdd}
+                        onQuickAdd={(taskData) => handleSimpleQuickAdd(taskData.title)}
                         onReorder={handleReorder}
                         showQuickAdd={!!isSelectedDateGroup}
                         emptyMessage=""
