@@ -18,7 +18,7 @@ interface TaskListProps {
   onTaskComplete: (taskId: string, completed: boolean) => void
   onTaskUpdate?: (taskId: string, updates: Partial<TaskWithRelations>) => void
   onTaskDelete?: (taskId: string) => void
-  onQuickAdd: (title: string) => void
+  onQuickAdd: (taskData: TaskQuickAddData) => void
   onReorder?: (taskId: string, newIndex: number, tasks: TaskWithRelations[]) => void
   emptyMessage?: string
   showQuickAdd?: boolean
@@ -286,7 +286,7 @@ export function TaskList({
 
   return (
     <div className="space-y-1" ref={containerRef} onClick={handleContainerClick}>
-      {showQuickAdd && <TaskQuickAdd onAdd={(taskData: TaskQuickAddData) => onQuickAdd(taskData.title)} />}
+      {showQuickAdd && <TaskQuickAdd onAdd={(taskData: TaskQuickAddData) => onQuickAdd(taskData)} />}
 
       {tasks.length === 0 ? (
         emptyMessage ? (

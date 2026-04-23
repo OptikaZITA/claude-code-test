@@ -3,6 +3,7 @@
 import { useCallback, useEffect } from 'react'
 import { TaskWithRelations, TaskStatus, DEFAULT_KANBAN_COLUMNS } from '@/types'
 import { KanbanColumn as KanbanColumnComponent } from './kanban-column'
+import { TaskQuickAddData } from './task-quick-add'
 import { useMultiSelectContext } from '@/lib/contexts/multi-select-context'
 
 interface KanbanBoardProps {
@@ -12,7 +13,7 @@ interface KanbanBoardProps {
   onTaskDelete?: (taskId: string) => void
   onTaskUpdate?: (taskId: string, updates: Partial<TaskWithRelations>) => void
   onTaskClick: (task: TaskWithRelations) => void
-  onQuickAdd: (title: string, status: TaskStatus) => void
+  onQuickAdd: (taskData: TaskQuickAddData, status: TaskStatus) => void
   /** Hide "Dnes" badge (use on Today page where it's redundant) */
   hideToday?: boolean
 }
@@ -110,7 +111,7 @@ export function KanbanBoard({
           onTaskClick={onTaskClick}
           onTaskDelete={onTaskDelete}
           onTaskUpdate={onTaskUpdate}
-          onQuickAdd={(title) => onQuickAdd(title, column.id)}
+          onQuickAdd={(taskData) => onQuickAdd(taskData, column.id)}
           hideToday={hideToday}
           isTaskSelected={isSelected}
           onModifierClick={handleModifierClick}

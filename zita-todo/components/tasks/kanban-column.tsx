@@ -13,7 +13,7 @@ interface KanbanColumnProps {
   onTaskClick: (task: TaskWithRelations) => void
   onTaskDelete?: (taskId: string) => void
   onTaskUpdate?: (taskId: string, updates: Partial<TaskWithRelations>) => void
-  onQuickAdd: (title: string) => void
+  onQuickAdd: (taskData: TaskQuickAddData) => void
   /** Hide "Dnes" badge (use on Today page where it's redundant) */
   hideToday?: boolean
   /** Check if task is selected */
@@ -91,7 +91,7 @@ export function KanbanColumn({
       {/* Quick Add */}
       <div className="p-2">
         <TaskQuickAdd
-          onAdd={(taskData: TaskQuickAddData) => onQuickAdd(taskData.title)}
+          onAdd={(taskData: TaskQuickAddData) => onQuickAdd(taskData)}
           placeholder="+ Pridať úlohu"
           className="w-full"
         />
