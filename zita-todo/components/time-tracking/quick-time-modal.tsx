@@ -77,19 +77,20 @@ export function QuickTimeModal({
     const now = new Date()
     const started = new Date(now.getTime() - selectedMinutes * 60 * 1000)
 
-    try {
-      await createTimeEntry({
-        task_id: taskId,
-        started_at: started.toISOString(),
-        stopped_at: now.toISOString(),
-        mode: 'duration',
-      })
+    const { data: result, error: createErr } = await createTimeEntry({
+      task_id: taskId,
+      started_at: started.toISOString(),
+      stopped_at: now.toISOString(),
+      mode: 'duration',
+    })
 
-      onComplete()
-      onClose()
-    } catch (err) {
-      setError((err as Error).message)
+    if (!result || createErr) {
+      setError(createErr?.message || 'Chyba pri vytváraní záznamu')
+      return
     }
+
+    onComplete()
+    onClose()
   }
 
   const handleOpenManual = () => {

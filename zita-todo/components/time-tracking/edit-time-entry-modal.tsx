@@ -48,7 +48,7 @@ export function EditTimeEntryModal({
 }: EditTimeEntryModalProps) {
   const isEditMode = !!entry
   const { updateTimeEntry, loading: updateLoading } = useUpdateTimeEntry()
-  const { createTimeEntry, loading: createLoading, error: createError } = useCreateTimeEntry()
+  const { createTimeEntry, loading: createLoading } = useCreateTimeEntry()
 
   // Form state
   const [mode, setMode] = useState<TimeInputMode>(defaultMode)
@@ -270,7 +270,7 @@ export function EditTimeEntryModal({
           return
         }
       } else {
-        const result = await createTimeEntry({
+        const { data: createResult, error: createErr } = await createTimeEntry({
           task_id: taskId,
           description: description || undefined,
           started_at,
@@ -278,9 +278,8 @@ export function EditTimeEntryModal({
           mode,
         })
 
-        if (!result) {
-          // Use the actual error message from the hook
-          setError(createError?.message || 'Chyba pri vytváraní. Skúste to znova.')
+        if (!createResult || createErr) {
+          setError(createErr?.message || 'Chyba pri vytváraní. Skúste to znova.')
           return
         }
       }

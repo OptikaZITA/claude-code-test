@@ -38,7 +38,14 @@ export function useUpdateTimeEntry() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Chyba pri aktualizácii')
+        // Build error message — if overlap data is present, format times in local timezone
+        let errorMessage = result.error || 'Chyba pri aktualizácii'
+        if (result.overlap?.started_at && result.overlap?.ended_at) {
+          const overlapStart = new Date(result.overlap.started_at).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
+          const overlapEnd = new Date(result.overlap.ended_at).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
+          errorMessage = `${result.error} (${overlapStart} – ${overlapEnd})`
+        }
+        throw new Error(errorMessage)
       }
 
       return { data: result, error: null }
@@ -90,7 +97,7 @@ export function useCreateTimeEntry() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const createTimeEntry = useCallback(async (data: CreateTimeEntryData): Promise<TimeEntry | null> => {
+  const createTimeEntry = useCallback(async (data: CreateTimeEntryData): Promise<{ data: TimeEntry | null; error: Error | null }> => {
     setLoading(true)
     setError(null)
 
@@ -101,16 +108,24 @@ export function useCreateTimeEntry() {
         body: JSON.stringify(data),
       })
 
+      const result = await response.json()
+
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Chyba pri vytváraní')
+        // Build error message — if overlap data is present, format times in local timezone
+        let errorMessage = result.error || 'Chyba pri vytváraní'
+        if (result.overlap?.started_at && result.overlap?.ended_at) {
+          const overlapStart = new Date(result.overlap.started_at).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
+          const overlapEnd = new Date(result.overlap.ended_at).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
+          errorMessage = `${result.error} (${overlapStart} – ${overlapEnd})`
+        }
+        throw new Error(errorMessage)
       }
 
-      const newEntry = await response.json()
-      return newEntry
+      return { data: result, error: null }
     } catch (err) {
-      setError(err as Error)
-      return null
+      const error = err as Error
+      setError(error)
+      return { data: null, error }
     } finally {
       setLoading(false)
     }

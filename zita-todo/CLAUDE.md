@@ -5,8 +5,8 @@
 ZITA TODO je tímová produktivita aplikácia inšpirovaná Things 3 s Kanban zobrazením, sledovaním času a Toggl-style time trackingom. Určená pre ~20 členný tím s podporou osobnej aj tímovej produktivity.
 
 **Dátum vytvorenia**: 2. januára 2026
-**Posledná aktualizácia**: 10. marca 2026
-**Verzia špecifikácie**: 2.50 (Drag & Drop na Sidebar - Fix)
+**Posledná aktualizácia**: 23. apríla 2026
+**Verzia špecifikácie**: 2.51 (Time Tracking - Definitívny Fix)
 
 ---
 
@@ -1379,6 +1379,14 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
   - [x] `kanban-card.tsx` - Pridané HTML5 drag handlers
   - [x] @dnd-kit + HTML5 kombinácia: reorder v liste + drop na sidebar
 
+### Funkcie v2.51 - VŠETKY DOKONČENÉ ✅
+- [x] **Time Tracking - Definitívny Fix** - Overlap detection + editácia pre všetky roly
+  - [x] **Overlap detection na minútovej presnosti** - `truncateToMinute()` eliminuje false positives zo sekúnd v timer-stopped entries
+  - [x] **Timezone fix v error hláseniach** - API vracia raw ISO timestamps, frontend formatuje v lokálnom timezone používateľa cez `toLocaleTimeString('sk-SK')`
+  - [x] **Create error propagácia** - `useCreateTimeEntry` vracia `{ data, error }` priamo (nie cez React state) — overlap error sa teraz správne zobrazí v modáli
+  - [x] **Všetky callery aktualizované** - `edit-time-entry-modal.tsx`, `quick-time-modal.tsx`
+  - [x] API (PUT/DELETE/POST) používa admin client + ownership check — funguje pre member, hr, strategicka_rada aj admin
+
 ---
 
 ## Známe problémy a riešenia
@@ -1409,6 +1417,13 @@ psql $DATABASE_URL -f supabase-migration-v2.sql
 **Problém:** Filtrovanie podľa tagov v Time Dashboard vracalo vždy 0 záznamov
 **Príčina:** API používalo neexistujúcu tabuľku `item_tags` namiesto skutočnej `task_tags`
 **Riešenie:** Opravené názvy tabuľky a stĺpcov v `app/api/time/report/route.ts`
+
+### 7. Falošný overlap error v time tracking (OPRAVENÉ v2.51)
+**Problém:** Editácia time entry hlásila prekrývanie s iným záznamom, aj keď sa časy zjavne neprekrývali (napr. 09:36 vs 06:59–07:36)
+**Príčina 1:** Timer-stopped entries mali sekundy (napr. `07:36:30`), ale UI zobrazovalo len HH:mm. Porovnanie na plnú presnosť spôsobovalo false positive pri hraničných časoch.
+**Príčina 2:** Error message formatoval časy v serverovom timezone (UTC na Vercel), nie v lokálnom timezone používateľa.
+**Príčina 3:** `useCreateTimeEntry` nastavoval error cez React state (async), takže overlap error sa nikdy nezobrazil v modáli.
+**Riešenie:** Overlap detekcia na minútovej presnosti (`truncateToMinute`), API vracia raw timestamps, frontend formatuje lokálne, hook vracia error priamo.
 
 ---
 

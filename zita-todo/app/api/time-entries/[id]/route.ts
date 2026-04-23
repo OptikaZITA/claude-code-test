@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { format, parseISO } from 'date-fns'
-import { sk } from 'date-fns/locale'
+
+// Truncate a Date to minute precision (zero out seconds and milliseconds)
+function truncateToMinute(date: Date): Date {
+  const d = new Date(date)
+  d.setSeconds(0, 0)
+  return d
+}
 
 // Helper function to check for overlapping time entries
+// Uses minute-precision comparison to avoid false positives from timer seconds
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function checkOverlap(
   client: any,
@@ -13,25 +19,48 @@ async function checkOverlap(
   endedAt: string,
   excludeId?: string
 ): Promise<{ hasOverlap: boolean; overlappingEntry?: { id: string; started_at: string; ended_at: string } }> {
+  // Fetch potential overlapping entries with a 1-minute buffer
+  // to account for seconds in stored timestamps
+  const bufferMs = 60000
+  const queryStart = new Date(new Date(startedAt).getTime() - bufferMs).toISOString()
+  const queryEnd = new Date(new Date(endedAt).getTime() + bufferMs).toISOString()
+
   let query = client
     .from('time_entries')
     .select('id, started_at, ended_at')
     .eq('user_id', userId)
     .is('deleted_at', null)
-    .lt('started_at', endedAt)  // existing start < new end
-    .gt('ended_at', startedAt)  // existing end > new start
+    .lt('started_at', queryEnd)
+    .gt('ended_at', queryStart)
 
   if (excludeId) {
     query = query.neq('id', excludeId)
   }
 
-  const { data, error } = await query.limit(1)
+  const { data, error } = await query.limit(20)
 
   if (error || !data || data.length === 0) {
     return { hasOverlap: false }
   }
 
-  return { hasOverlap: true, overlappingEntry: data[0] }
+  // Check overlap at minute precision in JavaScript
+  // This prevents false positives when timer-stopped entries have seconds
+  // (e.g., ended_at 07:36:30 should NOT overlap with started_at 07:37:00)
+  const newStart = truncateToMinute(new Date(startedAt))
+  const newEnd = truncateToMinute(new Date(endedAt))
+
+  for (const entry of data) {
+    if (!entry.ended_at) continue // skip running timers
+    const entryStart = truncateToMinute(new Date(entry.started_at))
+    const entryEnd = truncateToMinute(new Date(entry.ended_at))
+
+    // Two intervals overlap if: start1 < end2 AND start2 < end1
+    if (newStart < entryEnd && entryStart < newEnd) {
+      return { hasOverlap: true, overlappingEntry: entry }
+    }
+  }
+
+  return { hasOverlap: false }
 }
 
 // PUT /api/time-entries/[id] - Update time entry
@@ -121,10 +150,15 @@ export async function PUT(
       )
 
       if (hasOverlap && overlappingEntry) {
-        const overlapStart = format(parseISO(overlappingEntry.started_at), 'HH:mm', { locale: sk })
-        const overlapEnd = format(parseISO(overlappingEntry.ended_at), 'HH:mm', { locale: sk })
+        // Return raw timestamps so the frontend can format in user's local timezone
         return NextResponse.json(
-          { error: `Časový záznam sa prekrýva s iným záznamom (${overlapStart} – ${overlapEnd})` },
+          {
+            error: 'Časový záznam sa prekrýva s iným záznamom',
+            overlap: {
+              started_at: overlappingEntry.started_at,
+              ended_at: overlappingEntry.ended_at,
+            },
+          },
           { status: 400 }
         )
       }
