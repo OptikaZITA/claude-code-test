@@ -104,6 +104,8 @@ export async function POST(request: NextRequest) {
 
     // Check for overlapping entries only in range mode
     // In duration mode, user only specifies how long they worked, not exact time slot
+    // Overlap is a WARNING (yellow), not a blocking error — entry is still saved
+    let overlapWarning: { started_at: string; ended_at: string } | null = null
     if (mode !== 'duration') {
       const { hasOverlap, overlappingEntry } = await checkOverlapAdmin(
         adminClient,
@@ -113,17 +115,10 @@ export async function POST(request: NextRequest) {
       )
 
       if (hasOverlap && overlappingEntry) {
-        // Return raw timestamps so the frontend can format in user's local timezone
-        return NextResponse.json(
-          {
-            error: 'Časový záznam sa prekrýva s iným záznamom',
-            overlap: {
-              started_at: overlappingEntry.started_at,
-              ended_at: overlappingEntry.ended_at,
-            },
-          },
-          { status: 400 }
-        )
+        overlapWarning = {
+          started_at: overlappingEntry.started_at,
+          ended_at: overlappingEntry.ended_at,
+        }
       }
     }
 
@@ -162,6 +157,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Chyba pri vytváraní záznamu' }, { status: 500 })
     }
 
+    // Return saved data with optional overlap warning
+    if (overlapWarning) {
+      return NextResponse.json({ ...data, _warning: 'overlap', _overlap: overlapWarning }, { status: 201 })
+    }
     return NextResponse.json(data, { status: 201 })
   } catch (error) {
     console.error('POST /api/time-entries error:', error)

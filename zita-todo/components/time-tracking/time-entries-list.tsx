@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { format, parseISO, isToday, isYesterday, startOfDay } from 'date-fns'
 import { sk } from 'date-fns/locale'
 import { Pencil, Trash2, Clock, Plus } from 'lucide-react'
@@ -70,6 +70,7 @@ export function TimeEntriesList({
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null)
   const [deletingEntry, setDeletingEntry] = useState<TimeEntry | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [overlapWarning, setOverlapWarning] = useState<string | null>(null)
 
   const groupedEntries = useMemo(() => groupEntriesByDate(entries), [entries])
 
@@ -85,8 +86,23 @@ export function TimeEntriesList({
     )
   }
 
+  // Auto-dismiss overlap warning after 6 seconds
+  useEffect(() => {
+    if (!overlapWarning) return
+    const timer = setTimeout(() => setOverlapWarning(null), 6000)
+    return () => clearTimeout(timer)
+  }, [overlapWarning])
+
   return (
     <div className={cn('space-y-4', className)}>
+      {/* Overlap warning banner */}
+      {overlapWarning && (
+        <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 flex items-start gap-2">
+          <span className="text-yellow-600 dark:text-yellow-400 text-sm">⚠️ {overlapWarning}</span>
+          <button onClick={() => setOverlapWarning(null)} className="ml-auto text-yellow-600 dark:text-yellow-400 hover:opacity-70 text-sm font-bold">✕</button>
+        </div>
+      )}
+
       {/* Total time */}
       {entries.length > 0 && (
         <div className="text-sm">
@@ -188,6 +204,7 @@ export function TimeEntriesList({
           setShowAddModal(false)
           await onRefresh?.()
         }}
+        onWarning={setOverlapWarning}
       />
 
       {/* Delete dialog */}

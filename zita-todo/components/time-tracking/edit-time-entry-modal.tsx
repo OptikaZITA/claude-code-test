@@ -19,6 +19,7 @@ interface EditTimeEntryModalProps {
   tasks: TaskWithRelations[]
   preselectedTaskId?: string
   onSuccess?: () => void | Promise<void>
+  onWarning?: (message: string) => void
   defaultMode?: TimeInputMode
 }
 
@@ -44,6 +45,7 @@ export function EditTimeEntryModal({
   tasks,
   preselectedTaskId,
   onSuccess,
+  onWarning,
   defaultMode = 'duration',
 }: EditTimeEntryModalProps) {
   const isEditMode = !!entry
@@ -256,8 +258,10 @@ export function EditTimeEntryModal({
     }
 
     try {
+      let warning: string | null = null
+
       if (isEditMode && entry) {
-        const { data: result, error: updateErr } = await updateTimeEntry(entry.id, {
+        const { data: result, error: updateErr, warning: w } = await updateTimeEntry(entry.id, {
           task_id: taskId,
           description: description || undefined,
           started_at,
@@ -269,8 +273,9 @@ export function EditTimeEntryModal({
           setError(updateErr?.message || 'Chyba pri ukladaní. Skúste to znova.')
           return
         }
+        warning = w
       } else {
-        const { data: createResult, error: createErr } = await createTimeEntry({
+        const { data: createResult, error: createErr, warning: w } = await createTimeEntry({
           task_id: taskId,
           description: description || undefined,
           started_at,
@@ -282,11 +287,16 @@ export function EditTimeEntryModal({
           setError(createErr?.message || 'Chyba pri vytváraní. Skúste to znova.')
           return
         }
+        warning = w
       }
 
       // Close modal and notify parent to refresh data
       if (onSuccess) {
         await onSuccess()
+      }
+      // Show overlap warning as yellow toast (non-blocking — entry was saved)
+      if (warning && onWarning) {
+        onWarning(warning)
       }
       onClose()
     } catch (err) {

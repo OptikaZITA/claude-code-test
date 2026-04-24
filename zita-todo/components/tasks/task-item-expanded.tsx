@@ -45,6 +45,7 @@ export function TaskItemExpanded({
   const [showTimeEditModal, setShowTimeEditModal] = useState(false)
   const [editingTimeEntry, setEditingTimeEntry] = useState<TimeEntry | null>(null)
   const [loadingTimeEntry, setLoadingTimeEntry] = useState(false)
+  const [overlapWarning, setOverlapWarning] = useState<string | null>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const notesRef = useRef<HTMLTextAreaElement>(null)
   const priorityButtonRef = useRef<HTMLButtonElement>(null)
@@ -452,6 +453,14 @@ export function TaskItemExpanded({
         onSave={handleRecurrenceSave}
       />
 
+      {/* Overlap warning */}
+      {overlapWarning && (
+        <div className="mx-1 mb-2 p-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 flex items-start gap-2">
+          <span className="text-yellow-600 dark:text-yellow-400 text-xs">⚠️ {overlapWarning}</span>
+          <button onClick={() => setOverlapWarning(null)} className="ml-auto text-yellow-600 dark:text-yellow-400 hover:opacity-70 text-xs font-bold">✕</button>
+        </div>
+      )}
+
       {/* Time Entry Edit Modal */}
       <EditTimeEntryModal
         isOpen={showTimeEditModal}
@@ -463,6 +472,10 @@ export function TaskItemExpanded({
         tasks={[{ ...task, tags: task.tags || [] }]}
         preselectedTaskId={task.id}
         defaultMode="range"
+        onWarning={(msg) => {
+          setOverlapWarning(msg)
+          setTimeout(() => setOverlapWarning(null), 6000)
+        }}
       />
     </div>
   )

@@ -19,12 +19,19 @@ export interface CreateTimeEntryData {
   mode?: 'duration' | 'range'
 }
 
+// Build a localized overlap warning string from raw timestamps
+function formatOverlapWarning(overlap: { started_at: string; ended_at: string }): string {
+  const start = new Date(overlap.started_at).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
+  const end = new Date(overlap.ended_at).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
+  return `Pozor: Časový záznam sa prekrýva s iným záznamom (${start} – ${end})`
+}
+
 // Hook for updating a time entry
 export function useUpdateTimeEntry() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const updateTimeEntry = useCallback(async (id: string, data: UpdateTimeEntryData): Promise<{ data: TimeEntry | null; error: Error | null }> => {
+  const updateTimeEntry = useCallback(async (id: string, data: UpdateTimeEntryData): Promise<{ data: TimeEntry | null; error: Error | null; warning: string | null }> => {
     setLoading(true)
     setError(null)
 
@@ -38,21 +45,19 @@ export function useUpdateTimeEntry() {
       const result = await response.json()
 
       if (!response.ok) {
-        // Build error message — if overlap data is present, format times in local timezone
-        let errorMessage = result.error || 'Chyba pri aktualizácii'
-        if (result.overlap?.started_at && result.overlap?.ended_at) {
-          const overlapStart = new Date(result.overlap.started_at).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
-          const overlapEnd = new Date(result.overlap.ended_at).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
-          errorMessage = `${result.error} (${overlapStart} – ${overlapEnd})`
-        }
-        throw new Error(errorMessage)
+        throw new Error(result.error || 'Chyba pri aktualizácii')
       }
 
-      return { data: result, error: null }
+      // Check for overlap warning (non-blocking — entry was saved)
+      const warning = result._warning === 'overlap' && result._overlap
+        ? formatOverlapWarning(result._overlap)
+        : null
+
+      return { data: result, error: null, warning }
     } catch (err) {
       const error = err as Error
       setError(error)
-      return { data: null, error }
+      return { data: null, error, warning: null }
     } finally {
       setLoading(false)
     }
@@ -97,7 +102,7 @@ export function useCreateTimeEntry() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const createTimeEntry = useCallback(async (data: CreateTimeEntryData): Promise<{ data: TimeEntry | null; error: Error | null }> => {
+  const createTimeEntry = useCallback(async (data: CreateTimeEntryData): Promise<{ data: TimeEntry | null; error: Error | null; warning: string | null }> => {
     setLoading(true)
     setError(null)
 
@@ -111,21 +116,19 @@ export function useCreateTimeEntry() {
       const result = await response.json()
 
       if (!response.ok) {
-        // Build error message — if overlap data is present, format times in local timezone
-        let errorMessage = result.error || 'Chyba pri vytváraní'
-        if (result.overlap?.started_at && result.overlap?.ended_at) {
-          const overlapStart = new Date(result.overlap.started_at).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
-          const overlapEnd = new Date(result.overlap.ended_at).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
-          errorMessage = `${result.error} (${overlapStart} – ${overlapEnd})`
-        }
-        throw new Error(errorMessage)
+        throw new Error(result.error || 'Chyba pri vytváraní')
       }
 
-      return { data: result, error: null }
+      // Check for overlap warning (non-blocking — entry was saved)
+      const warning = result._warning === 'overlap' && result._overlap
+        ? formatOverlapWarning(result._overlap)
+        : null
+
+      return { data: result, error: null, warning }
     } catch (err) {
       const error = err as Error
       setError(error)
-      return { data: null, error }
+      return { data: null, error, warning: null }
     } finally {
       setLoading(false)
     }

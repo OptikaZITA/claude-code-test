@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format, parseISO } from 'date-fns'
 import { sk } from 'date-fns/locale'
 import { Pencil, Trash2, Eye } from 'lucide-react'
@@ -281,6 +281,14 @@ export function TimeDashboardTable({
 }: TimeDashboardTableProps) {
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null)
   const [deletingEntry, setDeletingEntry] = useState<TimeEntry | null>(null)
+  const [overlapWarning, setOverlapWarning] = useState<string | null>(null)
+
+  // Auto-dismiss overlap warning after 6 seconds
+  useEffect(() => {
+    if (!overlapWarning) return
+    const timer = setTimeout(() => setOverlapWarning(null), 6000)
+    return () => clearTimeout(timer)
+  }, [overlapWarning])
 
   // Convert report TimeEntry to component TimeEntry format for modal
   const convertToTimeEntryType = (entry: TimeEntry): TimeEntryType => ({
@@ -300,6 +308,14 @@ export function TimeDashboardTable({
 
   return (
     <div className="rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-primary)] overflow-hidden">
+      {/* Overlap warning banner */}
+      {overlapWarning && (
+        <div className="px-4 py-3 bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-300 dark:border-yellow-700 flex items-start gap-2">
+          <span className="text-yellow-600 dark:text-yellow-400 text-sm">⚠️ {overlapWarning}</span>
+          <button onClick={() => setOverlapWarning(null)} className="ml-auto text-yellow-600 dark:text-yellow-400 hover:opacity-70 text-sm font-bold">✕</button>
+        </div>
+      )}
+
       {/* Header with mode toggle */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-primary)]">
         <h3 className="text-sm font-medium text-[var(--text-primary)]">
@@ -363,6 +379,7 @@ export function TimeDashboardTable({
             setEditingEntry(null)
             await onRefresh?.()
           }}
+          onWarning={setOverlapWarning}
         />
       )}
 
