@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { FolderKanban, Plus, Calendar, AlertTriangle, Trash2, X } from 'lucide-react'
+import { FolderKanban, Plus, Calendar, AlertTriangle, Trash2, X, CheckCircle2 } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { ProjectTaskList } from '@/components/tasks/project-task-list'
@@ -16,6 +16,8 @@ import { TaskDetail } from '@/components/tasks/task-detail'
 import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { QuickTimeModal } from '@/components/time-tracking/quick-time-modal'
 import { DeleteProjectModal } from '@/components/projects/delete-project-modal'
+import { CloseProjectModal } from '@/components/projects/close-project-modal'
+import { useCloseProject } from '@/lib/hooks/use-projects'
 import { useProject, useProjectTasks } from '@/lib/hooks/use-projects'
 import { useAreas } from '@/lib/hooks/use-areas'
 import { useTags } from '@/lib/hooks/use-tags'
@@ -60,7 +62,23 @@ export default function ProjectPage() {
 
   // State for modals
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showCloseModal, setShowCloseModal] = useState(false)
   const [pendingCompleteTask, setPendingCompleteTask] = useState<TaskWithRelations | null>(null)
+  const { reopenProject, loading: reopenLoading } = useCloseProject()
+
+  const isClosed = project?.status === 'completed'
+  const activeTasksForClose = useMemo(
+    () => tasks.filter(t => t.status !== 'done' && !t.deleted_at),
+    [tasks]
+  )
+
+  const handleReopen = async () => {
+    if (!project) return
+    const ok = await reopenProject(project.id)
+    if (ok) {
+      setProject(prev => prev ? { ...prev, status: 'active', completed_at: null } : prev)
+    }
+  }
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -587,6 +605,23 @@ export default function ProjectPage() {
               )}
             </div>
             <div className="flex items-center gap-2">
+              {isClosed ? (
+                <Button
+                  variant="secondary"
+                  onClick={handleReopen}
+                  disabled={reopenLoading}
+                >
+                  {reopenLoading ? 'Otváram...' : 'Znova otvoriť'}
+                </Button>
+              ) : (
+                <button
+                  onClick={() => setShowCloseModal(true)}
+                  className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--color-success)] hover:bg-[var(--color-success)]/10 transition-colors"
+                  title="Uzavrieť projekt"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                </button>
+              )}
               <button
                 onClick={() => setShowDeleteModal(true)}
                 className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors"
@@ -683,6 +718,20 @@ export default function ProjectPage() {
             router.push(areaId ? `/areas/${areaId}` : '/today')
           }}
           project={{ id: project.id, name: project.name }}
+        />
+      )}
+
+      {/* Close Project Modal */}
+      {project && (
+        <CloseProjectModal
+          isOpen={showCloseModal}
+          onClose={() => setShowCloseModal(false)}
+          onSuccess={() => {
+            setProject(prev => prev ? { ...prev, status: 'completed', completed_at: new Date().toISOString() } : prev)
+            refetchTasks()
+          }}
+          project={{ id: project.id, name: project.name }}
+          activeTasks={activeTasksForClose}
         />
       )}
     </div>

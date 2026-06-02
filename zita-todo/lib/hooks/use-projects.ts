@@ -110,6 +110,184 @@ export function useProjectTasks(projectId: string, assigneeFilter?: AssigneeFilt
   return { tasks, setTasks, loading, error, refetch: fetchTasks }
 }
 
+export type CloseProjectTaskAction = 'complete' | 'inbox' | 'trash'
+
+/**
+ * Hook for closing a project and handling its active tasks
+ */
+export function useCloseProject() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+  const supabase = createClient()
+
+  const closeProject = useCallback(async (
+    projectId: string,
+    taskDecisions: Record<string, CloseProjectTaskAction>,
+  ): Promise<boolean> => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const nowISO = new Date().toISOString()
+
+      // 1. Process active tasks based on user choice
+      const taskIds = Object.keys(taskDecisions)
+      if (taskIds.length > 0) {
+        const completeIds: string[] = []
+        const inboxIds: string[] = []
+        const trashIds: string[] = []
+
+        for (const taskId of taskIds) {
+          const action = taskDecisions[taskId]
+          if (action === 'complete') completeIds.push(taskId)
+          else if (action === 'inbox') inboxIds.push(taskId)
+          else if (action === 'trash') trashIds.push(taskId)
+        }
+
+        if (completeIds.length > 0) {
+          const { error: completeError } = await supabase
+            .from('tasks')
+            .update({
+              status: 'done',
+              completed_at: nowISO,
+              when_type: null,
+              added_to_today_at: null,
+            })
+            .in('id', completeIds)
+          if (completeError) throw completeError
+        }
+
+        if (inboxIds.length > 0) {
+          const { error: inboxError } = await supabase
+            .from('tasks')
+            .update({
+              project_id: null,
+              area_id: null,
+              when_type: 'inbox',
+              is_inbox: true,
+              inbox_type: 'personal',
+            })
+            .in('id', inboxIds)
+          if (inboxError) throw inboxError
+        }
+
+        if (trashIds.length > 0) {
+          const { error: trashError } = await supabase
+            .from('tasks')
+            .update({ deleted_at: nowISO })
+            .in('id', trashIds)
+          if (trashError) throw trashError
+        }
+      }
+
+      // 2. Close the project
+      const { error: projectError } = await supabase
+        .from('projects')
+        .update({
+          status: 'completed',
+          completed_at: nowISO,
+          updated_at: nowISO,
+        })
+        .eq('id', projectId)
+
+      if (projectError) throw projectError
+
+      // 3. Emit refresh event for sidebar counters and other views
+      window.dispatchEvent(new CustomEvent('task:moved'))
+
+      return true
+    } catch (err) {
+      console.error('Error closing project:', err)
+      setError(err as Error)
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase])
+
+  const reopenProject = useCallback(async (projectId: string): Promise<boolean> => {
+    setLoading(true)
+    setError(null)
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          status: 'active',
+          completed_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', projectId)
+
+      if (error) throw error
+      window.dispatchEvent(new CustomEvent('task:moved'))
+      return true
+    } catch (err) {
+      console.error('Error reopening project:', err)
+      setError(err as Error)
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase])
+
+  return { closeProject, reopenProject, loading, error }
+}
+
+/**
+ * Hook for fetching completed (closed) projects, optionally scoped to an area
+ */
+export function useCompletedProjects(areaId?: string) {
+  const [projects, setProjects] = useState<Array<{
+    id: string
+    name: string
+    color: string | null
+    completed_at: string | null
+    area_id: string | null
+    area?: { id: string; name: string; color: string | null } | null
+  }>>([])
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
+
+  const fetchProjects = useCallback(async () => {
+    try {
+      setLoading(true)
+      let query = supabase
+        .from('projects')
+        .select(`
+          id,
+          name,
+          color,
+          completed_at,
+          area_id,
+          area:areas(id, name, color)
+        `)
+        .eq('status', 'completed')
+        .is('deleted_at', null)
+
+      if (areaId) {
+        query = query.eq('area_id', areaId)
+      }
+
+      const { data, error } = await query
+        .order('completed_at', { ascending: false })
+        .limit(100)
+
+      if (error) throw error
+      setProjects((data || []) as any)
+    } catch (err) {
+      console.error('Error fetching completed projects:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase, areaId])
+
+  useEffect(() => {
+    fetchProjects()
+  }, [fetchProjects])
+
+  return { projects, loading, refetch: fetchProjects }
+}
+
 /**
  * Hook for deleting a project (soft delete)
  */

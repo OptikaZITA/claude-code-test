@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { CheckCircle2 } from 'lucide-react'
+import Link from 'next/link'
+import { CheckCircle2, FolderCheck } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { TaskDetail } from '@/components/tasks/task-detail'
 import { TaskItem } from '@/components/tasks/task-item'
 import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { useLogbookTasks, useTasks } from '@/lib/hooks/use-tasks'
+import { useCompletedProjects, useCloseProject } from '@/lib/hooks/use-projects'
 import { useCurrentUser } from '@/lib/hooks/use-user-departments'
 import { useTaskMoved } from '@/lib/hooks/use-task-moved'
 import { useTaskFilters, filterTasks } from '@/lib/hooks/use-task-filters'
@@ -29,6 +31,13 @@ export default function LogbookPage() {
   const { areas } = useAreas()
   const { tags: allTags } = useTags()
   const { users: organizationUsers } = useOrganizationUsers()
+  const { projects: closedProjects, refetch: refetchClosedProjects } = useCompletedProjects()
+  const { reopenProject } = useCloseProject()
+
+  const handleReopenProject = async (projectId: string) => {
+    const ok = await reopenProject(projectId)
+    if (ok) refetchClosedProjects()
+  }
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -218,7 +227,7 @@ export default function LogbookPage() {
         </div>
 
         {/* Tasks grouped by time period */}
-        {tagFilteredTasks.length === 0 && tasks.length === 0 ? (
+        {tagFilteredTasks.length === 0 && tasks.length === 0 && closedProjects.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <CheckCircle2 className="mb-4 h-12 w-12 text-muted-foreground" />
             <p className="mb-2 text-lg font-medium text-foreground">
@@ -228,7 +237,7 @@ export default function LogbookPage() {
               Dokončené úlohy sa zobrazia tu
             </p>
           </div>
-        ) : tagFilteredTasks.length === 0 && (hasActiveFilters || selectedTag) ? (
+        ) : tagFilteredTasks.length === 0 && closedProjects.length === 0 && (hasActiveFilters || selectedTag) ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <CheckCircle2 className="mb-4 h-12 w-12 text-muted-foreground" />
             <p className="mb-2 text-lg font-medium text-foreground">Žiadne úlohy nezodpovedajú filtrom</p>
@@ -241,6 +250,45 @@ export default function LogbookPage() {
           </div>
         ) : (
           <>
+            {closedProjects.length > 0 && (
+              <div className="mb-6">
+                <h3 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Uzavreté projekty
+                </h3>
+                <div className="space-y-2">
+                  {closedProjects.map(project => (
+                    <div
+                      key={project.id}
+                      className="flex items-center gap-2 p-2 bg-muted/30 rounded group/closed-proj"
+                    >
+                      <FolderCheck className="h-4 w-4 text-[var(--color-success)] shrink-0" />
+                      <Link
+                        href={`/projects/${project.id}`}
+                        className="font-medium text-sm text-foreground hover:underline"
+                      >
+                        {project.name}
+                      </Link>
+                      {project.area?.name && (
+                        <span className="text-xs text-muted-foreground">
+                          {project.area.name}
+                        </span>
+                      )}
+                      {project.completed_at && (
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(project.completed_at).toLocaleDateString('sk-SK')}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => handleReopenProject(project.id)}
+                        className="ml-auto text-xs text-primary hover:underline opacity-0 group-hover/closed-proj:opacity-100 transition-opacity"
+                      >
+                        Znova otvoriť
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {renderGroup('Dnes', groupedTasks.today)}
             {renderGroup('Včera', groupedTasks.yesterday)}
             {renderGroup('Tento týždeň', groupedTasks.thisWeek)}

@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Layers, FolderKanban, Star, FolderPlus, Plus, ChevronRight, Trash2, GripVertical } from 'lucide-react'
+import { Layers, FolderKanban, Star, FolderPlus, Plus, ChevronRight, Trash2, GripVertical, CheckCircle2 } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -32,6 +32,8 @@ import { TaskDetail } from '@/components/tasks/task-detail'
 import { UnifiedFilterBar, CascadingFilterBar } from '@/components/filters'
 import { ProjectFormModal } from '@/components/projects/project-form-modal'
 import { DeleteProjectModal } from '@/components/projects/delete-project-modal'
+import { CloseProjectModal } from '@/components/projects/close-project-modal'
+import { useCloseProject } from '@/lib/hooks/use-projects'
 import { QuickTimeModal } from '@/components/time-tracking/quick-time-modal'
 import { arrayMove } from '@dnd-kit/sortable'
 import { createClient } from '@/lib/supabase/client'
@@ -59,6 +61,7 @@ interface ProjectSectionProps {
   onTaskDelete: (taskId: string) => void
   onQuickAdd: (taskData: TaskQuickAddData, projectId: string) => void
   onProjectDelete: (project: Project) => void
+  onProjectClose: (project: Project) => void
   onExpand: () => void
   onTaskReorder?: (taskId: string, newIndex: number, tasks: TaskWithRelations[]) => void
   dragHandleProps?: Record<string, any>
@@ -75,6 +78,7 @@ function ProjectSection({
   onTaskDelete,
   onQuickAdd,
   onProjectDelete,
+  onProjectClose,
   onExpand,
   onTaskReorder,
   dragHandleProps,
@@ -157,6 +161,14 @@ function ProjectSection({
         >
           <Plus className="h-4 w-4" />
         </button>
+        {/* Close project button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onProjectClose(project) }}
+          className="p-1 rounded text-[var(--text-secondary)] hover:text-[var(--color-success)] hover:bg-[var(--color-success)]/10 transition-colors opacity-0 group-hover/project:opacity-100"
+          title="Uzavrieť projekt"
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" />
+        </button>
         {/* Delete project button */}
         <button
           onClick={(e) => { e.stopPropagation(); onProjectDelete(project) }}
@@ -238,6 +250,9 @@ export default function AreaDetailPage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
   const [showProjectModal, setShowProjectModal] = useState(false)
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null)
+  const [projectToClose, setProjectToClose] = useState<Project | null>(null)
+  const [showCompleted, setShowCompleted] = useState(false)
+  const { reopenProject } = useCloseProject()
   const inlineFormRef = useRef<TaskQuickAddHandle>(null)
   const looseTasksQuickAddRef = useRef<TaskQuickAddHandle>(null)
   const { areas } = useAreas()
@@ -316,6 +331,34 @@ export default function AreaDetailPage() {
   const activeProjects = useMemo(() => {
     return projects.filter(p => p.status === 'active')
   }, [projects])
+
+  // Completed (closed) projects
+  const completedProjects = useMemo(() => {
+    return projects
+      .filter(p => p.status === 'completed')
+      .sort((a, b) => {
+        const aDate = a.completed_at ? new Date(a.completed_at).getTime() : 0
+        const bDate = b.completed_at ? new Date(b.completed_at).getTime() : 0
+        return bDate - aDate
+      })
+  }, [projects])
+
+  // Active tasks for the project about to be closed (used in modal)
+  const closeModalActiveTasks = useMemo(() => {
+    if (!projectToClose) return []
+    return tasks.filter(t =>
+      t.project_id === projectToClose.id &&
+      t.status !== 'done' &&
+      !t.deleted_at
+    )
+  }, [projectToClose, tasks])
+
+  const handleReopenProject = async (projectId: string) => {
+    const ok = await reopenProject(projectId)
+    if (ok) {
+      refetchProjects()
+    }
+  }
 
   // Initialize expanded projects: all projects collapsed by default
   const resolvedExpandedProjects = useMemo(() => {
@@ -786,6 +829,7 @@ export default function AreaDetailPage() {
                 onTaskDelete={handleTaskDelete}
                 onQuickAdd={handleProjectQuickAdd}
                 onProjectDelete={setProjectToDelete}
+                onProjectClose={setProjectToClose}
                 onTaskReorder={handleTaskReorder}
                 onExpand={() => {
                   setExpandedProjects(prev => {
@@ -798,6 +842,54 @@ export default function AreaDetailPage() {
               />
             )
           })}
+
+          {/* Completed (closed) projects - collapsible */}
+          {completedProjects.length > 0 && (
+            <div className="mt-6 border-t border-[var(--border)]/50 pt-3">
+              <button
+                onClick={() => setShowCompleted(prev => !prev)}
+                className="flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                <ChevronRight
+                  className={cn(
+                    "h-4 w-4 transition-transform",
+                    showCompleted && "rotate-90"
+                  )}
+                />
+                Dokončené projekty ({completedProjects.length})
+              </button>
+
+              {showCompleted && (
+                <div className="mt-2 space-y-2">
+                  {completedProjects.map(project => (
+                    <div
+                      key={project.id}
+                      className="flex items-center gap-2 group/closed py-1"
+                    >
+                      <CheckCircle2 className="h-4 w-4 text-[var(--color-success)] shrink-0" />
+                      <Link
+                        href={`/projects/${project.id}`}
+                        className="text-sm line-through text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                      >
+                        {project.name}
+                      </Link>
+                      {project.completed_at && (
+                        <span className="text-xs text-[var(--text-secondary)]">
+                          Uzavretý {new Date(project.completed_at).toLocaleDateString('sk-SK')}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => handleReopenProject(project.id)}
+                        className="ml-auto text-xs text-[var(--color-primary)] hover:underline opacity-0 group-hover/closed:opacity-100 transition-opacity"
+                      >
+                        Znova otvoriť
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Loose tasks (directly in area, no project) + orphan tasks (project not in this area) */}
           {(looseTasks.length > 0 || orphanTasks.length > 0) && (
@@ -913,6 +1005,20 @@ export default function AreaDetailPage() {
             refetchTasks()
           }}
           project={{ id: projectToDelete.id, name: projectToDelete.name }}
+        />
+      )}
+
+      {/* Close Project Modal */}
+      {projectToClose && (
+        <CloseProjectModal
+          isOpen={!!projectToClose}
+          onClose={() => setProjectToClose(null)}
+          onSuccess={() => {
+            refetchProjects()
+            refetchTasks()
+          }}
+          project={{ id: projectToClose.id, name: projectToClose.name }}
+          activeTasks={closeModalActiveTasks}
         />
       )}
 
