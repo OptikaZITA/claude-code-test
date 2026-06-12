@@ -79,6 +79,7 @@ export default function InboxPage() {
         project_id: null, // Inbox = no project
         assignee_id: taskData.assignee_id,
         deadline: null, // Inbox = no deadline
+        tag_ids: taskData.tag_ids,
       })
       refetch()
     } catch (error) {

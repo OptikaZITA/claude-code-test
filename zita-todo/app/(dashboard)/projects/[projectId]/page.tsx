@@ -111,6 +111,7 @@ export default function ProjectPage() {
         when_date: taskData.when_date,
         status: 'backlog', // Nové úlohy v projekte začínajú v Backlog
         is_inbox: false,
+        tag_ids: taskData.tag_ids,
       })
       refetchTasks()
     } catch (error) {

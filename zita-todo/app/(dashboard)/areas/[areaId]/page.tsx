@@ -444,6 +444,7 @@ export default function AreaDetailPage() {
         when_type: taskData.when_type || 'anytime',
         when_date: taskData.when_date,
         is_inbox: false,
+        tag_ids: taskData.tag_ids,
       })
       refetchTasks()
     } catch (error) {
@@ -464,6 +465,7 @@ export default function AreaDetailPage() {
         when_type: taskData.when_type || 'anytime',
         when_date: taskData.when_date,
         is_inbox: false,
+        tag_ids: taskData.tag_ids,
       })
       refetchTasks()
     } catch (error) {

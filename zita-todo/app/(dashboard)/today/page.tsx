@@ -108,6 +108,7 @@ export default function TodayPage() {
         project_id: taskData.project_id,
         assignee_id: taskData.assignee_id,
         deadline: taskData.deadline || todayDate, // Default to today
+        tag_ids: taskData.tag_ids,
       })
       console.log('[TodayPage] createTask completed, calling refetch')
       refetch()

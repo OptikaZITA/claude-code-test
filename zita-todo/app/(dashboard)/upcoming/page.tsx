@@ -114,6 +114,7 @@ export default function UpcomingPage() {
         project_id: taskData.project_id,
         assignee_id: taskData.assignee_id,
         deadline: deadline,
+        tag_ids: taskData.tag_ids,
       })
       refetch()
     } catch (error) {

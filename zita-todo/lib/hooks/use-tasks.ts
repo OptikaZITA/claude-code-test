@@ -95,7 +95,7 @@ export function useTasks() {
     fetchTasks()
   }, [fetchTasks])
 
-  const createTask = async (task: Partial<Task>) => {
+  const createTask = async (task: Partial<Task> & { tag_ids?: string[] }) => {
     console.log('[useTasks.createTask] START:', task)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -104,10 +104,13 @@ export function useTasks() {
     }
     console.log('[useTasks.createTask] User:', user.id)
 
-    const whenType = task.when_type || 'inbox'
+    // Separate tag_ids (not a column on tasks) from the task payload
+    const { tag_ids, ...taskPayload } = task
+
+    const whenType = taskPayload.when_type || 'inbox'
 
     // Get user's organization_id if not provided
-    let organizationId = task.organization_id
+    let organizationId = taskPayload.organization_id
     if (!organizationId) {
       const { data: userData } = await supabase
         .from('users')
@@ -130,33 +133,33 @@ export function useTasks() {
     const newSortOrder = minSortOrder - 1
 
     // Auto-set area_id from project if project_id is provided but area_id is not
-    let areaId = task.area_id
-    if (task.project_id && !areaId) {
+    let areaId = taskPayload.area_id
+    if (taskPayload.project_id && !areaId) {
       const { data: projectData } = await supabase
         .from('projects')
         .select('area_id')
-        .eq('id', task.project_id)
+        .eq('id', taskPayload.project_id)
         .single()
       areaId = projectData?.area_id ?? null
     }
 
     // Auto-assign: Tímový Inbox → null, ostatné → current user (ak nie je špecifikované)
-    const autoAssigneeId = task.assignee_id !== undefined
-      ? task.assignee_id
-      : task.inbox_type === 'team'
+    const autoAssigneeId = taskPayload.assignee_id !== undefined
+      ? taskPayload.assignee_id
+      : taskPayload.inbox_type === 'team'
         ? null
         : user.id
 
     const { data, error } = await supabase
       .from('tasks')
       .insert({
-        ...task,
+        ...taskPayload,
         created_by: user.id,
         organization_id: organizationId,
         assignee_id: autoAssigneeId,
-        inbox_user_id: task.inbox_type === 'personal' ? user.id : null,
+        inbox_user_id: taskPayload.inbox_type === 'personal' ? user.id : null,
         when_type: whenType,
-        is_inbox: task.is_inbox !== undefined ? task.is_inbox : (!task.project_id && !areaId),
+        is_inbox: taskPayload.is_inbox !== undefined ? taskPayload.is_inbox : (!taskPayload.project_id && !areaId),
         // Auto-set area_id from project if not provided
         area_id: areaId,
         // Auto-set added_to_today_at when creating task in 'today'
@@ -172,24 +175,83 @@ export function useTasks() {
       throw error
     }
     console.log('[useTasks.createTask] SUCCESS, task created:', data)
+
+    // Persist tag assignments to task_tags (M:N join table)
+    if (tag_ids && tag_ids.length > 0 && data?.id) {
+      const taskTagRows = tag_ids.map(tagId => ({
+        task_id: data.id,
+        tag_id: tagId,
+      }))
+      const { error: tagError } = await supabase
+        .from('task_tags')
+        .insert(taskTagRows)
+      if (tagError) {
+        console.error('[useTasks.createTask] Tag assignment ERROR:', tagError)
+      }
+    }
+
     await fetchTasks()
     return data
   }
 
-  const updateTask = async (taskId: string, updates: Partial<Task>) => {
+  const updateTask = async (taskId: string, updates: Partial<TaskWithRelations> & { tag_ids?: string[] }) => {
     console.log('[useTasks.updateTask] START:', { taskId, updates })
 
+    // Strip relation-only fields that are not columns on `tasks` table.
+    // These are joined via select() and would cause Supabase to reject the update.
+    const {
+      tags,
+      tag_ids,
+      project,
+      area,
+      assignee,
+      heading,
+      creator,
+      time_entries,
+      ...columnUpdates
+    } = updates as Partial<TaskWithRelations> & { tag_ids?: string[] }
+
     // Auto-set added_to_today_at when task moves to 'today'
-    const finalUpdates = { ...updates }
-    if (updates.when_type === 'today' && !updates.added_to_today_at) {
+    const finalUpdates: Partial<Task> = { ...columnUpdates }
+    if (columnUpdates.when_type === 'today' && !columnUpdates.added_to_today_at) {
       finalUpdates.added_to_today_at = new Date().toISOString()
     }
     // Clear added_to_today_at when task moves away from 'today'
-    if (updates.when_type && updates.when_type !== 'today') {
+    if (columnUpdates.when_type && columnUpdates.when_type !== 'today') {
       finalUpdates.added_to_today_at = null
     }
 
     console.log('[useTasks.updateTask] Calling Supabase with:', finalUpdates)
+
+    // Sync task_tags if caller provided tags or tag_ids (replace-all semantics)
+    if (tag_ids !== undefined || tags !== undefined) {
+      const nextTagIds = tag_ids !== undefined
+        ? tag_ids
+        : (tags || []).map(t => t.id)
+
+      const { error: deleteError } = await supabase
+        .from('task_tags')
+        .delete()
+        .eq('task_id', taskId)
+      if (deleteError) {
+        console.error('[useTasks.updateTask] Failed to clear task_tags:', deleteError)
+      }
+
+      if (nextTagIds.length > 0) {
+        const { error: insertError } = await supabase
+          .from('task_tags')
+          .insert(nextTagIds.map(tagId => ({ task_id: taskId, tag_id: tagId })))
+        if (insertError) {
+          console.error('[useTasks.updateTask] Failed to insert task_tags:', insertError)
+        }
+      }
+    }
+
+    // If only relation-only fields changed, skip the tasks update entirely.
+    if (Object.keys(finalUpdates).length === 0) {
+      await fetchTasks()
+      return null
+    }
 
     const { data, error } = await supabase
       .from('tasks')
