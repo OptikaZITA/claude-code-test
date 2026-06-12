@@ -187,6 +187,7 @@ export function useTasks() {
         .insert(taskTagRows)
       if (tagError) {
         console.error('[useTasks.createTask] Tag assignment ERROR:', tagError)
+        throw tagError
       }
     }
 

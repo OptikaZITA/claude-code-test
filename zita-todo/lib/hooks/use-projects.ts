@@ -120,6 +120,11 @@ export function useCloseProject() {
   const [error, setError] = useState<Error | null>(null)
   const supabase = createClient()
 
+  // NOTE: This is not a single DB transaction — task batches and the project
+  // update run as separate Supabase calls. On the first failure we abort and
+  // the project is left open, but a failure between batches can leave tasks
+  // partially processed. Acceptable for now; would need a Postgres RPC to be
+  // fully atomic.
   const closeProject = useCallback(async (
     projectId: string,
     taskDecisions: Record<string, CloseProjectTaskAction>,
@@ -233,18 +238,20 @@ export function useCloseProject() {
   return { closeProject, reopenProject, loading, error }
 }
 
+export interface CompletedProjectSummary {
+  id: string
+  name: string
+  color: string | null
+  completed_at: string | null
+  area_id: string | null
+  area?: { id: string; name: string; color: string | null } | null
+}
+
 /**
  * Hook for fetching completed (closed) projects, optionally scoped to an area
  */
 export function useCompletedProjects(areaId?: string) {
-  const [projects, setProjects] = useState<Array<{
-    id: string
-    name: string
-    color: string | null
-    completed_at: string | null
-    area_id: string | null
-    area?: { id: string; name: string; color: string | null } | null
-  }>>([])
+  const [projects, setProjects] = useState<CompletedProjectSummary[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
@@ -273,7 +280,21 @@ export function useCompletedProjects(areaId?: string) {
         .limit(100)
 
       if (error) throw error
-      setProjects((data || []) as any)
+
+      // Supabase returns area as array for joined relations; normalize to single object.
+      const normalized: CompletedProjectSummary[] = (data || []).map(row => {
+        const rawArea = (row as { area?: unknown }).area
+        const area = Array.isArray(rawArea) ? rawArea[0] ?? null : rawArea ?? null
+        return {
+          id: row.id as string,
+          name: row.name as string,
+          color: (row.color as string | null) ?? null,
+          completed_at: (row.completed_at as string | null) ?? null,
+          area_id: (row.area_id as string | null) ?? null,
+          area: area as CompletedProjectSummary['area'],
+        }
+      })
+      setProjects(normalized)
     } catch (err) {
       console.error('Error fetching completed projects:', err)
     } finally {
