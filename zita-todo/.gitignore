@@ -43,3 +43,7 @@ next-env.d.ts
 # claude code
 .claude/
 .mcp.json
+
+# cursor / specstory session transcripts (may contain secrets, paths, PII)
+.specstory/
+.cursorindexingignore
